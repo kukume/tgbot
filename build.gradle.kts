@@ -25,7 +25,6 @@ dependencies {
     implementation("org.telegram:telegrambots:6.1.0")
     implementation("org.telegram:telegrambots-abilities:6.1.0")
     implementation("me.kuku:utils-jackson:0.0.6")
-    implementation("com.h2database:h2:2.1.214")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
 }
 
