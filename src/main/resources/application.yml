@@ -1,0 +1,20 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost/tg
+      auto-index-creation: true
+
+
+kuku:
+  telegram:
+    token:
+    username: kuku
+    creatorId:
+    proxyHost:
+    proxyPort: 0
+    proxyType: NO_PROXY
+
+
+logging:
+  level:
+    org.telegram: debug
