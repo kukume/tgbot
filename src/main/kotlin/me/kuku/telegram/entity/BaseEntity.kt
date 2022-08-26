@@ -13,3 +13,7 @@ open class BaseEntity {
     @LastModifiedDate
     var updateTime: LocalDateTime = LocalDateTime.now()
 }
+
+enum class Status {
+    OFF, ON
+}

@@ -1,0 +1,48 @@
+package me.kuku.telegram.entity
+
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.mapping.Document
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+
+@Document
+class NetEaseEntity {
+    @Id
+    var id: String? = null
+    var tgId: Long = 0
+    var musicU: String = ""
+    var csrf: String = ""
+    var sign: Status = Status.OFF
+    var musicianSign: Status = Status.OFF
+
+    fun cookie() = "os=pc; osver=Microsoft-Windows-10-Professional-build-10586-64bit; appver=2.0.3.131777; channel=netease; __remember_me=true; MUSIC_U=$musicU; __csrf=$csrf; "
+}
+
+interface NetEaseRepository: ReactiveMongoRepository<NetEaseEntity, String> {
+
+    fun findByTgId(tgId: Long): Mono<NetEaseEntity>
+
+    fun findBySign(sign: Status): Flux<NetEaseEntity>
+
+    fun findByMusicianSign(musicianSign: Status): Flux<NetEaseEntity>
+
+}
+
+@Service
+class NetEaseService(
+    private val netEaseRepository: NetEaseRepository
+) {
+
+    suspend fun findByTgId(tgId: Long) = netEaseRepository.findByTgId(tgId).awaitSingleOrNull()
+
+    suspend fun findBySign(sign: Status): List<NetEaseEntity> = netEaseRepository.findBySign(sign).collectList().awaitSingle()
+
+    suspend fun findByMusicianSign(musicianSign: Status): List<NetEaseEntity> = netEaseRepository.findByMusicianSign(musicianSign).collectList().awaitSingle()
+
+    suspend fun save(netEaseEntity: NetEaseEntity): NetEaseEntity = netEaseRepository.save(netEaseEntity).awaitSingle()
+
+}
