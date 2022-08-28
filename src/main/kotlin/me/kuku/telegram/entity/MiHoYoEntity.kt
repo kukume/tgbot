@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-@Document
+@Document("mi_ho_yo")
 class MiHoYoEntity {
     @Id
     var id: String? = null
@@ -31,10 +31,12 @@ class MiHoYoService(
     private val miHoYoRepository: MiHoYoRepository
 ) {
 
-    suspend fun finByTgId(tgId: Long) = miHoYoRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = miHoYoRepository.findByTgId(tgId).awaitSingleOrNull()
 
     suspend fun findBySign(sign: Status): List<MiHoYoEntity> = miHoYoRepository.findBySign(sign).collectList().awaitSingle()
 
     suspend fun save(miHoYoEntity: MiHoYoEntity): MiHoYoEntity = miHoYoRepository.save(miHoYoEntity).awaitSingle()
+
+    suspend fun findAll(): List<MiHoYoEntity> = miHoYoRepository.findAll().collectList().awaitSingle()
 
 }

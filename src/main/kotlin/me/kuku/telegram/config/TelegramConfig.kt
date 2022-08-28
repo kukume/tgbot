@@ -1,5 +1,6 @@
 package me.kuku.telegram.config
 
+import me.kuku.telegram.utils.context
 import me.kuku.telegram.utils.db
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -9,10 +10,13 @@ import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
 import org.telegram.abilitybots.api.bot.AbilityBot
+import org.telegram.abilitybots.api.bot.BaseAbilityBot
+import org.telegram.abilitybots.api.objects.MessageContext
 import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.DefaultBotOptions.ProxyType
 import org.telegram.telegrambots.meta.TelegramBotsApi
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
 
@@ -30,6 +34,7 @@ class TelegramBean(
             botOptions.proxyPort = telegramConfig.proxyPort
             botOptions.proxyType = telegramConfig.proxyType
         }
+        context = applicationContext
         return TelegramBot(telegramConfig.token, telegramConfig.username, telegramConfig.creatorId, botOptions, applicationContext).also {
             db = it.db()
         }
@@ -45,6 +50,12 @@ class ApplicationStart(
 ): ApplicationListener<ApplicationReadyEvent> {
 
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
+
+        fun interfaces(clazz: Class<*>, list: MutableList<Class<*>>) {
+            list.addAll(clazz.interfaces)
+            if (clazz.superclass != null && clazz.superclass != Any::class.java) interfaces(clazz.superclass, list)
+        }
+
         if (telegramConfig.token.isNotEmpty()) {
             val names = applicationContext.beanDefinitionNames
             val clazzList = mutableListOf<Class<*>>()
@@ -54,7 +65,8 @@ class ApplicationStart(
                 }
             }
             for (clazz in clazzList) {
-                clazz.interfaces.takeIf { it.contains(AbilityExtension::class.java) }?.let {
+                mutableListOf<Class<*>>()
+                    .also { interfaces(clazz, it) }.takeIf { it.contains(AbilityExtension::class.java) }?.let {
                     val ob = applicationContext.getBean(clazz) as? AbilityExtension
                     ob?.apply {
                         telegramBot.addExtension(this)
@@ -84,6 +96,12 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
 }
 
 class TelegramUpdateEvent(val update: Update): ApplicationEvent(update)
+
+class TelegramAbilityExceptionEvent(val messageContext: MessageContext, val ex: Throwable): ApplicationEvent(messageContext)
+
+class TelegramCallbackExceptionEvent(val bot: BaseAbilityBot, val query: CallbackQuery, val ex: Throwable): ApplicationEvent(query)
+
+class TelegramReplyExceptionEvent(val bot: BaseAbilityBot, val update: Update, val ex: Throwable): ApplicationEvent(update)
 
 @Component
 @ConfigurationProperties(prefix = "kuku.telegram")

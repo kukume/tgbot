@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-@Document
+@Document("bili_bili")
 class BiliBiliEntity {
     @Id
     var id: String? = null
@@ -20,7 +20,7 @@ class BiliBiliEntity {
     var push: Status = Status.OFF
     var sign: Status = Status.OFF
     var live: Status = Status.OFF
-    var coin: Status = Status.OFF
+//    var coin: Status = Status.OFF
 }
 
 interface BiliBiliRepository: ReactiveMongoRepository<BiliBiliEntity, String> {
@@ -49,5 +49,7 @@ class BiliBiliService(
     suspend fun findByLive(live: Status): List<BiliBiliEntity> = biliBiliRepository.findByLive(live).collectList().awaitSingle()
 
     suspend fun save(biliEntity: BiliBiliEntity) = biliBiliRepository.save(biliEntity).awaitSingleOrNull()
+
+    suspend fun findAll(): List<BiliBiliEntity> = biliBiliRepository.findAll().collectList().awaitSingle()
 
 }

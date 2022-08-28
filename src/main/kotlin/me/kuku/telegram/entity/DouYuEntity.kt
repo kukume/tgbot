@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-@Document
+@Document("dou_yu")
 class DouYuEntity {
     @Id
     var id: String? = null
@@ -35,5 +35,7 @@ class DouYuService(
     suspend fun save(douYuEntity: DouYuEntity) = douYuRepository.save(douYuEntity).awaitSingleOrNull()
 
     suspend fun findByTgId(tgId: Long) = douYuRepository.findByTgId(tgId).awaitSingleOrNull()
+
+    suspend fun findAll(): List<DouYuEntity> = douYuRepository.findAll().collectList().awaitSingle()
 
 }

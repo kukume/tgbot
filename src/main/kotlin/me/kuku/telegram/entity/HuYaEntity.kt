@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-@Document
+@Document("hu_ya")
 class HuYaEntity {
     var id: String? = null
     var tgId: Long = 0
@@ -33,5 +33,8 @@ class HuYaService(
 
     suspend fun findByLive(live: Status): List<HuYaEntity> = huYaRepository.findByLive(live).collectList().awaitSingle()
 
+    suspend fun save(huYaEntity: HuYaEntity): HuYaEntity = huYaRepository.save(huYaEntity).awaitSingle()
+
+    suspend fun findAll(): List<HuYaEntity> = huYaRepository.findAll().collectList().awaitSingle()
 
 }

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-@Document
+@Document("net_ease")
 class NetEaseEntity {
     @Id
     var id: String? = null
@@ -44,5 +44,7 @@ class NetEaseService(
     suspend fun findByMusicianSign(musicianSign: Status): List<NetEaseEntity> = netEaseRepository.findByMusicianSign(musicianSign).collectList().awaitSingle()
 
     suspend fun save(netEaseEntity: NetEaseEntity): NetEaseEntity = netEaseRepository.save(netEaseEntity).awaitSingle()
+
+    suspend fun findAll(netEaseEntity: NetEaseEntity): List<NetEaseEntity> = netEaseRepository.findAll().collectList().awaitSingle()
 
 }

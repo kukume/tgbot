@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-@Document
+@Document("ku_gou")
 class KuGouEntity {
     @Id
     var id: String? = null
@@ -40,4 +40,5 @@ class KuGouService(
 
     suspend fun save(kuGouEntity: KuGouEntity): KuGouEntity = kuGouRepository.save(kuGouEntity).awaitSingle()
 
+    suspend fun findAll(): List<KuGouEntity> = kuGouRepository.findAll().collectList().awaitSingle()
 }

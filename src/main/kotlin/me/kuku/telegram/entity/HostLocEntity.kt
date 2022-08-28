@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-@Document
+@Document("host_loc")
 class HostLocEntity {
     @Id
     var id: String? = null
@@ -40,4 +40,6 @@ class HostLocService(
     suspend fun findBySign(sign: Status): List<HostLocEntity> = hostLocRepository.findBySign(sign).collectList().awaitSingle()
 
     suspend fun save(hostLocEntity: HostLocEntity): HostLocEntity = hostLocRepository.save(hostLocEntity).awaitSingle()
+
+    suspend fun findAll(): List<HostLocEntity> = hostLocRepository.findAll().collectList().awaitSingle()
 }

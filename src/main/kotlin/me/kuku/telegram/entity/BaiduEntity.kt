@@ -43,4 +43,6 @@ class BaiduService(
     suspend fun save(baiduEntity: BaiduEntity) = baiduRepository.save(baiduEntity).awaitSingle()!!
 
     suspend fun findBySign(sign: Status): List<BaiduEntity> = baiduRepository.findBySign(sign).collectList().awaitSingle()
+
+    suspend fun findAll(): List<BaiduEntity> = baiduRepository.findAll().collectList().awaitSingle()
 }

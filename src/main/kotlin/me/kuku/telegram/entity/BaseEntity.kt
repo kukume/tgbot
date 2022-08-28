@@ -15,5 +15,9 @@ open class BaseEntity {
 }
 
 enum class Status {
-    OFF, ON
+    OFF, ON;
+
+    fun str() : String{
+        return if (this.name == "ON") "开" else "关"
+    }
 }

@@ -40,7 +40,7 @@ object BiliBiliLogic {
         biliBiliPojo.id = descJsonNode.getString("dynamic_id")
         biliBiliPojo.rid = descJsonNode.getString("rid")
         biliBiliPojo.time = (descJsonNode.getString("timestamp") + "000").toLong()
-        biliBiliPojo.bvId = descJsonNode.get("bvid").asText() ?: "没有发现bv号"
+        biliBiliPojo.bvId = descJsonNode.get("bvid")?.asText() ?: "没有发现bv号"
         biliBiliPojo.isForward = forwardJsonNode != null
         if (forwardJsonNode != null) {
             biliBiliPojo.forwardBvId = forwardJsonNode["bvid"]?.asText() ?: "没有bvId"
