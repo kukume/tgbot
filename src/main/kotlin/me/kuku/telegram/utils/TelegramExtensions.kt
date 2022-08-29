@@ -137,6 +137,16 @@ fun callback(data: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit
     })
 }
 
+fun callbackStartWith(data: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): Reply {
+    return Reply.of({ bot, upd ->
+        invokeCallback(bot, upd.callbackQuery, block)
+    }, pre@{ upd ->
+        val query = upd.callbackQuery ?: return@pre false
+        val resData = query.data
+        resData.startsWith(data)
+    })
+}
+
 fun callbackFlow(data: String, nextList: List<Reply>? = null, nextFlowList: List<ReplyFlow>? = null,
                  block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): ReplyFlow {
     val builder = ReplyFlow.builder(db).action { bot, upd ->
