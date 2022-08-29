@@ -151,11 +151,11 @@ class ExecExtension(
     fun kuGouExec() = callback {
         query("kuGouExec") {
             val chatId = it.message.chatId
-            kuGouService.findByTgId(chatId) ?: error("未绑定哔哩哔哩账号")
+            kuGouService.findByTgId(chatId) ?: error("未绑定酷狗账号")
             val kuGouMusicianSignButton = InlineKeyboardButton("音乐人").apply { callbackData = "kuGouMusicianSign" }
             val kuGouListenButton = InlineKeyboardButton("概念版听歌得vip").apply { callbackData = "kuGouListen" }
             val markup = InlineKeyboardMarkup(listOf(listOf(kuGouMusicianSignButton), listOf(kuGouListenButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(it.message.messageId).text("HostLoc").replyMarkup(markup).build()
+            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(it.message.messageId).text("酷狗").replyMarkup(markup).build()
             execute(editMessageText)
         }
         query("kuGouMusicianSign") {
@@ -199,7 +199,7 @@ class ExecExtension(
             val netEaseSignButton = InlineKeyboardButton("签到").apply { callbackData = "netEaseSign" }
             val netEaseMusicianSignButton = InlineKeyboardButton("音乐人签到").apply { callbackData = "netEaseMusicianSign" }
             val markup = InlineKeyboardMarkup(listOf(listOf(netEaseSignButton), listOf(netEaseMusicianSignButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(it.message.messageId).text("HostLoc").replyMarkup(markup).build()
+            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(it.message.messageId).text("网易云音乐").replyMarkup(markup).build()
             execute(editMessageText)
         }
         query("netEaseSign") {

@@ -90,7 +90,7 @@ object BiliBiliLogic {
                 }
                 if (forwardContentJsonNode.contains("item")) {
                     val forwardItemJsonNode = forwardContentJsonNode["item"]
-                    biliBiliPojo.forwardText = forwardItemJsonNode.getString("description") ?: ""
+                    biliBiliPojo.forwardText = forwardItemJsonNode["description"]?.asText() ?: ""
                     if (biliBiliPojo.forwardText.isEmpty())
                         biliBiliPojo.forwardText = forwardItemJsonNode.getString("content")
                     val forwardPicJsonArray = forwardItemJsonNode["pictures"]
