@@ -350,32 +350,19 @@ class LoginExtension(
 
     fun weiboLogin() = callback("weiboLogin") {
         val chatId = it.message.chatId
-        val weiboQrcode = WeiboLogic.loginByQr1()
-        val url = weiboQrcode.url
-        OkHttpKtUtils.getByteStream("https:$url").use { iis ->
-            val photo = SendPhoto(it.message.chatId.toString(), InputFile(iis,
-                "微博登录二维码.jpg")).apply { caption = "请使用微博APP扫码登录" }
-            execute(photo)
-        }
-        while (true) {
-            delay(3000)
-            val result = WeiboLogic.loginByQr2(weiboQrcode)
-            if (result.success()) {
-                val newWeiboEntity = result.data()
-                val weiboEntity = weiboService.findByTgId(chatId) ?: WeiboEntity().apply {
-                    tgId = chatId
-                }
-                weiboEntity.pcCookie = newWeiboEntity.pcCookie
-                weiboEntity.mobileCookie = newWeiboEntity.mobileCookie
-                weiboService.save(weiboEntity)
-                execute(SendMessage.builder().text("绑定微博成功").chatId(chatId).build())
-                break
-            } else if (result.code in listOf(201, 202)) continue
-            else {
-                execute(SendMessage.builder().text(result.message).chatId(chatId).build())
-                break
-            }
-        }
+        execute(SendMessage.builder().text("请发送账号").chatId(chatId).build())
+        val account = it.waitNextMessage().text
+        execute(SendMessage.builder().text("请发送密码").chatId(chatId).build())
+        val password = it.waitNextMessage().text
+        val weiboLoginVerify = WeiboLogic.login(account, password)
+        WeiboLogic.loginByPrivateMsg1(weiboLoginVerify)
+        execute(SendMessage.builder().text("微博需要私信验证，请打开微博app或者网页查看*微博安全中心*发送的验证码").parseMode("Markdown").chatId(chatId).build())
+        val code = it.waitNextMessage(1000 * 60 * 2).text
+        val newEntity = WeiboLogic.loginByPrivateMsg2(weiboLoginVerify, code)
+        val weiboEntity = weiboService.findByTgId(chatId) ?: WeiboEntity().also { entity -> entity.tgId = chatId }
+        weiboEntity.cookie = newEntity.cookie
+        weiboService.save(weiboEntity)
+        execute(SendMessage(chatId.toString(), "绑定微博成功"))
     }
 
 }

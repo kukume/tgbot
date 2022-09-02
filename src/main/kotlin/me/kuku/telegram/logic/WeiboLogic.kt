@@ -126,49 +126,50 @@ object WeiboLogic {
         } else CommonResult.failure("查询失败，请稍后重试！")
     }
 
-    private suspend fun mobileCookie(pcCookie: String): String {
-        val response = OkHttpKtUtils.get("https://login.sina.com.cn/sso/login.php?url=https%3A%2F%2Fm.weibo.cn%2F%3F%26jumpfrom%3Dweibocom&_rand=1588483688.7261&gateway=1&service=sinawap&entry=sinawap&useticket=1&returntype=META&sudaref=&_client_version=0.6.33",
-            OkUtils.cookie(pcCookie)).apply { close() }
-        return OkUtils.cookie(response)
-    }
-
-    suspend fun loginByQr1(): WeiboQrcode {
-        val jsonNode = OkHttpKtUtils.getJsonp("https://login.sina.com.cn/sso/qrcode/image?entry=weibo&size=180&callback=STK_16010457545441",
-            OkUtils.referer("https://weibo.com/"))
-        val dataJsonNode = jsonNode.get("data")
-        return WeiboQrcode(dataJsonNode.getString("qrid"), dataJsonNode.getString("image"))
-    }
-
-    suspend fun loginByQr2(weiboQrcode: WeiboQrcode): CommonResult<WeiboEntity> {
-        val jsonNode = OkHttpKtUtils.getJsonp("https://login.sina.com.cn/sso/qrcode/check?entry=weibo&qrid=${weiboQrcode.id}&callback=STK_16010457545443",
-            OkUtils.referer("https://weibo.com/"))
-        return when (jsonNode.getInteger("retcode")) {
-            20000000 -> {
-                val dataJsonNode = jsonNode.get("data")
-                val alt = dataJsonNode.getString("alt")
-                val response = OkHttpKtUtils.get("https://login.sina.com.cn/sso/login.php?entry=weibo&returntype=TEXT&crossdomain=1&cdult=3&domain=weibo.com&alt=$alt&savestate=30&callback=STK_160104719639113")
-                val cookie = OkUtils.cookie(response)
-                val resultJsonNode = OkUtils.jsonp(response)
-                val jsonArray = resultJsonNode.get("crossDomainUrlList")
-                val url = jsonArray.getString(2)
-                val finallyResponse = OkHttpKtUtils.get(url).apply { close() }
-                OkUtils.cookie(finallyResponse)
-                val mobileCookie = mobileCookie(cookie)
-                CommonResult.success(WeiboEntity().also {
-                    it.pcCookie = cookie
-                    it.mobileCookie = mobileCookie
-                })
-            }
-            50114001 -> CommonResult.failure(code = 201, message = "未扫码")
-            50114003 -> CommonResult.failure("您的微博登录二维码已失效")
-            50114002 -> CommonResult.failure(code = 202, message = "已扫码")
-            else -> CommonResult.failure(jsonNode.getString("msg"), null)
+    suspend fun login(username: String, password: String): WeiboLoginVerify {
+        val map = mapOf("username" to username, "password" to password, "savestate" to "1", "r" to "https://m.weibo.cn/",
+            "ec" to "0", "pagerefer" to "https://m.weibo.cn/", "entry" to "mweibo", "wentry" to "", "loginfrom" to "",
+            "client_id" to "", "code" to "", "qq" to "", "mainpageflag" to "1", "hff" to "", "hfp" to "")
+        val jsonNode = OkHttpKtUtils.postJson("https://passport.weibo.cn/sso/login", map,
+            OkUtils.referer("https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2F"))
+        val code = jsonNode["retcode"].asInt()
+        if (code != 50050011) error(jsonNode.getString("msg"))
+        else {
+            val data = jsonNode["data"]
+            val errUrl = data.getString("errurl")
+            val id = MyUtils.regex("id=", "&", errUrl) ?: error("登陆失败，请稍后再试")
+            val cookie = "FID=$id; "
+            val html = OkHttpKtUtils.getStr("https://passport.weibo.cn/signin/secondverify/index?first_enter=1&c=", OkUtils.cookie(cookie))
+            val phone = MyUtils.regex("\"maskMobile\":\"", "\"", html)!!
+            return WeiboLoginVerify(cookie, phone, id)
         }
+    }
+
+    suspend fun loginByPrivateMsg1(weiboLoginVerify: WeiboLoginVerify) {
+        val jsonNode = OkHttpKtUtils.getJson("https://passport.weibo.cn/signin/secondverify/ajsend?msg_type=private_msg",
+            OkUtils.cookie(weiboLoginVerify.cookie))
+        if (jsonNode["retcode"].asInt() != 100000) error(jsonNode["msg"].asText())
+    }
+
+    suspend fun loginByPrivateMsg2(weiboLoginVerify: WeiboLoginVerify, code: String): WeiboEntity {
+        val jsonNode = OkHttpKtUtils.getJson("https://passport.weibo.cn/signin/secondverify/ajcheck?msg_type=private_msg&code=$code",
+            OkUtils.cookie(weiboLoginVerify.cookie))
+        if (jsonNode["retcode"].asInt() != 100000) error(jsonNode["msg"].asText())
+        val url = jsonNode["data"]["url"].asText()
+        val firstResponse = OkHttpKtUtils.get(url).apply { close() }
+        val secondUrl = firstResponse.header("location")!!
+        val secondResponse = OkHttpKtUtils.get(secondUrl).apply { close() }
+        val thirdUrl = secondResponse.header("location")!!
+        val thirdResponse = OkHttpUtils.get(thirdUrl).apply { close() }
+        val forthUrl = thirdResponse.header("location")!!
+        val forthResponse = OkHttpUtils.get(forthUrl).apply { close() }
+        forthResponse.close()
+        return WeiboEntity().also { it.cookie = OkUtils.cookie(forthResponse) }
     }
 
     suspend fun friendWeibo(weiboEntity: WeiboEntity): CommonResult<List<WeiboPojo>> {
         val str = OkHttpKtUtils.getStr("https://m.weibo.cn/feed/friends?",
-            OkUtils.cookie(weiboEntity.mobileCookie))
+            OkUtils.cookie(weiboEntity.cookie))
         return if ("" != str) {
             val jsonArray = kotlin.runCatching {
                 Jackson.parse(str).get("data").get("statuses")
@@ -185,7 +186,7 @@ object WeiboLogic {
 
     suspend fun myWeibo(weiboEntity: WeiboEntity): CommonResult<List<WeiboPojo>> {
         val jsonNode = OkHttpKtUtils.getJson("https://m.weibo.cn/profile/info",
-            OkUtils.cookie(weiboEntity.mobileCookie))
+            OkUtils.cookie(weiboEntity.cookie))
         return if (jsonNode.getInteger("ok") == 1) {
             val jsonArray = jsonNode.get("data").get("statuses")
             val list = mutableListOf<WeiboPojo>()
@@ -198,12 +199,12 @@ object WeiboLogic {
 
     private suspend fun getToken(weiboEntity: WeiboEntity): WeiboToken {
         val response = OkHttpKtUtils.get("https://m.weibo.cn/api/config",
-            OkUtils.cookie(weiboEntity.mobileCookie))
+            OkUtils.cookie(weiboEntity.cookie))
         val jsonNode = OkUtils.json(response).get("data")
         return if (jsonNode.getBoolean("login")) {
             val cookie = OkUtils.cookie(response)
-            WeiboToken(jsonNode.getString("st"), cookie + weiboEntity.mobileCookie)
-        } else throw WeiboCookieExpiredException("cookie已失效")
+            WeiboToken(jsonNode.getString("st"), cookie + weiboEntity.cookie)
+        } else error("cookie已失效")
     }
 
     suspend fun superTalkSign(weiboEntity: WeiboEntity): CommonResult<Void> {
@@ -262,14 +263,9 @@ data class WeiboPojo(
     var forwardBid: String = ""
 )
 
-data class WeiboQrcode(
-    var id: String = "",
-    var url: String = ""
-)
-
 data class WeiboToken(
     var token: String = "",
     var cookie: String = ""
 )
 
-class WeiboCookieExpiredException(msg: String): RuntimeException(msg)
+data class WeiboLoginVerify(val cookie: String, val phone: String, val id: String)

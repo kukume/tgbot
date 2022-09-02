@@ -14,8 +14,7 @@ class WeiboEntity {
     @Id
     var id: String? = null
     var tgId: Long = 0
-    var pcCookie: String = ""
-    var mobileCookie: String= ""
+    var cookie: String = ""
     var push: Status = Status.OFF
     var sign: Status = Status.OFF
 }

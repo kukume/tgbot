@@ -6,20 +6,16 @@ import me.kuku.telegram.utils.callback
 import me.kuku.telegram.utils.callbackStartWith
 import me.kuku.telegram.utils.execute
 import me.kuku.utils.OkHttpKtUtils
-import okhttp3.internal.closeQuietly
 import org.springframework.stereotype.Service
 import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
-import java.io.InputStream
 
 @Service
 class ToolExtension(
@@ -68,33 +64,17 @@ class ToolExtension(
 
     fun colorPic() = callback("LoLiConTool") {
         val chatId = it.message.chatId
-        val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=10&r18=2")
+        val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=2")
         val list = jsonNode["data"].map { it["urls"]["original"].asText() }
         val inputMediaList = mutableListOf<InputMedia>()
-        val ii = mutableListOf<InputStream>()
-        val sendMessage = SendMessage(chatId.toString(), "正在上传第0张图片")
-        val message = execute(sendMessage)
         for (i in list.indices) {
             val s = list[i]
-            val editMessageText = EditMessageText.builder().text("正在上传第${i + 1}张图片").chatId(chatId).messageId(message.messageId).build()
-            execute(editMessageText)
-            val bis = OkHttpKtUtils.getByteStream(s)
-            val name = s.substring(s.lastIndexOf('/') + 1)
             val mediaPhoto =
-                    InputMediaPhoto.builder().newMediaStream(bis).media("attach://$name").mediaName(name).isNewMedia(true).build()
+                    InputMediaPhoto(s)
                 inputMediaList.add(mediaPhoto)
-            ii.add(bis)
         }
         val sendMediaGroup = SendMediaGroup(chatId.toString(), inputMediaList)
-        try {
-            execute(sendMediaGroup)
-        } finally {
-            for (inputStream in ii) {
-                inputStream.closeQuietly()
-            }
-            val deleteMessage = DeleteMessage(chatId.toString(), message.messageId)
-            execute(deleteMessage)
-        }
+        execute(sendMediaGroup)
     }
 
     fun fishermanCalendar() = callback("FishermanCalendarTool") {
