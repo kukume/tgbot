@@ -71,10 +71,11 @@ class LoginExtension(
 
     fun baiduLogin() = callback("baiduLogin") {
         val qrcode = baiduLogic.getQrcode()
-        val bytes = OkHttpKtUtils.getBytes(qrcode.image)
-        val photo = SendPhoto(it.message.chatId.toString(), InputFile(bytes.inputStream(), "百度登录二维码.jpg"))
-            .apply { caption = "请使用百度app扫码登陆，百度网盘等均可" }
-        execute(photo)
+        OkHttpKtUtils.getByteStream(qrcode.image).use { iis ->
+            val photo = SendPhoto(it.message.chatId.toString(), InputFile(iis, "百度登录二维码.jpg"))
+                .apply { caption = "请使用百度app扫码登陆，百度网盘等均可" }
+            execute(photo)
+        }
         withTimeout(1000 * 60 * 2) {
             val baiduEntity = baiduService.findByTgId(it.from.id) ?: BaiduEntity().apply {
                 tgId = it.from.id
@@ -96,10 +97,11 @@ class LoginExtension(
 
     fun biliBiliLogin() = callback("biliBiliLogin") {
         val qrCodeUrl = BiliBiliLogic.loginByQr1()
-        val bytes = OkHttpKtUtils.getBytes("https://api.kukuqaq.com/qrcode?text=${qrCodeUrl.toUrlEncode()}")
-        val photo = SendPhoto(it.message.chatId.toString(), InputFile(bytes.inputStream(), "哔哩哔哩登录二维码.jpg"))
+        val photoMessage = OkHttpKtUtils.getByteStream("https://api.kukuqaq.com/qrcode?text=${qrCodeUrl.toUrlEncode()}").use { iim ->
+            val photo = SendPhoto(it.message.chatId.toString(), InputFile(iim, "哔哩哔哩登录二维码.jpg"))
                 .apply { caption = "请使用哔哩哔哩app扫码登陆" }
-        val photoMessage = execute(photo)
+            execute(photo)
+        }
         while (true) {
             delay(3000)
             val result = BiliBiliLogic.loginByQr2(qrCodeUrl)
@@ -142,9 +144,11 @@ class LoginExtension(
     fun douYuLogin() = callback("douYuLogin") {
         val qrcode = douYuLogic.getQrcode()
         val imageBase = qrcode.qqLoginQrcode.imageBase
-        val photo = SendPhoto(it.message.chatId.toString(), InputFile(imageBase.base64Decode().inputStream(),
-            "斗鱼登录二维码.jpg")).apply { caption = "请使用斗鱼绑定qq，然后使用qq扫码登录" }
-        execute(photo)
+        imageBase.base64Decode().inputStream().use { iim ->
+            val photo = SendPhoto(it.message.chatId.toString(), InputFile(iim,
+                "斗鱼登录二维码.jpg")).apply { caption = "请使用斗鱼绑定qq，然后使用qq扫码登录" }
+            execute(photo)
+        }
         while (true) {
             delay(3000)
             val result = douYuLogic.checkQrcode(qrcode)
@@ -193,9 +197,11 @@ class LoginExtension(
     fun huYaLogin() = callback("huYaLogin") {
         val chatId = it.message.chatId
         val qrcode = huYaLogic.getQrcode()
-        val photo = SendPhoto(it.message.chatId.toString(), InputFile(OkHttpKtUtils.getBytes(qrcode.url).inputStream(),
-            "虎牙登录二维码.jpg")).apply { caption = "请使用虎牙App扫码登录" }
-        execute(photo)
+        OkHttpKtUtils.getByteStream(qrcode.url).use { iim ->
+            val photo = SendPhoto(it.message.chatId.toString(), InputFile(iim,
+                "虎牙登录二维码.jpg")).apply { caption = "请使用虎牙App扫码登录" }
+            execute(photo)
+        }
         while (true) {
             delay(3000)
             val result = huYaLogic.checkQrcode(qrcode)
@@ -267,9 +273,11 @@ class LoginExtension(
         val url = "http://music.163.com/login?codekey=$key"
         val newUrl =
             "https://api.kukuqaq.com/qrcode?text=${url.toUrlEncode()}"
-        val photo = SendPhoto(it.message.chatId.toString(), InputFile(OkHttpKtUtils.getBytes(newUrl).inputStream(),
-            "网易云音乐登录二维码.jpg")).apply { caption = "请使用网易云音乐App扫码登录" }
-        execute(photo)
+        OkHttpKtUtils.getByteStream(newUrl).use { iis ->
+            val photo = SendPhoto(it.message.chatId.toString(), InputFile(iis,
+                "网易云音乐登录二维码.jpg")).apply { caption = "请使用网易云音乐App扫码登录" }
+            execute(photo)
+        }
         var scan = true
         while (true) {
             delay(3000)
@@ -344,10 +352,11 @@ class LoginExtension(
         val chatId = it.message.chatId
         val weiboQrcode = WeiboLogic.loginByQr1()
         val url = weiboQrcode.url
-        val bytes = OkHttpKtUtils.getBytes("https:$url")
-        val photo = SendPhoto(it.message.chatId.toString(), InputFile(bytes.inputStream(),
-            "微博登录二维码.jpg")).apply { caption = "请使用微博APP扫码登录" }
-        execute(photo)
+        OkHttpKtUtils.getByteStream("https:$url").use { iis ->
+            val photo = SendPhoto(it.message.chatId.toString(), InputFile(iis,
+                "微博登录二维码.jpg")).apply { caption = "请使用微博APP扫码登录" }
+            execute(photo)
+        }
         while (true) {
             delay(3000)
             val result = WeiboLogic.loginByQr2(weiboQrcode)
