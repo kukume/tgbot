@@ -152,30 +152,35 @@ class ManagerExtension(
             val chatId = it.message.chatId
             val biliBiliEntity = biliBiliService.findByTgId(chatId)!!
             biliBiliEntity.push = Status.OFF
+            biliBiliService.save(biliBiliEntity)
             editBiliBiliMessage(this, it.message, biliBiliEntity)
         }
         query("biliBiliSignOpen") {
             val chatId = it.message.chatId
             val biliBiliEntity = biliBiliService.findByTgId(chatId)!!
             biliBiliEntity.sign = Status.ON
+            biliBiliService.save(biliBiliEntity)
             editBiliBiliMessage(this, it.message, biliBiliEntity)
         }
         query("biliBiliSignClose") {
             val chatId = it.message.chatId
             val biliBiliEntity = biliBiliService.findByTgId(chatId)!!
             biliBiliEntity.sign = Status.OFF
+            biliBiliService.save(biliBiliEntity)
             editBiliBiliMessage(this, it.message, biliBiliEntity)
         }
         query("biliBiliLiveOpen") {
             val chatId = it.message.chatId
             val biliBiliEntity = biliBiliService.findByTgId(chatId)!!
             biliBiliEntity.live = Status.ON
+            biliBiliService.save(biliBiliEntity)
             editBiliBiliMessage(this, it.message, biliBiliEntity)
         }
         query("biliBiliLiveClose") {
             val chatId = it.message.chatId
             val biliBiliEntity = biliBiliService.findByTgId(chatId)!!
             biliBiliEntity.live = Status.OFF
+            biliBiliService.save(biliBiliEntity)
             editBiliBiliMessage(this, it.message, biliBiliEntity)
         }
     }

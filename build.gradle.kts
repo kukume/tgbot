@@ -14,6 +14,7 @@ version = "1.0-SNAPSHOT"
 java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
+    mavenLocal()
     maven("https://nexus.kuku.me/repository/maven-public/")
     mavenCentral()
 }
@@ -24,7 +25,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.telegram:telegrambots:6.1.0")
     implementation("org.telegram:telegrambots-abilities:6.1.0")
-    implementation("me.kuku:utils-jackson:0.0.6")
+    implementation("me.kuku:utils-jackson:0.0.7")
     implementation("org.jsoup:jsoup:1.15.3")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
 }
