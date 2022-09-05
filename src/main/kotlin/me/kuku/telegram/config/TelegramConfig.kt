@@ -93,6 +93,14 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
         super.onUpdateReceived(update)
         applicationContext.publishEvent(TelegramUpdateEvent(update))
     }
+
+    override fun blacklist(): MutableSet<Long> {
+        return db.getSet(BLACKLIST)
+    }
+
+    override fun admins(): MutableSet<Long> {
+        return db.getSet(ADMINS)
+    }
 }
 
 class TelegramUpdateEvent(val update: Update): ApplicationEvent(update)

@@ -23,6 +23,7 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
 import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.Update
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -94,6 +95,8 @@ fun replyFlow(onlyIf: Predicate<Update>? = null, nextList: List<Reply>? = null, 
     nextFlowList?.let { nextFlowList.forEach { next -> builder.next(next) } }
     return builder.build()
 }
+
+fun inlineKeyboardButton(text: String, callbackData: String) = InlineKeyboardButton(text).also { it.callbackData = callbackData }
 
 class CallBackQ {
 
