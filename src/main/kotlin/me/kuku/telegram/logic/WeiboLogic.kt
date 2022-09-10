@@ -61,6 +61,7 @@ object WeiboLogic {
         weiboPojo.text = Jsoup.parse(jsonNode.getString("text")).text()
         weiboPojo.bid = jsonNode.getString("bid")
         weiboPojo.userid = userJsonNode.getString("id")
+        weiboPojo.ipFrom = jsonNode["region_name"].asText().split(" ")[1]
         val picNum = jsonNode.getInteger("pic_num")
         if (picNum != 0) {
             val list = weiboPojo.imageUrl
@@ -93,8 +94,10 @@ object WeiboLogic {
 
     fun convert(weiboPojo: WeiboPojo): String {
         val sb = StringBuilder()
+        val ipFrom = weiboPojo.ipFrom
         sb.append("""
             ${weiboPojo.name}
+            来自：${ipFrom.ifEmpty { "无" }}
             发布时间：${weiboPojo.created}
             内容：${weiboPojo.text}
             链接：https://m.weibo.cn/status/${weiboPojo.bid}
@@ -254,6 +257,7 @@ data class WeiboPojo(
     var created: String = "",
     var text: String = "",
     var bid: String = "",
+    var ipFrom: String = "",
     var imageUrl: MutableList<String> = mutableListOf(),
     var isForward: Boolean = false,
     var forwardId: String = "",

@@ -37,7 +37,7 @@ class YgoLogic {
         val str = OkHttpKtUtils.getStr(url)
         val document = Jsoup.parse(str)
         val imageUrl = document.select(".cardimg img").first()!!.attr("src")
-        val spans = document.select(".detail .names span")
+        val spans = document.select(".detail .names span").filter { it -> it.attr("class") != "text-muted" }
         val chineseName = spans[0].text()
         val japaneseName = spans[1].text()
         val englishName = spans[2].text()

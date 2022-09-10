@@ -79,6 +79,9 @@ object BiliBiliLogic {
             if (text == null && cardJsonNode.contains("title")) {
                 text = cardJsonNode.getString("title") + "------" + cardJsonNode.getString("summary")
             }
+            cardJsonNode["pub_location"]?.asText()?.let { location ->
+                biliBiliPojo.ipFrom = location
+            }
             val originStr = cardJsonNode["origin"]?.asText()
             if (originStr != null) {
                 val forwardPicList = biliBiliPojo.forwardPicList
@@ -115,12 +118,12 @@ object BiliBiliLogic {
                     biliBiliPojo.forwardText = forwardContentJsonNode["dynamic"]?.asText() ?: "没有动态内容"
                     val forwardOwnerJsonNode = forwardContentJsonNode["owner"]
                     if (forwardOwnerJsonNode != null) {
-                        biliBiliPojo.forwardUserId = forwardOwnerJsonNode.getString("mid")
-                        biliBiliPojo.forwardName = forwardOwnerJsonNode.getString("name")
+                        biliBiliPojo.forwardUserId = forwardOwnerJsonNode["mid"]?.asText() ?: ""
+                        biliBiliPojo.forwardName = forwardOwnerJsonNode["name"]?.asText() ?: ""
                     } else {
-                        biliBiliPojo.forwardName = forwardContentJsonNode.getString("uname")
-                        biliBiliPojo.forwardUserId = forwardContentJsonNode.getString("uid")
-                        biliBiliPojo.forwardText = forwardContentJsonNode.getString("title")
+                        biliBiliPojo.forwardName = forwardContentJsonNode["uname"]?.asText() ?: ""
+                        biliBiliPojo.forwardUserId = forwardContentJsonNode["uid"]?.asText() ?: ""
+                        biliBiliPojo.forwardText = forwardContentJsonNode["title"]?.asText() ?: ""
                     }
                 }
             }
@@ -137,21 +140,23 @@ object BiliBiliLogic {
     fun convertStr(biliBiliPojo: BiliBiliPojo): String {
         val pattern = "yyyy-MM-dd HH:mm:ss"
         val bvId = biliBiliPojo.bvId
+        val ipFrom = biliBiliPojo.ipFrom
         val forwardBvId = biliBiliPojo.forwardBvId
         var ss = """
             ${biliBiliPojo.name}
+            来自：${ipFrom.ifEmpty { "无" }}
             发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.time, pattern)}
             内容：${biliBiliPojo.text}
             动态链接：https://t.bilibili.com/${biliBiliPojo.id}
-            视频链接：${if (bvId.isEmpty()) "https://www.bilibili.com/video/$bvId" else "无"}
+            视频链接：${if (bvId.isNotEmpty()) "https://www.bilibili.com/video/$bvId" else "无"}
         """.trimIndent()
         if (biliBiliPojo.isForward) {
-            ss += """
+            ss += "\n" + """
                 转发自：${biliBiliPojo.forwardName}
                 发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.forwardTime, pattern)}
                 内容：${biliBiliPojo.forwardText}
                 动态链接：https://t.bilibili.com/${biliBiliPojo.forwardId}
-                视频链接：${if (forwardBvId.isEmpty()) "https://www.bilibili.com/video/$forwardBvId" else "无"}
+                视频链接：${if (forwardBvId.isNotEmpty()) "https://www.bilibili.com/video/$forwardBvId" else "无"}
             """.trimIndent()
         }
         return ss
@@ -430,6 +435,7 @@ data class BiliBiliPojo(
     var time: Long = 0,
     var text: String = "",
     var bvId: String = "",
+    var ipFrom: String = "",
     var picList: MutableList<String> = mutableListOf(),
     var isForward: Boolean = false,
     var forwardUserId: String = "",

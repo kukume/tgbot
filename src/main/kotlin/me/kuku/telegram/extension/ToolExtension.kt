@@ -19,6 +19,7 @@ import org.telegram.telegrambots.meta.api.objects.media.InputMedia
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
+import java.io.InputStream
 
 @Service
 class ToolExtension(
@@ -52,8 +53,11 @@ class ToolExtension(
     fun loLiCon() = ability("lolicon", "lolicon图片") {
         val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?r18=2")
         val url = jsonNode["data"][0]["urls"]["original"].asText()
-        val sendPhoto = SendPhoto(chatId().toString(), InputFile(url))
-        bot().execute(sendPhoto)
+        OkHttpKtUtils.getByteStream(url).use { iis ->
+            val sendPhoto = SendPhoto(chatId().toString(), InputFile(iis, url.substring(url.lastIndexOf('/') + 1)))
+            bot().execute(sendPhoto)
+        }
+
     }
 
     private fun toolKeyboardMarkup(): InlineKeyboardMarkup {
@@ -80,14 +84,22 @@ class ToolExtension(
         val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=2")
         val list = jsonNode["data"].map { node -> node["urls"]["original"].asText() }
         val inputMediaList = mutableListOf<InputMedia>()
-        for (i in list.indices) {
-            val s = list[i]
-            val mediaPhoto =
-                    InputMediaPhoto(s)
+        val ii = mutableListOf<InputStream>()
+        try {
+            for (i in list.indices) {
+                val s = list[i]
+                val bis = OkHttpKtUtils.getByteStream(s)
+                val name = s.substring(s.lastIndexOf('/') + 1)
+                val mediaPhoto =
+                    InputMediaPhoto.builder().newMediaStream(bis).media("attach://$name").mediaName(name).isNewMedia(true).build()
                 inputMediaList.add(mediaPhoto)
+                ii.add(bis)
+            }
+            val sendMediaGroup = SendMediaGroup(chatId.toString(), inputMediaList)
+            execute(sendMediaGroup)
+        } finally {
+            ii.forEach { iis -> iis.close() }
         }
-        val sendMediaGroup = SendMediaGroup(chatId.toString(), inputMediaList)
-        execute(sendMediaGroup)
     }
 
     fun fishermanCalendar() = callback("FishermanCalendarTool") {
@@ -111,23 +123,25 @@ class ToolExtension(
         execute(editMessageText)
     }
 
-    fun ttsTool() = callback("ttsTool") {
-        val messageId = it.message.messageId
-        val ttlButton = InlineKeyboardButton("tts").also { bu -> bu.callbackData = "tts" }
-        val fishermanCalendarButton = InlineKeyboardButton("变声").also { bu -> bu.callbackData = "voiceChange" }
-        val markup =  InlineKeyboardMarkup(listOf(
-            listOf(ttlButton, fishermanCalendarButton),
-            listOf(returnButton())
-        ))
-        val editMessageText = EditMessageText()
-        editMessageText.chatId = it.message.chatId.toString()
-        editMessageText.replyMarkup = markup
-        editMessageText.messageId = messageId
-        editMessageText.text = "请选择"
-        execute(editMessageText)
-    }
 
     fun tts() = callback {
+
+        query("ttsTool") {
+            val messageId = it.message.messageId
+            val ttlButton = InlineKeyboardButton("tts").also { bu -> bu.callbackData = "tts" }
+            val fishermanCalendarButton = InlineKeyboardButton("变声").also { bu -> bu.callbackData = "voiceChange" }
+            val markup =  InlineKeyboardMarkup(listOf(
+                listOf(ttlButton, fishermanCalendarButton),
+                listOf(returnButton())
+            ))
+            val editMessageText = EditMessageText()
+            editMessageText.chatId = it.message.chatId.toString()
+            editMessageText.replyMarkup = markup
+            editMessageText.messageId = messageId
+            editMessageText.text = "请选择"
+            execute(editMessageText)
+        }
+
         query("tts") {
             val chatId = it.message.chatId
             execute(SendMessage.builder().text("请发送生成的语音日语文字").chatId(chatId).build())
