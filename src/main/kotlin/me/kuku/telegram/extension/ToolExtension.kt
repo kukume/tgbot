@@ -49,6 +49,13 @@ class ToolExtension(
         execute(sendPhoto)
     }
 
+    fun loLiCon() = ability("lolicon", "lolicon图片") {
+        val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?r18=2")
+        val url = jsonNode["data"][0]["urls"]["original"].asText()
+        val sendPhoto = SendPhoto(chatId().toString(), InputFile(url))
+        bot().execute(sendPhoto)
+    }
+
     private fun toolKeyboardMarkup(): InlineKeyboardMarkup {
         val loLiConButton = InlineKeyboardButton("LoLiCon").also { it.callbackData = "LoLiConTool" }
         val fishermanCalendarButton = InlineKeyboardButton("摸鱼日历").also { it.callbackData = "FishermanCalendarTool" }
@@ -71,7 +78,7 @@ class ToolExtension(
     fun colorPic() = callback("LoLiConTool") {
         val chatId = it.message.chatId
         val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=2")
-        val list = jsonNode["data"].map { it["urls"]["original"].asText() }
+        val list = jsonNode["data"].map { node -> node["urls"]["original"].asText() }
         val inputMediaList = mutableListOf<InputMedia>()
         for (i in list.indices) {
             val s = list[i]

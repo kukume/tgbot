@@ -77,10 +77,7 @@ class BiliBilliScheduled(
                     newList.add(biliBiliPojo)
                 }
                 for (biliBiliPojo in newList) {
-                    telegramBot.silent().sendMd("""
-                        哔哩哔哩有新动态了！！
-                        ${BiliBiliLogic.convertStr(biliBiliPojo)}
-                    """.trimIndent(), tgId)
+                    telegramBot.silent().sendMd("哔哩哔哩有新动态了！！\n${BiliBiliLogic.convertStr(biliBiliPojo)}", tgId)
                 }
             }
             userMap[tgId] = list[0].id.toLong()

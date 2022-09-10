@@ -1,5 +1,6 @@
 package me.kuku.telegram.logic
 
+import com.fasterxml.jackson.databind.node.NullNode
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.DouYuEntity
@@ -48,6 +49,7 @@ class DouYuLogic {
                 OkUtils.headers(douYuEntity.cookie, "", UA.PC))
             if (jsonNode.getInteger("error") == 0) {
                 val list = jsonNode["data"]["list"] ?: break
+                if (list is NullNode) break
                 for (singleJsonNode in list) {
                     val douYuRoom = DouYuRoom(singleJsonNode.getString("room_name"), singleJsonNode.getString("nickname"),
                         "https://www.douyu.com${singleJsonNode.getString("url")}", singleJsonNode.getString("game_name"), singleJsonNode.getInteger("show_status") == 1,

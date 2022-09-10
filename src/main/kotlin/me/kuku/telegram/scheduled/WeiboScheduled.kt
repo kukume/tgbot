@@ -39,10 +39,7 @@ class WeiboScheduled(
                     newList.add(weiboPojo)
                 }
                 for (weiboPojo in newList) {
-                    telegramBot.silent().sendMd("""
-                        有新微博了！！
-                        ${WeiboLogic.convert(weiboPojo)}
-                    """.trimIndent(), tgId)
+                    telegramBot.silent().sendMd("有新微博了！！\n${WeiboLogic.convert(weiboPojo)}", tgId)
                 }
             }
             userMap[tgId] = list[0].id
