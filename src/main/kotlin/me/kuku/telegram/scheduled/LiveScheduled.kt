@@ -40,7 +40,7 @@ class LiveScheduled(
                     if (map[id] != b) {
                         map[id] = b
                         val msg = if (b) "直播啦！！" else "下播啦"
-                        telegramBot.silent().sendMd("""
+                        telegramBot.silent().send("""
                             斗鱼直播开播提醒
                             ${room.nickName}$msg
                             标题：${room.name}
@@ -71,7 +71,7 @@ class LiveScheduled(
                     if (map[id] != b) {
                         map[id] = b
                         val msg = if (b) "直播啦！！" else "下播啦"
-                        telegramBot.silent().sendMd("""
+                        telegramBot.silent().send("""
                             虎牙直播开播提醒
                             ${room.nick}$msg
                             标题：${room.liveDesc}

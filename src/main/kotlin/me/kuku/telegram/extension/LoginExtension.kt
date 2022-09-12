@@ -35,7 +35,8 @@ class LoginExtension(
     private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
-    private val miHoYoService: MiHoYoService
+    private val miHoYoService: MiHoYoService,
+    private val douYinService: DouYinService
 ): AbilityExtension {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -50,13 +51,14 @@ class LoginExtension(
         val xiaomiStepButton = InlineKeyboardButton("小米运动").also { it.callbackData = "xiaomiStepLogin" }
         val leXinStepButton = InlineKeyboardButton("乐心运动").also { it.callbackData = "leXinStepLogin" }
         val weiboStepButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboLogin" }
+        val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinLogin" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
             listOf(huYaButton, kuGouButton),
             listOf(miHoYoButton, netEaseButton),
             listOf(xiaomiStepButton, leXinStepButton),
-            listOf(weiboStepButton)
+            listOf(weiboStepButton, douYinButton)
         ))
     }
 
@@ -363,6 +365,33 @@ class LoginExtension(
         weiboEntity.cookie = newEntity.cookie
         weiboService.save(weiboEntity)
         execute(SendMessage(chatId.toString(), "绑定微博成功"))
+    }
+
+    fun douYinLogin() = callback("douYinLogin") {
+        val chatId = it.message.chatId
+        val qrcode = DouYinLogic.qrcode()
+        qrcode.baseImage.base64Decode().inputStream().use { iis ->
+            val photo = SendPhoto(chatId.toString(), InputFile(iis,
+            "抖音登录二维码.jpg")).apply { caption = "请使用抖音App扫码登录" }
+            execute(photo)
+        }
+        while (true) {
+            val result = DouYinLogic.checkQrcode(qrcode)
+            if (result.code == 200) {
+                val newDouYinEntity = result.data()
+                val douYinEntity = douYinService.findByTgId(chatId) ?: DouYinEntity().also { entity -> entity.tgId = chatId }
+                douYinEntity.cookie = newDouYinEntity.cookie
+                douYinEntity.userid = newDouYinEntity.userid
+                douYinEntity.secUserid = newDouYinEntity.secUserid
+                douYinService.save(douYinEntity)
+                val sendMessage = SendMessage(chatId.toString(), "绑定抖音成功")
+                execute(sendMessage)
+                break
+            } else if (result.code == 500) {
+                error(result.message)
+            }
+            delay(2000)
+        }
     }
 
 }

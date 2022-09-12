@@ -8,6 +8,7 @@ import me.kuku.telegram.logic.HostLocLogic
 import me.kuku.telegram.logic.HostLocPost
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -40,7 +41,8 @@ class HostLocScheduled(
                     链接：${hostLocPost.url}
                     内容：${HostLocLogic.postContent(hostLocPost.url, hostLocEntity.cookie)}
                 """.trimIndent()
-                telegramBot.silent().sendMd(str, hostLocEntity.tgId)
+                val sendMessage = SendMessage(hostLocEntity.tgId.toString(), str)
+                telegramBot.execute(sendMessage)
             }
         }
     }

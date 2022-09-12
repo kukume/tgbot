@@ -9,6 +9,7 @@ import me.kuku.telegram.entity.BiliBiliEntity
 import me.kuku.utils.*
 import okhttp3.MultipartBody
 import okio.ByteString
+import java.io.InputStream
 
 object BiliBiliLogic {
 
@@ -40,10 +41,10 @@ object BiliBiliLogic {
         biliBiliPojo.id = descJsonNode.getString("dynamic_id")
         biliBiliPojo.rid = descJsonNode.getString("rid")
         biliBiliPojo.time = (descJsonNode.getString("timestamp") + "000").toLong()
-        biliBiliPojo.bvId = descJsonNode.get("bvid")?.asText() ?: "没有发现bv号"
+        biliBiliPojo.bvId = descJsonNode.get("bvid")?.asText() ?: ""
         biliBiliPojo.isForward = forwardJsonNode != null
         if (forwardJsonNode != null) {
-            biliBiliPojo.forwardBvId = forwardJsonNode["bvid"]?.asText() ?: "没有bvId"
+            biliBiliPojo.forwardBvId = forwardJsonNode["bvid"]?.asText() ?: ""
             forwardJsonNode.get("timestamp")?.asText()?.let {
                 biliBiliPojo.forwardTime = (it + "000").toLong()
             }
@@ -142,24 +143,27 @@ object BiliBiliLogic {
         val bvId = biliBiliPojo.bvId
         val ipFrom = biliBiliPojo.ipFrom
         val forwardBvId = biliBiliPojo.forwardBvId
-        var ss = """
-            ${biliBiliPojo.name}
-            来自：${ipFrom.ifEmpty { "无" }}
-            发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.time, pattern)}
-            内容：${biliBiliPojo.text}
-            动态链接：https://t.bilibili.com/${biliBiliPojo.id}
-            视频链接：${if (bvId.isNotEmpty()) "https://www.bilibili.com/video/$bvId" else "无"}
-        """.trimIndent()
+        var ss = "${biliBiliPojo.name}\n来自：${ipFrom.ifEmpty { "无" }}\n发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.time, pattern)}" +
+                "\n内容：${biliBiliPojo.text}\n动态链接：https://t.bilibili.com/${biliBiliPojo.id}\n视频链接：${if (bvId.isNotEmpty()) "https://www.bilibili.com/video/$bvId" else "无"}"
         if (biliBiliPojo.isForward) {
-            ss += "\n" + """
-                转发自：${biliBiliPojo.forwardName}
-                发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.forwardTime, pattern)}
-                内容：${biliBiliPojo.forwardText}
-                动态链接：https://t.bilibili.com/${biliBiliPojo.forwardId}
-                视频链接：${if (forwardBvId.isNotEmpty()) "https://www.bilibili.com/video/$forwardBvId" else "无"}
-            """.trimIndent()
+            ss += "\n转发自：${biliBiliPojo.forwardName}\n发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.forwardTime, pattern)}\n" +
+                    "内容：${biliBiliPojo.forwardText}\n动态链接：https://t.bilibili.com/${biliBiliPojo.forwardId}\n视频链接：${if (forwardBvId.isNotEmpty()) "https://www.bilibili.com/video/$forwardBvId" else "无"}"
         }
         return ss
+    }
+
+    suspend fun videoByBvId(biliBiliEntity: BiliBiliEntity, bvId: String): InputStream {
+        val htmlUrl = "https://www.bilibili.com/video/$bvId"
+        val response = OkHttpKtUtils.get(htmlUrl, OkUtils.referer(biliBiliEntity.cookie))
+        return if (response.code != 200) {
+            response.close()
+            error("错误：${response.code}")
+        } else {
+            val html = OkUtils.str(response)
+            val jsonNode = MyUtils.regex("window.__playinfo__=", "</sc", html)?.toJsonNode() ?: error("未获取到内容")
+            val url = jsonNode["data"]["dash"]["video"][0]["baseUrl"].asText()
+            OkHttpKtUtils.getByteStream(url, OkUtils.referer(htmlUrl))
+        }
     }
 
     suspend fun getDynamicById(id: String, offsetId: String = "0"): CommonResult<List<BiliBiliPojo>> {

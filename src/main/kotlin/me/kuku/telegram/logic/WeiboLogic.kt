@@ -61,7 +61,7 @@ object WeiboLogic {
         weiboPojo.text = Jsoup.parse(jsonNode.getString("text")).text()
         weiboPojo.bid = jsonNode.getString("bid")
         weiboPojo.userid = userJsonNode.getString("id")
-        weiboPojo.ipFrom = jsonNode["region_name"].asText().split(" ")[1]
+        weiboPojo.ipFrom = jsonNode["region_name"]?.asText()?.split(" ")?.get(1) ?: "无"
         val picNum = jsonNode.getInteger("pic_num")
         if (picNum != 0) {
             val list = weiboPojo.imageUrl
@@ -84,7 +84,7 @@ object WeiboLogic {
             weiboPojo.forwardId = forwardJsonNode.getString("id")
             weiboPojo.forwardTime = forwardJsonNode.getString("created_at")
             val forwardUserJsonNode = forwardJsonNode.get("user")
-            val name = forwardUserJsonNode?.getString("screen_name") ?: "原微博删除"
+            val name = forwardUserJsonNode?.get("screen_name")?.asText() ?: "原微博删除"
             weiboPojo.forwardName = name
             weiboPojo.forwardText = Jsoup.parse(forwardJsonNode.getString("text")).text()
             weiboPojo.forwardBid = forwardJsonNode.getString("bid")
@@ -95,21 +95,17 @@ object WeiboLogic {
     fun convert(weiboPojo: WeiboPojo): String {
         val sb = StringBuilder()
         val ipFrom = weiboPojo.ipFrom
-        sb.append("""
-            ${weiboPojo.name}
-            来自：${ipFrom.ifEmpty { "无" }}
-            发布时间：${weiboPojo.created}
-            内容：${weiboPojo.text}
-            链接：https://m.weibo.cn/status/${weiboPojo.bid}
-        """.trimIndent())
+        sb.appendLine(weiboPojo.name)
+            .appendLine("来自：${ipFrom.ifEmpty { "无" }}")
+            .appendLine("发布时间：${weiboPojo.created}")
+            .appendLine("内容：${weiboPojo.text}")
+            .append("链接：https://m.weibo.cn/status/${weiboPojo.bid}")
         if (weiboPojo.isForward) {
-            sb.append("\n")
-            sb.append("""
-                转发自：${weiboPojo.forwardName}
-                发布时间：${weiboPojo.forwardTime}
-                内容：${weiboPojo.forwardText}
-                链接：https://m.weibo.cn/status/${weiboPojo.forwardBid}
-            """.trimIndent())
+            sb.appendLine()
+                .appendLine("转发自：${weiboPojo.forwardName}")
+                .appendLine("发布时间：${weiboPojo.forwardTime}")
+                .appendLine("内容：${weiboPojo.forwardText}")
+                .appendLine("链接：https://m.weibo.cn/status/${weiboPojo.forwardBid}")
         }
         return sb.toString()
     }

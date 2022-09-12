@@ -3,14 +3,17 @@ package me.kuku.telegram.extension
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.*
-import me.kuku.telegram.utils.ability
-import me.kuku.telegram.utils.callback
-import me.kuku.telegram.utils.execute
-import me.kuku.telegram.utils.waitNextMessage
+import me.kuku.telegram.utils.*
+import me.kuku.utils.MyUtils
+import me.kuku.utils.OkHttpKtUtils
 import org.springframework.stereotype.Service
 import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMedia
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
+import org.telegram.telegrambots.meta.api.objects.InputFile
+import org.telegram.telegrambots.meta.api.objects.media.InputMediaVideo
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
@@ -26,7 +29,10 @@ class ExecExtension(
     private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
+    private val douYinService: DouYinService
 ): AbilityExtension {
+
+    private val recommendCache = mutableMapOf<Long, List<DouYinWork>>()
 
     private fun execKeyboardMarkup(): InlineKeyboardMarkup {
         val baiduButton = InlineKeyboardButton("百度").also { it.callbackData = "baiduExec" }
@@ -37,11 +43,13 @@ class ExecExtension(
         val netEaseButton = InlineKeyboardButton("网易云音乐").also { it.callbackData = "netEaseExec" }
         val stepButton = InlineKeyboardButton("刷步数").also { it.callbackData = "stepExec" }
         val weiboButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboExec" }
+        val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinExec" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(hostLocButton, kuGouButton),
             listOf(miHoYoButton, netEaseButton),
             listOf(stepButton, weiboButton),
+            listOf(douYinButton)
         ))
     }
 
@@ -284,6 +292,97 @@ class ExecExtension(
             val sendMessage = SendMessage.builder().chatId(chatId).text(result.message).build()
             execute(sendMessage)
         }
+    }
+
+    fun douYinExec() = callback {
+        query("douYinExec") {
+            val chatId = it.message.chatId
+            douYinService.findByTgId(chatId) ?: error("未绑定抖音账号")
+            val followButton = inlineKeyboardButton("关注列表", "follow")
+            val recommendButton = inlineKeyboardButton("推荐", "recommend")
+            val markup = InlineKeyboardMarkup(listOf(listOf(followButton), listOf(recommendButton), returnButton()))
+            val editMessageText = EditMessageText.builder().chatId(chatId).text("抖音").messageId(it.message.messageId).replyMarkup(markup).build()
+            execute(editMessageText)
+        }
+        query("follow") {
+            val chatId = it.message.chatId
+            val douYinEntity = douYinService.findByTgId(chatId)!!
+            val follow = DouYinLogic.follow(douYinEntity)
+            val list = mutableListOf<List<InlineKeyboardButton>>()
+            for (douYinUser in follow) {
+                val key = "${douYinUser.name}|${douYinUser.uid}|${douYinUser.secUid}"
+                list.add(listOf(inlineKeyboardButton(key, "douYinFlow${douYinUser.uid}")))
+            }
+            val sendMessage = SendMessage(chatId.toString(), "请选择您的关注列表")
+            sendMessage.replyMarkup = InlineKeyboardMarkup(list)
+            execute(sendMessage)
+        }
+        queryStartWith("douYinFlow") {
+            val chatId = it.message.chatId
+            var douYinUser: DouYinUser? = null
+            val id = it.data.substring(10).toLong()
+            val keyboard = it.message.replyMarkup.keyboard
+            for (buttons in keyboard) {
+                val button = buttons[0]
+                val arr = button.text.split("|")
+                val old = DouYinUser(arr[1].toLong(), arr[2], arr[0])
+                if (old.uid == id) {
+                    douYinUser = old
+                    break
+                }
+            }
+            val douYinEntity = douYinService.findByTgId(chatId)!!
+            val list = DouYinLogic.work(douYinEntity, douYinUser ?: error("没有找到这个用户"))
+            val douYinWork = list[0]
+            val url = douYinWork.videoUrlList.last()
+            OkHttpKtUtils.getByteStream(url).use { iis ->
+                val sendVideo = SendVideo(chatId.toString(), InputFile(iis, "${MyUtils.randomLetter(6)}.mp4"))
+                sendVideo.caption = douYinWork.desc
+                execute(sendVideo)
+            }
+        }
+
+        query("recommend") {
+            val chatId = it.message.chatId
+            val douYinEntity = douYinService.findByTgId(chatId)!!
+            val list = DouYinLogic.recommend(douYinEntity)
+            recommendCache[chatId] = list
+            val douYinWork = list[0]
+            val url = douYinWork.videoUrlList[0]
+            OkHttpKtUtils.getByteStream(url).use { iis ->
+                val sendVideo = SendVideo(chatId.toString(), InputFile(iis, "${MyUtils.randomLetter(6)}.mp4"))
+                sendVideo.caption = douYinWork.desc
+                val beforeButton = inlineKeyboardButton("前", "recommendChange-1")
+                val afterButton = inlineKeyboardButton("后", "recommendChange1")
+                sendVideo.replyMarkup = InlineKeyboardMarkup(listOf(listOf(beforeButton, afterButton)))
+                execute(sendVideo)
+            }
+        }
+
+        queryStartWith("recommendChange") {
+            val chatId = it.message.chatId
+            val index = it.data.substring(15).toInt()
+            if (index < 0) error("前面没有视频了")
+            val list = recommendCache[chatId] ?: error("缓存不存在，请重新点击推荐")
+            if (index >= list.size) error("后面没有视频了")
+            val douYinWork = list[index]
+            val url = douYinWork.videoUrlList[0]
+            val name = MyUtils.randomLetter(6) + ".mp4"
+            OkHttpKtUtils.getByteStream(url).use { iis ->
+                val editMessageMedia = EditMessageMedia(InputMediaVideo.builder()
+                    .newMediaStream(iis).media("attach://$name").mediaName(name).isNewMedia(true).build()
+                    .also { video -> video.caption = douYinWork.desc })
+                editMessageMedia.chatId = chatId.toString()
+                editMessageMedia.messageId = it.message.messageId
+                val beforeButton = inlineKeyboardButton("前", "recommendChange${index - 1}")
+                val afterButton = inlineKeyboardButton("后", "recommendChange${index + 1}")
+                editMessageMedia.replyMarkup = InlineKeyboardMarkup(listOf(listOf(beforeButton, afterButton)))
+                execute(editMessageMedia)
+            }
+        }
+
+
+
     }
 
 

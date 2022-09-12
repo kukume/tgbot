@@ -102,8 +102,15 @@ class CallBackQ {
 
     val map = mutableMapOf<String, suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
 
+    val startWithMap = mutableMapOf<String, suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
+
     fun query(name: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
         map[name] = block
+        return this
+    }
+
+    fun queryStartWith(name: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
+        startWithMap[name] = block
         return this
     }
 
@@ -118,6 +125,9 @@ fun callback(body: CallBackQ.() -> Unit): Reply {
         q.map[data]?.let {
             invokeCallback(bot, callbackQuery, it)
         }
+        q.startWithMap.forEach { (k, v) ->
+            if (data.startsWith(k)) invokeCallback(bot, callbackQuery, v)
+        }
     }, pre@{ upd ->
         val query = upd.callbackQuery ?: return@pre false
         val resData = query.data
@@ -126,7 +136,12 @@ fun callback(body: CallBackQ.() -> Unit): Reply {
                 return@pre true
             }
         }
-         return@pre false
+        for (entry in q.startWithMap) {
+            if (resData.startsWith(entry.key)) {
+                return@pre true
+            }
+        }
+        return@pre false
     })
 }
 

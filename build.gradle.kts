@@ -28,6 +28,7 @@ dependencies {
     implementation("me.kuku:utils-jackson:0.0.7")
     implementation("org.jsoup:jsoup:1.15.3")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
 tasks.withType<KotlinCompile> {

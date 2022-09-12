@@ -5,8 +5,12 @@ import me.kuku.telegram.entity.BiliBiliService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.BiliBiliPojo
+import me.kuku.telegram.utils.execute
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo
+import org.telegram.telegrambots.meta.api.objects.InputFile
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -49,7 +53,7 @@ class BiliBilliScheduled(
                     if (map[id] != b) {
                         map[id] = b
                         val msg = if (b) "直播啦！！" else "下播了！！"
-                        telegramBot.silent().sendMd("""
+                        telegramBot.silent().send("""
                             哔哩哔哩开播提醒：
                             $name$msg
                             标题：${live.title}
@@ -77,7 +81,8 @@ class BiliBilliScheduled(
                     newList.add(biliBiliPojo)
                 }
                 for (biliBiliPojo in newList) {
-                    telegramBot.silent().sendMd("哔哩哔哩有新动态了！！\n${BiliBiliLogic.convertStr(biliBiliPojo)}", tgId)
+                    val text = "哔哩哔哩有新动态了！！\n${BiliBiliLogic.convertStr(biliBiliPojo)}"
+                    telegramBot.silent().send(text, tgId)
                 }
             }
             userMap[tgId] = list[0].id.toLong()
