@@ -98,6 +98,12 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
         return db.getSet(BLACKLIST)
     }
 
+    override fun getBaseUrl(): String {
+        val telegramConfig = applicationContext.getBean(TelegramConfig::class.java)
+        return if (telegramConfig.url.isEmpty()) super.getBaseUrl()
+        else "${telegramConfig.url}/bot${botToken}/"
+    }
+
     override fun admins(): MutableSet<Long> {
         return db.getSet(ADMINS)
     }
@@ -120,5 +126,6 @@ class TelegramConfig {
     var proxyHost: String = ""
     var proxyPort: Int = 0
     var proxyType: ProxyType = ProxyType.NO_PROXY
+    var url: String = ""
 }
 

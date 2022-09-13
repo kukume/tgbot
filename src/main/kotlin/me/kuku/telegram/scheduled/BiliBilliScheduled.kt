@@ -1,6 +1,7 @@
 package me.kuku.telegram.scheduled
 
 import me.kuku.telegram.config.TelegramBot
+import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.BiliBiliService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.BiliBiliLogic
@@ -16,7 +17,8 @@ import java.util.concurrent.TimeUnit
 @Component
 class BiliBilliScheduled(
     private val biliBiliService: BiliBiliService,
-    private val telegramBot: TelegramBot
+    private val telegramBot: TelegramBot,
+    private val telegramConfig: TelegramConfig
 ) {
 
     private val liveMap = mutableMapOf<Long, MutableMap<Long, Boolean>>()
@@ -82,7 +84,13 @@ class BiliBilliScheduled(
                 }
                 for (biliBiliPojo in newList) {
                     val text = "哔哩哔哩有新动态了！！\n${BiliBiliLogic.convertStr(biliBiliPojo)}"
-                    telegramBot.silent().send(text, tgId)
+                    if (biliBiliPojo.bvId.isNotEmpty() && telegramConfig.url.isNotEmpty()) {
+                        BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId).use { iis ->
+                            val sendVideo = SendVideo(tgId.toString(), InputFile(iis, "${biliBiliPojo.bvId}.mp4"))
+                            sendVideo.caption = text
+                            telegramBot.execute(sendVideo)
+                        }
+                    } else telegramBot.silent().send(text, tgId)
                 }
             }
             userMap[tgId] = list[0].id.toLong()
