@@ -27,6 +27,7 @@ dependencies {
     implementation("org.telegram:telegrambots-abilities:6.1.0")
     implementation("me.kuku:utils-jackson:0.0.7")
     implementation("org.jsoup:jsoup:1.15.3")
+    implementation("org.springframework.boot:spring-boot-starter-mail")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

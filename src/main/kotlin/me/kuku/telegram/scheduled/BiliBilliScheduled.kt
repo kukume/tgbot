@@ -56,6 +56,7 @@ class BiliBilliScheduled(
                         map[id] = b
                         val msg = if (b) "直播啦！！" else "下播了！！"
                         telegramBot.silent().send("""
+                            #哔哩哔哩开播提醒
                             哔哩哔哩开播提醒：
                             $name$msg
                             标题：${live.title}
@@ -83,12 +84,16 @@ class BiliBilliScheduled(
                     newList.add(biliBiliPojo)
                 }
                 for (biliBiliPojo in newList) {
-                    val text = "哔哩哔哩有新动态了！！\n${BiliBiliLogic.convertStr(biliBiliPojo)}"
+                    val text = "#哔哩哔哩动态推送\n哔哩哔哩有新动态了！！\n${BiliBiliLogic.convertStr(biliBiliPojo)}"
                     if (biliBiliPojo.bvId.isNotEmpty() && telegramConfig.url.isNotEmpty()) {
                         BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId).use { iis ->
                             val sendVideo = SendVideo(tgId.toString(), InputFile(iis, "${biliBiliPojo.bvId}.mp4"))
                             sendVideo.caption = text
-                            telegramBot.execute(sendVideo)
+                            kotlin.runCatching {
+                                telegramBot.execute(sendVideo)
+                            }.onFailure {
+                                telegramBot.silent().send("视频发送失败，转为文字发送\n$text", tgId)
+                            }
                         }
                     } else telegramBot.silent().send(text, tgId)
                 }

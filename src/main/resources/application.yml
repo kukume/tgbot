@@ -9,12 +9,8 @@ kuku:
   telegram:
     token:
     username: kuku
-    creatorId:
+    creatorId: -1
     proxyHost:
     proxyPort: 0
     proxyType: NO_PROXY
-
-
-logging:
-  level:
-    org.telegram: debug
+    url:
