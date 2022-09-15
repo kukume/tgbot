@@ -6,10 +6,8 @@ import me.kuku.telegram.entity.BiliBiliService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.BiliBiliPojo
-import me.kuku.telegram.utils.execute
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.telegram.telegrambots.meta.api.methods.send.SendDocument
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import java.util.concurrent.TimeUnit
@@ -86,15 +84,17 @@ class BiliBilliScheduled(
                 for (biliBiliPojo in newList) {
                     val text = "#哔哩哔哩动态推送\n哔哩哔哩有新动态了！！\n${BiliBiliLogic.convertStr(biliBiliPojo)}"
                     if (biliBiliPojo.bvId.isNotEmpty() && telegramConfig.url.isNotEmpty()) {
-                        BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId).use { iis ->
-                            val sendVideo = SendVideo(tgId.toString(), InputFile(iis, "${biliBiliPojo.bvId}.mp4"))
-                            sendVideo.caption = text
-                            kotlin.runCatching {
-                                telegramBot.execute(sendVideo)
-                            }.onFailure {
-                                telegramBot.silent().send("视频发送失败，转为文字发送\n$text", tgId)
-                            }
+                        val file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
+                        file.inputStream().use { iis ->
+                                val sendVideo = SendVideo(tgId.toString(), InputFile(iis, "${biliBiliPojo.bvId}.mp4"))
+                                sendVideo.caption = text
+                                kotlin.runCatching {
+                                    telegramBot.execute(sendVideo)
+                                }.onFailure {
+                                    telegramBot.silent().send("视频发送失败，转为文字发送\n$text", tgId)
+                                }
                         }
+                        file.delete()
                     } else telegramBot.silent().send(text, tgId)
                 }
             }

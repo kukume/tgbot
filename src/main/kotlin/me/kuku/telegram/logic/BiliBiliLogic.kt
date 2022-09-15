@@ -2,6 +2,8 @@ package me.kuku.telegram.logic
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.contains
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.ResultStatus
 import me.kuku.pojo.UA
@@ -9,7 +11,10 @@ import me.kuku.telegram.entity.BiliBiliEntity
 import me.kuku.utils.*
 import okhttp3.MultipartBody
 import okio.ByteString
-import java.io.InputStream
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+import kotlin.concurrent.thread
 
 object BiliBiliLogic {
 
@@ -152,7 +157,7 @@ object BiliBiliLogic {
         return ss
     }
 
-    suspend fun videoByBvId(biliBiliEntity: BiliBiliEntity, bvId: String): InputStream {
+    suspend fun videoByBvId(biliBiliEntity: BiliBiliEntity, bvId: String): File {
         val htmlUrl = "https://www.bilibili.com/video/$bvId"
         val response = OkHttpKtUtils.get(htmlUrl, OkUtils.referer(biliBiliEntity.cookie))
         return if (response.code != 200) {
@@ -161,8 +166,43 @@ object BiliBiliLogic {
         } else {
             val html = OkUtils.str(response)
             val jsonNode = MyUtils.regex("window.__playinfo__=", "</sc", html)?.toJsonNode() ?: error("未获取到内容")
-            val url = jsonNode["data"]["dash"]["video"][0]["baseUrl"].asText()
-            OkHttpKtUtils.getByteStream(url, OkUtils.referer(htmlUrl))
+            val videoUrl = jsonNode["data"]["dash"]["video"][0]["baseUrl"].asText()
+            val audioUrl = jsonNode["data"]["dash"]["audio"][0]["baseUrl"].asText()
+            val videoFile: File
+            val audioFile: File
+            OkHttpKtUtils.getByteStream(videoUrl, OkUtils.referer(htmlUrl)).use {
+                videoFile = IOUtils.writeTmpFile("${bvId}.mp4", it, false)
+            }
+            OkHttpKtUtils.getByteStream(audioUrl, OkUtils.referer(htmlUrl)).use {
+                audioFile = IOUtils.writeTmpFile("${bvId}.mp3", it, false)
+            }
+            val runtime = Runtime.getRuntime()
+            val videoPath = videoFile.absolutePath
+            val audioPath = audioFile.absolutePath
+            val outputPath = videoPath.replace(bvId, "${bvId}output")
+            val process = withContext(Dispatchers.IO) {
+                runtime.exec("${if (System.getProperty("os.name").contains("Windows")) "cmd /C " else ""}ffmpeg -i $videoPath -i $audioPath -c:v copy -c:a aac -strict experimental $outputPath")
+            }
+            thread(true) {
+                BufferedReader(InputStreamReader(process.inputStream)).use { br ->
+                    while (true) {
+                        br.readLine() ?: break
+                    }
+                }
+            }
+            thread(true) {
+                BufferedReader(InputStreamReader(process.errorStream)).use { br ->
+                    while (true) {
+                        br.readLine() ?: break
+                    }
+                }
+            }
+            withContext(Dispatchers.IO) {
+                process.waitFor()
+            }
+            videoFile.delete()
+            audioFile.delete()
+            File(outputPath)
         }
     }
 

@@ -1,8 +1,10 @@
 package me.kuku.telegram.scheduled
 
+import com.sun.mail.imap.IMAPStore
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.MailService
 import me.kuku.utils.DateTimeFormatterUtils
+import org.jsoup.Jsoup
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -32,6 +34,9 @@ class MailScheduled(
             session.getStore("imap").use { store ->
                 kotlin.runCatching {
                     store.connect(mailEntity.host, mailEntity.port, mailEntity.username, mailEntity.password)
+                    if (store is IMAPStore) {
+                        store.id(mapOf("name" to "kuku", "version" to "1.0.0", "vendor" to "myclient", "support-email" to "kuku@kuku.me"))
+                    }
                     store.getFolder("INBOX").use { folder ->
                         folder.open(Folder.READ_ONLY)
                         val messages = folder.messages.also { it.reverse() }
@@ -40,25 +45,33 @@ class MailScheduled(
                             if (!flags.contains(Flags.Flag.SEEN)) {
                                 val from = message.from.map { it as InternetAddress }
                                     .joinToString(" ") { MimeUtility.decodeText(it.toUnicodeString()) }
-                                val to =
-                                    message.allRecipients.map { it as InternetAddress }.map { it.toUnicodeString() }
-                                        .joinToString(" ")
+                                val to = message.allRecipients.map { it as InternetAddress }
+                                    .joinToString(" ") { it.toUnicodeString() }
                                 val localDateTime = message.sentDate.toInstant().atZone(ZoneId.of("+8")).toLocalDateTime()
                                 val sendDate = DateTimeFormatterUtils.format(localDateTime, "yyyy-MM-dd")
                                 val subject = MimeUtility.decodeText(message.subject)
                                 val content = mailContent(message)
+                                val document = Jsoup.parse(content.toString())
+                                val sb = StringBuilder()
+                                sb.appendLine(document.text())
+                                sb.appendLine("邮件内容已文本展示，其中超链接如下：")
+                                document.getElementsByTag("a").forEach { a ->
+                                    sb.appendLine("${a.text()}->${a.attr("href")}")
+                                }
+                                sb.removeSuffix("\n")
                                 val sendMessage = SendMessage.builder().chatId(mailEntity.tgId)
-                                    .text("#邮件推送\n您的邮箱${mailEntity.username}有新邮件了！！\n\n发件人：$from\n收件人：$to\n时间：$sendDate\n主题：$subject\n内容：$content").build()
+                                    .text("#邮件推送\n您的邮箱${mailEntity.username}有新邮件了！！\n\n发件人：$from\n收件人：$to\n时间：$sendDate\n主题：$subject\n内容：$sb").build()
                                 telegramBot.execute(sendMessage)
                                 message.setFlag(Flags.Flag.SEEN, true)
                             } else break
                         }
                     }
                 }.onFailure {
-                    val sendMessage = SendMessage.builder().chatId(mailEntity.tgId)
-                        .text("由于异常：${it.message}，该邮箱监听${mailEntity.username}已删除").build()
-                    telegramBot.execute(sendMessage)
-                    mailService.delete(mailEntity)
+                    it.printStackTrace()
+//                    val sendMessage = SendMessage.builder().chatId(mailEntity.tgId)
+//                        .text("由于异常：${it.message}，该邮箱监听${mailEntity.username}已删除").build()
+//                    telegramBot.execute(sendMessage)
+//                    mailService.delete(mailEntity)
                 }
             }
         }

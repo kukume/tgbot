@@ -45,7 +45,7 @@ class MailExtension(
     fun mailOp() = callback {
         query("mailAdd") {
             val chatId = it.message.chatId
-            val tgId = it.message.from.id
+            val tgId = it.from.id
             execute(SendMessage.builder().chatId(chatId).text("请发送邮件imap服务器的地址").build())
             val host = it.waitNextMessage().text
             execute(SendMessage.builder().chatId(chatId).text("请发送邮件imap服务器的端口").build())
@@ -72,18 +72,33 @@ class MailExtension(
             mailService.save(saveEntity)
             execute(SendMessage.builder().chatId(chatId).text("添加邮箱${username}成功").build())
         }
+        fun markup(list: List<MailEntity>): InlineKeyboardMarkup {
+            val buttonList = mutableListOf<List<InlineKeyboardButton>>()
+            for (mailEntity in list) {
+                buttonList.add(listOf(inlineKeyboardButton(mailEntity.username, "mailDelete-${mailEntity.username}")))
+            }
+            buttonList.add(returnButton())
+            return InlineKeyboardMarkup(buttonList)
+        }
         query("mailQuery") {
-            val tgId = it.message.from.id
+            val tgId = it.from.id
             val chatId = it.message.chatId
             val messageId = it.message.messageId
             val list = mailService.findByTgId(tgId)
-            val buttonList = mutableListOf<List<InlineKeyboardButton>>()
-            for (mailEntity in list) {
-                buttonList.add(listOf(inlineKeyboardButton(mailEntity.username, "emailDelete-${mailEntity.username}")))
-            }
-            buttonList.add(returnButton())
             val editMessageText = EditMessageText.builder().chatId(chatId).messageId(messageId)
-                .replyMarkup(InlineKeyboardMarkup(buttonList))
+                .replyMarkup(markup(list))
+                .text("您已提交的邮箱，点击按钮可删除").build()
+            execute(editMessageText)
+        }
+        queryStartWith("mailDelete") {
+            val username = it.data.split("-")[1]
+            val tgId = it.from.id
+            val chatId = it.message.chatId
+            val messageId = it.message.messageId
+            mailService.deleteByTgIdAndUsername(tgId, username)
+            val list = mailService.findByTgId(tgId)
+            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(messageId)
+                .replyMarkup(markup(list))
                 .text("您已提交的邮箱，点击按钮可删除").build()
             execute(editMessageText)
         }

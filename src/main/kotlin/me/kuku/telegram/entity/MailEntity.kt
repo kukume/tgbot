@@ -27,6 +27,8 @@ interface MailRepository: ReactiveMongoRepository<MailEntity, String> {
 
     fun findByTgIdAndUsername(tgId: Long, username: String): Mono<MailEntity>
 
+    fun deleteByTgIdAndUsername(tgId: Long, username: String): Mono<Void>
+
 }
 
 @Service
@@ -43,4 +45,6 @@ class MailService(
     suspend fun findByTgIdAndUsername(tgId: Long, username: String) = mailRepository.findByTgIdAndUsername(tgId, username).awaitSingleOrNull()
 
     suspend fun delete(mailEntity: MailEntity): Void = mailRepository.delete(mailEntity).awaitSingle()
+
+    suspend fun deleteByTgIdAndUsername(tgId: Long, username: String) = mailRepository.deleteByTgIdAndUsername(tgId, username).awaitSingle()
 }
