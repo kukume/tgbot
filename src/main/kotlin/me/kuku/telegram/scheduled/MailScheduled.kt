@@ -4,6 +4,7 @@ import com.sun.mail.imap.IMAPStore
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.MailService
 import me.kuku.utils.DateTimeFormatterUtils
+import me.kuku.utils.OkHttpKtUtils
 import org.jsoup.Jsoup
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -38,7 +39,7 @@ class MailScheduled(
                         store.id(mapOf("name" to "kuku", "version" to "1.0.0", "vendor" to "myclient", "support-email" to "kuku@kuku.me"))
                     }
                     store.getFolder("INBOX").use { folder ->
-                        folder.open(Folder.READ_ONLY)
+                        folder.open(Folder.READ_WRITE)
                         val messages = folder.messages.also { it.reverse() }
                         for (message in messages) {
                             val flags = message.flags
@@ -53,24 +54,27 @@ class MailScheduled(
                                 val content = mailContent(message)
                                 val document = Jsoup.parse(content.toString())
                                 val sb = StringBuilder()
-                                sb.appendLine(document.text())
+                                sb.appendLine(document.body().wholeText())
                                 sb.appendLine("邮件内容已文本展示，其中超链接如下：")
                                 document.getElementsByTag("a").forEach { a ->
                                     sb.appendLine("${a.text()}->${a.attr("href")}")
                                 }
                                 sb.removeSuffix("\n")
+                                val jsonNode = OkHttpKtUtils.postJson(
+                                    "https://api.jpa.cc/paste",
+                                    mapOf("poster" to "tgbot", "syntax" to "text", "content" to sb.toString())
+                                )
                                 val sendMessage = SendMessage.builder().chatId(mailEntity.tgId)
-                                    .text("#邮件推送\n您的邮箱${mailEntity.username}有新邮件了！！\n\n发件人：$from\n收件人：$to\n时间：$sendDate\n主题：$subject\n内容：$sb").build()
+                                    .text("#邮件推送\n您的邮箱${mailEntity.username}有新邮件了！！\n\n发件人：$from\n收件人：$to\n时间：$sendDate\n主题：$subject\n内容：${jsonNode["url"].asText()}").build()
                                 telegramBot.execute(sendMessage)
                                 message.setFlag(Flags.Flag.SEEN, true)
                             } else break
                         }
                     }
                 }.onFailure {
-                    it.printStackTrace()
-//                    val sendMessage = SendMessage.builder().chatId(mailEntity.tgId)
-//                        .text("由于异常：${it.message}，该邮箱监听${mailEntity.username}已删除").build()
-//                    telegramBot.execute(sendMessage)
+                    val sendMessage = SendMessage.builder().chatId(mailEntity.tgId)
+                        .text("由于异常：${it.message}，该邮箱信息发送失败").build()
+                    telegramBot.execute(sendMessage)
 //                    mailService.delete(mailEntity)
                 }
             }

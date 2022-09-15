@@ -79,7 +79,8 @@ class ExecExtension(
     fun baiduExec() = callback {
         query("baiduExec") {
             val chatId = it.message.chatId
-            baiduService.findByTgId(chatId) ?: error("未绑定百度账号")
+            val tgId = it.from.id
+            baiduService.findByTgId(tgId) ?: error("未绑定百度账号")
             val tieBaSignButton = InlineKeyboardButton("贴吧签到").apply { callbackData = "tieBaSign" }
             val ybbSignButton = InlineKeyboardButton("游帮帮加速器签到").apply { callbackData = "ybbSign" }
             val ybbWatchAdButton = InlineKeyboardButton("游帮帮加速器看广告").apply { callbackData = "ybbWatchAd" }
@@ -89,21 +90,24 @@ class ExecExtension(
         }
         query("tieBaSign") {
             val chatId = it.message.chatId
-            val baiduEntity = baiduService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val baiduEntity = baiduService.findByTgId(tgId)!!
             val ss = baiduLogic.tieBaSign(baiduEntity)
             val sendMessage = SendMessage.builder().text(ss.message).chatId(chatId).build()
             execute(sendMessage)
         }
         query("ybbSign") {
             val chatId = it.message.chatId
-            val baiduEntity = baiduService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val baiduEntity = baiduService.findByTgId(tgId)!!
             val result = baiduLogic.ybbSign(baiduEntity)
             val sendMessage = SendMessage.builder().text(result.message).chatId(chatId).build()
             execute(sendMessage)
         }
         query("ybbWatchAd") {
             val chatId = it.message.chatId
-            val baiduEntity = baiduService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val baiduEntity = baiduService.findByTgId(tgId)!!
             val res = baiduLogic.ybbWatchAd(baiduEntity, "v3")
             val sendMessage = EditMessageText.builder().text(res.message).chatId(chatId).build()
             execute(sendMessage)
@@ -113,7 +117,8 @@ class ExecExtension(
     fun biliBiliExec() = callback {
         query("biliBiliExec") {
             val chatId = it.message.chatId
-            biliBiliService.findByTgId(chatId) ?: error("未绑定哔哩哔哩账号")
+            val tgId = it.from.id
+            biliBiliService.findByTgId(tgId) ?: error("未绑定哔哩哔哩账号")
             val biliBiliSignButton = InlineKeyboardButton("签到").apply { callbackData = "biliBiliSign" }
             val markup = InlineKeyboardMarkup(listOf(listOf(biliBiliSignButton), returnButton()))
             val editMessage = EditMessageText.builder().chatId(chatId).messageId(it.message.messageId).text("哔哩哔哩").replyMarkup(markup).build()
@@ -121,7 +126,8 @@ class ExecExtension(
         }
         query("biliBiliSign") {
             val chatId = it.message.chatId
-            val biliBiliEntity = biliBiliService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val biliBiliEntity = biliBiliService.findByTgId(tgId)!!
             val firstRank = BiliBiliLogic.ranking()[0]
             val res = BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
             val sendMessage = SendMessage().also { message -> message.chatId = chatId.toString() }
@@ -141,7 +147,8 @@ class ExecExtension(
     fun hostLocExec() = callback {
         query("hostLocExec") {
             val chatId = it.message.chatId
-            hostLocService.findByTgId(chatId) ?: error("未绑定HostLoc账号")
+            val tgId = it.from.id
+            hostLocService.findByTgId(tgId) ?: error("未绑定HostLoc账号")
             val hostLocSignButton = InlineKeyboardButton("签到").apply { callbackData = "hostLocSign" }
             val markup = InlineKeyboardMarkup(listOf(listOf(hostLocSignButton), returnButton()))
             val editMessage = EditMessageText.builder().chatId(chatId).messageId(it.message.messageId).text("HostLoc").replyMarkup(markup).build()
@@ -149,7 +156,8 @@ class ExecExtension(
         }
         query("hostLocSign") {
             val chatId = it.message.chatId
-            val hostLocEntity = hostLocService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val hostLocEntity = hostLocService.findByTgId(tgId)!!
             val sendMessage = SendMessage.builder().chatId(chatId).text("HostLoc签到后台进行中").build()
             execute(sendMessage)
             HostLocLogic.sign(hostLocEntity.cookie)
@@ -159,7 +167,8 @@ class ExecExtension(
     fun kuGouExec() = callback {
         query("kuGouExec") {
             val chatId = it.message.chatId
-            kuGouService.findByTgId(chatId) ?: error("未绑定酷狗账号")
+            val tgId = it.from.id
+            kuGouService.findByTgId(tgId) ?: error("未绑定酷狗账号")
             val kuGouMusicianSignButton = InlineKeyboardButton("音乐人").apply { callbackData = "kuGouMusicianSign" }
             val kuGouListenButton = InlineKeyboardButton("概念版听歌得vip").apply { callbackData = "kuGouListen" }
             val markup = InlineKeyboardMarkup(listOf(listOf(kuGouMusicianSignButton), listOf(kuGouListenButton), returnButton()))
@@ -168,14 +177,16 @@ class ExecExtension(
         }
         query("kuGouMusicianSign") {
             val chatId = it.message.chatId
-            val kuGouEntity = kuGouService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val kuGouEntity = kuGouService.findByTgId(tgId)!!
             val res = kuGouLogic.musicianSign(kuGouEntity)
             val sendMessage = SendMessage.builder().chatId(chatId).text(res.message).build()
             execute(sendMessage)
         }
         query("kuGouListen") {
             val chatId = it.message.chatId
-            val kuGouEntity = kuGouService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val kuGouEntity = kuGouService.findByTgId(tgId)!!
             val res = kuGouLogic.listenMusic(kuGouEntity)
             val sendMessage = SendMessage.builder().chatId(chatId).text(res.message).build()
             execute(sendMessage)
@@ -185,7 +196,8 @@ class ExecExtension(
     fun miHoYoExec() = callback {
         query("miHoYoExec") {
             val chatId = it.message.chatId
-            miHoYoService.findByTgId(chatId) ?: error("未绑定米哈游账号")
+            val tgId = it.from.id
+            miHoYoService.findByTgId(tgId) ?: error("未绑定米哈游账号")
             val genShinSignButton = InlineKeyboardButton("原神签到").apply { callbackData = "genShinSign" }
             val markup = InlineKeyboardMarkup(listOf(listOf(genShinSignButton), returnButton()))
             val editMessageText = EditMessageText.builder().chatId(chatId).messageId(it.message.messageId).text("米哈游").replyMarkup(markup).build()
@@ -193,7 +205,8 @@ class ExecExtension(
         }
         query("genShinSign") {
             val chatId = it.message.chatId
-            val miHoYoEntity = miHoYoService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val miHoYoEntity = miHoYoService.findByTgId(tgId)!!
             val result = MiHoYoLogic.sign(miHoYoEntity)
             val sendMessage = SendMessage.builder().chatId(chatId).text(result.message).build()
             execute(sendMessage)
@@ -203,7 +216,8 @@ class ExecExtension(
     fun netEaseExec() = callback {
         query("netEaseExec") {
             val chatId = it.message.chatId
-            netEaseService.findByTgId(chatId) ?: error("未绑定网易云音乐账号")
+            val tgId = it.from.id
+            netEaseService.findByTgId(tgId) ?: error("未绑定网易云音乐账号")
             val netEaseSignButton = InlineKeyboardButton("签到").apply { callbackData = "netEaseSign" }
             val netEaseMusicianSignButton = InlineKeyboardButton("音乐人签到").apply { callbackData = "netEaseMusicianSign" }
             val markup = InlineKeyboardMarkup(listOf(listOf(netEaseSignButton), listOf(netEaseMusicianSignButton), returnButton()))
@@ -212,7 +226,8 @@ class ExecExtension(
         }
         query("netEaseSign") {
             val chatId = it.message.chatId
-            val netEaseEntity = netEaseService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val netEaseEntity = netEaseService.findByTgId(tgId)!!
             val result = NetEaseLogic.sign(netEaseEntity)
             val message = if (result.failure()) {
                 result.message
@@ -226,7 +241,8 @@ class ExecExtension(
         }
         query("netEaseMusicianSign") {
             val chatId = it.message.chatId
-            val netEaseEntity = netEaseService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val netEaseEntity = netEaseService.findByTgId(tgId)!!
             val result = NetEaseLogic.musicianSign(netEaseEntity)
             val message = if (result.failure()) {
                 result.message
@@ -245,7 +261,8 @@ class ExecExtension(
     fun stepExec() = callback {
         query("stepExec") {
             val chatId = it.message.chatId
-            val stepEntity = stepService.findByTgId(chatId) ?: error("未绑定任何刷步数账号")
+            val tgId = it.from.id
+            val stepEntity = stepService.findByTgId(tgId) ?: error("未绑定任何刷步数账号")
             val list = mutableListOf<List<InlineKeyboardButton>>()
             if (stepEntity.leXinCookie.isNotEmpty()) {
                 list.add(listOf(InlineKeyboardButton("乐心运动刷步数").apply { callbackData = "leXinStepExec" }))
@@ -260,17 +277,19 @@ class ExecExtension(
         }
         query("leXinStepExec") {
             val chatId = it.message.chatId
+            val tgId = it.from.id
             execute(SendMessage.builder().chatId(chatId).text("请发送需要刷的步数").build())
             val step = it.waitNextMessage().text.toIntOrNull() ?: error("步数不为数字")
-            val stepEntity = stepService.findByTgId(chatId)!!
+            val stepEntity = stepService.findByTgId(tgId)!!
             val res = LeXinStepLogic.modifyStepCount(stepEntity, step)
             execute(SendMessage.builder().chatId(chatId).text(res.message).build())
         }
         query("xiaomiStepExec") {
             val chatId = it.message.chatId
+            val tgId = it.from.id
             execute(SendMessage.builder().chatId(chatId).text("请发送需要刷的步数").build())
             val step = it.waitNextMessage().text.toIntOrNull() ?: error("步数不为数字")
-            val stepEntity = stepService.findByTgId(chatId)!!
+            val stepEntity = stepService.findByTgId(tgId)!!
             val res = XiaomiStepLogic.modifyStepCount(stepEntity, step)
             execute(SendMessage.builder().chatId(chatId).text(res.message).build())
         }
@@ -279,7 +298,8 @@ class ExecExtension(
     fun weiboExec() = callback {
         query("weiboExec") {
             val chatId = it.message.chatId
-            weiboService.findByTgId(chatId) ?: error("未绑定微博账号")
+            val tgId = it.from.id
+            weiboService.findByTgId(tgId) ?: error("未绑定微博账号")
             val superTalkSignButton = InlineKeyboardButton("超话签到").apply { callbackData = "superTalkSign" }
             val markup = InlineKeyboardMarkup(listOf(listOf(superTalkSignButton), returnButton()))
             val editMessageText = EditMessageText.builder().chatId(chatId).text("微博").messageId(it.message.messageId).replyMarkup(markup).build()
@@ -287,7 +307,8 @@ class ExecExtension(
         }
         query("superTalkSign") {
             val chatId = it.message.chatId
-            val weiboEntity = weiboService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val weiboEntity = weiboService.findByTgId(tgId)!!
             val result = WeiboLogic.superTalkSign(weiboEntity)
             val sendMessage = SendMessage.builder().chatId(chatId).text(result.message).build()
             execute(sendMessage)
@@ -297,7 +318,8 @@ class ExecExtension(
     fun douYinExec() = callback {
         query("douYinExec") {
             val chatId = it.message.chatId
-            douYinService.findByTgId(chatId) ?: error("未绑定抖音账号")
+            val tgId = it.from.id
+            douYinService.findByTgId(tgId) ?: error("未绑定抖音账号")
             val followButton = inlineKeyboardButton("关注列表", "follow")
             val recommendButton = inlineKeyboardButton("推荐", "recommend")
             val markup = InlineKeyboardMarkup(listOf(listOf(followButton), listOf(recommendButton), returnButton()))
@@ -306,7 +328,8 @@ class ExecExtension(
         }
         query("follow") {
             val chatId = it.message.chatId
-            val douYinEntity = douYinService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val douYinEntity = douYinService.findByTgId(tgId)!!
             val follow = DouYinLogic.follow(douYinEntity)
             val list = mutableListOf<List<InlineKeyboardButton>>()
             for (douYinUser in follow) {
@@ -319,6 +342,7 @@ class ExecExtension(
         }
         queryStartWith("douYinFlow") {
             val chatId = it.message.chatId
+            val tgId = it.from.id
             var douYinUser: DouYinUser? = null
             val id = it.data.substring(10).toLong()
             val keyboard = it.message.replyMarkup.keyboard
@@ -331,7 +355,7 @@ class ExecExtension(
                     break
                 }
             }
-            val douYinEntity = douYinService.findByTgId(chatId)!!
+            val douYinEntity = douYinService.findByTgId(tgId)!!
             val list = DouYinLogic.work(douYinEntity, douYinUser ?: error("没有找到这个用户"))
             val douYinWork = list[0]
             val url = douYinWork.videoUrlList.last()
@@ -344,9 +368,10 @@ class ExecExtension(
 
         query("recommend") {
             val chatId = it.message.chatId
-            val douYinEntity = douYinService.findByTgId(chatId)!!
+            val tgId = it.from.id
+            val douYinEntity = douYinService.findByTgId(tgId)!!
             val list = DouYinLogic.recommend(douYinEntity)
-            recommendCache[chatId] = list
+            recommendCache[tgId] = list
             val douYinWork = list[0]
             val url = douYinWork.videoUrlList[0]
             OkHttpKtUtils.getByteStream(url).use { iis ->
@@ -361,9 +386,10 @@ class ExecExtension(
 
         queryStartWith("recommendChange") {
             val chatId = it.message.chatId
+            val tgId = it.from.id
             val index = it.data.substring(15).toInt()
             if (index < 0) error("前面没有视频了")
-            val list = recommendCache[chatId] ?: error("缓存不存在，请重新点击推荐")
+            val list = recommendCache[tgId] ?: error("缓存不存在，请重新点击推荐")
             if (index >= list.size) error("后面没有视频了")
             val douYinWork = list[index]
             val url = douYinWork.videoUrlList[0]

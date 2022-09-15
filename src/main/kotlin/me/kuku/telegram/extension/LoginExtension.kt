@@ -178,6 +178,7 @@ class LoginExtension(
 
     fun hostLocLogin() = callback("hostLocLogin") {
         val chatId = it.message.chatId
+        val userid = it.from.id
         val accountSendMessage = SendMessage(chatId.toString(), "请发送账号")
         execute(accountSendMessage)
         val account = it.waitNextMessage().text
@@ -187,7 +188,7 @@ class LoginExtension(
         val res = HostLocLogic.login(account, password)
         val text = if (res.success()) {
             val cookie = res.data()
-            val hostLocEntity = hostLocService.findByTgId(chatId) ?: HostLocEntity().apply { tgId = chatId }
+            val hostLocEntity = hostLocService.findByTgId(userid) ?: HostLocEntity().apply { tgId = userid }
             hostLocEntity.cookie = cookie
             hostLocService.save(hostLocEntity)
             "绑定HostLoc成功"
@@ -198,6 +199,7 @@ class LoginExtension(
 
     fun huYaLogin() = callback("huYaLogin") {
         val chatId = it.message.chatId
+        val userid = it.from.id
         val qrcode = huYaLogic.getQrcode()
         OkHttpKtUtils.getByteStream(qrcode.url).use { iim ->
             val photo = SendPhoto(it.message.chatId.toString(), InputFile(iim,
@@ -211,8 +213,8 @@ class LoginExtension(
                 0 -> continue
                 200 -> {
                     val newEntity = result.data()
-                    val huYaEntity = huYaService.findByTgId(chatId) ?: HuYaEntity().also { entity ->
-                        entity.tgId = chatId
+                    val huYaEntity = huYaService.findByTgId(userid) ?: HuYaEntity().also { entity ->
+                        entity.tgId = userid
                     }
                     huYaEntity.cookie = newEntity.cookie
                     huYaService.save(huYaEntity)
@@ -231,13 +233,14 @@ class LoginExtension(
 
     fun kuGouLogin() = callback("kuGouLogin") {
         val chatId = it.message.chatId
+        val userid = it.from.id
         execute(SendMessage(chatId.toString(), "请发送手机号"))
         val phone = it.waitNextMessage().text.toLongOrNull() ?: return@callback kotlin.run {
             execute(SendMessage(chatId.toString(), "发送的手机号有误"))
         }
-        val kuGouEntity = kuGouService.findByTgId(chatId) ?: KuGouEntity().apply {
+        val kuGouEntity = kuGouService.findByTgId(userid) ?: KuGouEntity().apply {
             mid = kuGouLogic.mid()
-            tgId = chatId
+            tgId = userid
         }
         val mid = kuGouEntity.mid
         val result = kuGouLogic.sendMobileCode(phone.toString(), mid)
@@ -259,10 +262,11 @@ class LoginExtension(
 
     fun miHoYoLogin() = callback("miHoYoLogin") {
         val chatId = it.message.chatId
+        val userid = it.from.id
         execute(SendMessage(chatId.toString(), "请发送米哈游的cookie"))
         val cookie = it.waitNextMessage().text
-        val newEntity = miHoYoService.findByTgId(chatId) ?: MiHoYoEntity().apply {
-            tgId = chatId
+        val newEntity = miHoYoService.findByTgId(userid) ?: MiHoYoEntity().apply {
+            tgId = userid
         }
         newEntity.cookie = cookie
         miHoYoService.save(newEntity)
@@ -271,6 +275,7 @@ class LoginExtension(
 
     fun netEaseLogin() = callback("netEaseLogin") {
         val chatId = it.message.chatId
+        val userid = it.from.id
         val key = NetEaseLogic.qrcode()
         val url = "http://music.163.com/login?codekey=$key"
         val newUrl =
@@ -287,8 +292,8 @@ class LoginExtension(
             when (result.code) {
                 200 -> {
                     val netEaseEntity = result.data()
-                    val newEntity = netEaseService.findByTgId(chatId) ?: NetEaseEntity().apply {
-                        tgId = chatId
+                    val newEntity = netEaseService.findByTgId(userid) ?: NetEaseEntity().apply {
+                        tgId = userid
                     }
                     newEntity.csrf = netEaseEntity.csrf
                     newEntity.musicU = netEaseEntity.musicU
@@ -312,6 +317,7 @@ class LoginExtension(
 
     fun xiaomiStepLogin() = callback("xiaomiStepLogin") {
         val chatId = it.message.chatId
+        val userid = it.from.id
         execute(SendMessage(chatId.toString(), "请发送手机号"))
         val phone = it.waitNextMessage().text
         execute(SendMessage(chatId.toString(), "请发送密码"))
@@ -319,8 +325,8 @@ class LoginExtension(
         val result = XiaomiStepLogic.login(phone, password)
         val message = if (result.success()) {
             val newEntity = result.data()
-            val stepEntity = stepService.findByTgId(chatId) ?: StepEntity().apply {
-                tgId = chatId
+            val stepEntity = stepService.findByTgId(userid) ?: StepEntity().apply {
+                tgId = userid
             }
             stepEntity.miLoginToken = newEntity.miLoginToken
             stepService.save(stepEntity)
@@ -338,8 +344,8 @@ class LoginExtension(
         val result = LeXinStepLogic.login(phone, password)
         val message = if (result.success()) {
             val newStepEntity = result.data()
-            val stepEntity = stepService.findByTgId(chatId) ?: StepEntity().apply {
-                tgId = chatId
+            val stepEntity = stepService.findByTgId(it.from.id) ?: StepEntity().apply {
+                tgId = it.from.id
             }
             stepEntity.leXinCookie = newStepEntity.leXinCookie
             stepEntity.leXinUserid = newStepEntity.leXinUserid
@@ -352,6 +358,7 @@ class LoginExtension(
 
     fun weiboLogin() = callback("weiboLogin") {
         val chatId = it.message.chatId
+        val userid = it.from.id
         execute(SendMessage.builder().text("请发送账号").chatId(chatId).build())
         val account = it.waitNextMessage().text
         execute(SendMessage.builder().text("请发送密码").chatId(chatId).build())
@@ -361,7 +368,7 @@ class LoginExtension(
         execute(SendMessage.builder().text("微博需要私信验证，请打开微博app或者网页查看*微博安全中心*发送的验证码").parseMode("Markdown").chatId(chatId).build())
         val code = it.waitNextMessage(1000 * 60 * 2).text
         val newEntity = WeiboLogic.loginByPrivateMsg2(weiboLoginVerify, code)
-        val weiboEntity = weiboService.findByTgId(chatId) ?: WeiboEntity().also { entity -> entity.tgId = chatId }
+        val weiboEntity = weiboService.findByTgId(userid) ?: WeiboEntity().also { entity -> entity.tgId = userid }
         weiboEntity.cookie = newEntity.cookie
         weiboService.save(weiboEntity)
         execute(SendMessage(chatId.toString(), "绑定微博成功"))
@@ -369,6 +376,7 @@ class LoginExtension(
 
     fun douYinLogin() = callback("douYinLogin") {
         val chatId = it.message.chatId
+        val userid = it.from.id
         val qrcode = DouYinLogic.qrcode()
         qrcode.baseImage.base64Decode().inputStream().use { iis ->
             val photo = SendPhoto(chatId.toString(), InputFile(iis,
@@ -379,7 +387,7 @@ class LoginExtension(
             val result = DouYinLogic.checkQrcode(qrcode)
             if (result.code == 200) {
                 val newDouYinEntity = result.data()
-                val douYinEntity = douYinService.findByTgId(chatId) ?: DouYinEntity().also { entity -> entity.tgId = chatId }
+                val douYinEntity = douYinService.findByTgId(userid) ?: DouYinEntity().also { entity -> entity.tgId = userid }
                 douYinEntity.cookie = newDouYinEntity.cookie
                 douYinEntity.userid = newDouYinEntity.userid
                 douYinEntity.secUserid = newDouYinEntity.secUserid
