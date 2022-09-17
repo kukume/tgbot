@@ -24,7 +24,7 @@ class MailScheduled(
 ) {
 
 
-    @Scheduled(fixedDelay = 30, timeUnit = TimeUnit.SECONDS)
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     @Transactional
     suspend fun check() {
         val mailList = mailService.findAll()
@@ -73,7 +73,7 @@ class MailScheduled(
                     }
                 }.onFailure {
                     val sendMessage = SendMessage.builder().chatId(mailEntity.tgId)
-                        .text("由于异常：${it.message}，该邮箱信息发送失败").build()
+                        .text("由于异常：${it.message}，邮箱（${mailEntity.username}）信息发送失败").build()
                     telegramBot.execute(sendMessage)
 //                    mailService.delete(mailEntity)
                 }

@@ -78,6 +78,9 @@ object WeiboLogic {
                 }
             }
         }
+        jsonNode["page_info"]?.get("urls")?.get("mp4_720p_mp4")?.asText()?.let {
+            weiboPojo.videoUrl = it
+        }
         if (jsonNode.contains("retweeted_status")) {
             val forwardJsonNode = jsonNode.get("retweeted_status")
             weiboPojo.isForward = true
@@ -88,6 +91,14 @@ object WeiboLogic {
             weiboPojo.forwardName = name
             weiboPojo.forwardText = Jsoup.parse(forwardJsonNode.getString("text")).text()
             weiboPojo.forwardBid = forwardJsonNode.getString("bid")
+            weiboPojo.forwardIpFrom = forwardJsonNode["region_name"]?.asText()?.split(" ")?.get(1) ?: "无"
+            forwardJsonNode["pic_ids"]?.forEach {
+                val id = it.asText()
+                weiboPojo.forwardImageUrl.add("https://wx1.sinaimg.cn/large/$id.jpg")
+            }
+            forwardJsonNode["page_info"]?.get("urls")?.get("mp4_720p_mp4")?.asText()?.let {
+                weiboPojo.forwardVideoUrl = it
+            }
         }
         return weiboPojo
     }
@@ -255,12 +266,16 @@ data class WeiboPojo(
     var bid: String = "",
     var ipFrom: String = "",
     var imageUrl: MutableList<String> = mutableListOf(),
+    var videoUrl: String = "",
     var isForward: Boolean = false,
     var forwardId: String = "",
     var forwardTime: String = "",
     var forwardName: String = "",
     var forwardText: String = "",
-    var forwardBid: String = ""
+    var forwardBid: String = "",
+    var forwardIpFrom: String = "",
+    var forwardImageUrl: MutableList<String> = mutableListOf(),
+    var forwardVideoUrl: String = ""
 )
 
 data class WeiboToken(

@@ -109,7 +109,7 @@ class ExecExtension(
             val tgId = it.from.id
             val baiduEntity = baiduService.findByTgId(tgId)!!
             val res = baiduLogic.ybbWatchAd(baiduEntity, "v3")
-            val sendMessage = EditMessageText.builder().text(res.message).chatId(chatId).build()
+            val sendMessage = SendMessage.builder().text(res.message).chatId(chatId).build()
             execute(sendMessage)
         }
     }

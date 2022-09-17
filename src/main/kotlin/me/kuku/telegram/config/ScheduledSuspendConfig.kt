@@ -1,6 +1,6 @@
 package me.kuku.telegram.config
 
-import me.kuku.utils.JobManager
+import kotlinx.coroutines.runBlocking
 import org.springframework.aop.support.AopUtils
 import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.annotation.Bean
@@ -47,7 +47,7 @@ class MyScheduledMethodRunnable(target: Any, method: Method): ScheduledMethodRun
     override fun run() {
         try {
             ReflectionUtils.makeAccessible(method)
-            JobManager.now {
+            runBlocking {
                 method.kotlinFunction?.callSuspend(target)
             }
         } catch (ex: InvocationTargetException) {
