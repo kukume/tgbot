@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
+import java.io.File
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
@@ -93,17 +94,20 @@ class BiliBilliScheduled(
                     else if (biliBiliPojo.forwardBvId.isNotEmpty()) biliBiliPojo.forwardBvId
                     else ""
                     if (bvId.isNotEmpty() && telegramConfig.url.isNotEmpty()) {
-                        val file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
-                        file.inputStream().use { iis ->
-                                kotlin.runCatching {
-                                    val sendVideo = SendVideo(tgId.toString(), InputFile(iis, "${biliBiliPojo.bvId}.mp4"))
-                                    sendVideo.caption = text
-                                    telegramBot.execute(sendVideo)
-                                }.onFailure {
-                                    telegramBot.silent().send("视频发送失败，转为文字发送\n$text", tgId)
-                                }
+                        var file: File? = null
+                        try {
+                            file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
+                            file.inputStream().use { iis ->
+                                val sendVideo =
+                                    SendVideo(tgId.toString(), InputFile(iis, "${biliBiliPojo.bvId}.mp4"))
+                                sendVideo.caption = text
+                                telegramBot.execute(sendVideo)
+                            }
+                        }catch (e: Exception) {
+                            telegramBot.silent().send("视频发送失败，转为文字发送\n$text", tgId)
+                        } finally {
+                            file?.delete()
                         }
-                        file.delete()
                     } else if (biliBiliPojo.picList.isNotEmpty() || biliBiliPojo.forwardPicList.isNotEmpty()) {
                         val picList = biliBiliPojo.picList
                         picList.addAll(biliBiliPojo.forwardPicList)
