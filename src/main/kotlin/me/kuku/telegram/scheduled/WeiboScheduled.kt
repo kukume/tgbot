@@ -51,42 +51,48 @@ class WeiboScheduled(
                     val videoUrl = if (weiboPojo.videoUrl.isNotEmpty()) weiboPojo.videoUrl
                     else if (weiboPojo.forwardVideoUrl.isNotEmpty()) weiboPojo.forwardVideoUrl
                     else ""
-                    if (videoUrl.isNotEmpty()) {
-                        OkHttpKtUtils.getByteStream(videoUrl).use {
-                            val sendVideo = SendVideo(tgId.toString(), InputFile(it, "${weiboPojo.bid}.mp4"))
-                            sendVideo.caption = text
-                            telegramBot.execute(sendVideo)
-                        }
-                    } else if (weiboPojo.imageUrl.isNotEmpty() || weiboPojo.forwardImageUrl.isNotEmpty()) {
-                        val imageList = weiboPojo.imageUrl
-                        imageList.addAll(weiboPojo.forwardImageUrl)
-                        if (imageList.size == 1) {
-                            OkHttpKtUtils.getByteStream(imageList[0]).use {
-                                val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "${weiboPojo.bid}.jpg"))
-                                sendPhoto.caption = text
-                                telegramBot.execute(sendPhoto)
+                    try {
+                        if (videoUrl.isNotEmpty()) {
+                            OkHttpKtUtils.getByteStream(videoUrl).use {
+                                val sendVideo = SendVideo(tgId.toString(), InputFile(it, "${weiboPojo.bid}.mp4"))
+                                sendVideo.caption = text
+                                telegramBot.execute(sendVideo)
                             }
-                        } else {
-                            val ii = mutableListOf<InputStream>()
-                            val inputMediaList = mutableListOf<InputMedia>()
-                            try {
-                                for (imageUrl in imageList) {
-                                    val iis = OkHttpKtUtils.getByteStream(imageUrl)
-                                    ii.add(iis)
-                                    val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
-                                    val mediaPhoto =
-                                        InputMediaPhoto.builder().newMediaStream(iis).media("attach://$name").mediaName(name).isNewMedia(true).build()
-                                    mediaPhoto.caption = text
-                                    mediaPhoto.captionEntities
-                                    inputMediaList.add(mediaPhoto)
+                        } else if (weiboPojo.imageUrl.isNotEmpty() || weiboPojo.forwardImageUrl.isNotEmpty()) {
+                            val imageList = weiboPojo.imageUrl
+                            imageList.addAll(weiboPojo.forwardImageUrl)
+                            if (imageList.size == 1) {
+                                OkHttpKtUtils.getByteStream(imageList[0]).use {
+                                    val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "${weiboPojo.bid}.jpg"))
+                                    sendPhoto.caption = text
+                                    telegramBot.execute(sendPhoto)
                                 }
-                                val sendMediaGroup = SendMediaGroup(tgId.toString(), inputMediaList)
-                                telegramBot.execute(sendMediaGroup)
-                            } finally {
-                                ii.forEach { it.close() }
+                            } else {
+                                val ii = mutableListOf<InputStream>()
+                                val inputMediaList = mutableListOf<InputMedia>()
+                                try {
+                                    for (i in imageList.indices) {
+                                        if (i > 9) break
+                                        val imageUrl = imageList[i]
+                                        val iis = OkHttpKtUtils.getByteStream(imageUrl)
+                                        ii.add(iis)
+                                        val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
+                                        val mediaPhoto =
+                                            InputMediaPhoto.builder().isNewMedia(true).newMediaStream(iis).mediaName(name).media("attach://$name").build()
+                                        mediaPhoto.caption = text
+                                        mediaPhoto.captionEntities
+                                        inputMediaList.add(mediaPhoto)
+                                    }
+                                    val sendMediaGroup = SendMediaGroup(tgId.toString(), inputMediaList)
+                                    telegramBot.execute(sendMediaGroup)
+                                } finally {
+                                    ii.forEach { it.close() }
+                                }
                             }
-                        }
-                    } else telegramBot.silent().send(text, tgId)
+                        } else telegramBot.silent().send(text, tgId)
+                    } catch (e: Exception) {
+                        telegramBot.silent().send(text, tgId)
+                    }
                 }
             }
             userMap[tgId] = list[0].id

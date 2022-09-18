@@ -93,54 +93,56 @@ class BiliBilliScheduled(
                     val bvId = if (biliBiliPojo.bvId.isNotEmpty()) biliBiliPojo.bvId
                     else if (biliBiliPojo.forwardBvId.isNotEmpty()) biliBiliPojo.forwardBvId
                     else ""
-                    if (bvId.isNotEmpty() && telegramConfig.url.isNotEmpty()) {
-                        var file: File? = null
-                        try {
-                            file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
-                            file.inputStream().use { iis ->
-                                val sendVideo =
-                                    SendVideo(tgId.toString(), InputFile(iis, "${biliBiliPojo.bvId}.mp4"))
-                                sendVideo.caption = text
-                                telegramBot.execute(sendVideo)
-                            }
-                        }catch (e: Exception) {
-                            telegramBot.silent().send("视频发送失败，转为文字发送\n$text", tgId)
-                        } finally {
-                            file?.delete()
-                        }
-                    } else if (biliBiliPojo.picList.isNotEmpty() || biliBiliPojo.forwardPicList.isNotEmpty()) {
-                        val picList = biliBiliPojo.picList
-                        picList.addAll(biliBiliPojo.forwardPicList)
-                        if (picList.size == 1) {
-                            val url = picList[0]
-                            OkHttpKtUtils.getByteStream(url).use {
-                                val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "${url.substring(url.lastIndexOf('/') + 1)}.jpg"))
-                                sendPhoto.caption = text
-                                telegramBot.execute(sendPhoto)
-                            }
-                        }
-                        else {
-                            val inputMediaList = mutableListOf<InputMedia>()
-                            val ii = mutableListOf<InputStream>()
+                    try {
+                        if (bvId.isNotEmpty() && telegramConfig.url.isNotEmpty()) {
+                            var file: File? = null
                             try {
-                                for (imageUrl in picList) {
-                                    val iis = OkHttpKtUtils.getByteStream(imageUrl)
-                                    val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
-                                    val mediaPhoto =
-                                        InputMediaPhoto.builder().newMediaStream(iis).media("attach://$name")
-                                            .mediaName(name).isNewMedia(true).build()
-                                    mediaPhoto.caption = text
-                                    mediaPhoto.captionEntities
-                                    ii.add(iis)
-                                    inputMediaList.add(mediaPhoto)
+                                file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
+                                file.inputStream().use { iis ->
+                                    val sendVideo =
+                                        SendVideo(tgId.toString(), InputFile(iis, "${biliBiliPojo.bvId}.mp4"))
+                                    sendVideo.caption = text
+                                    telegramBot.execute(sendVideo)
                                 }
-                                val sendMediaGroup = SendMediaGroup(tgId.toString(), inputMediaList)
-                                telegramBot.execute(sendMediaGroup)
                             } finally {
-                                ii.forEach { it.close() }
+                                file?.delete()
                             }
-                        }
-                    } else telegramBot.silent().send(text, tgId)
+                        } else if (biliBiliPojo.picList.isNotEmpty() || biliBiliPojo.forwardPicList.isNotEmpty()) {
+                            val picList = biliBiliPojo.picList
+                            picList.addAll(biliBiliPojo.forwardPicList)
+                            if (picList.size == 1) {
+                                val url = picList[0]
+                                OkHttpKtUtils.getByteStream(url).use {
+                                    val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "${url.substring(url.lastIndexOf('/') + 1)}.jpg"))
+                                    sendPhoto.caption = text
+                                    telegramBot.execute(sendPhoto)
+                                }
+                            }
+                            else {
+                                val inputMediaList = mutableListOf<InputMedia>()
+                                val ii = mutableListOf<InputStream>()
+                                try {
+                                    for (imageUrl in picList) {
+                                        val iis = OkHttpKtUtils.getByteStream(imageUrl)
+                                        val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
+                                        val mediaPhoto =
+                                            InputMediaPhoto.builder().newMediaStream(iis).media("attach://$name")
+                                                .mediaName(name).isNewMedia(true).build()
+                                        mediaPhoto.caption = text
+                                        mediaPhoto.captionEntities
+                                        ii.add(iis)
+                                        inputMediaList.add(mediaPhoto)
+                                    }
+                                    val sendMediaGroup = SendMediaGroup(tgId.toString(), inputMediaList)
+                                    telegramBot.execute(sendMediaGroup)
+                                } finally {
+                                    ii.forEach { it.close() }
+                                }
+                            }
+                        } else telegramBot.silent().send(text, tgId)
+                    } catch (e: Exception) {
+                        telegramBot.silent().send(text, tgId)
+                    }
                 }
             }
             userMap[tgId] = list[0].id.toLong()
