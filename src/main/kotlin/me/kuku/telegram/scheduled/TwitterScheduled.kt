@@ -1,6 +1,7 @@
 package me.kuku.telegram.scheduled
 
 import me.kuku.telegram.config.TelegramBot
+import me.kuku.telegram.entity.Status
 import me.kuku.telegram.entity.TwitterService
 import me.kuku.telegram.logic.TwitterLogic
 import me.kuku.telegram.logic.TwitterPojo
@@ -16,6 +17,7 @@ import org.telegram.telegrambots.meta.api.objects.media.InputMedia
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
+import kotlin.math.max
 
 @Component
 class TwitterScheduled(
@@ -25,12 +27,12 @@ class TwitterScheduled(
 
     private val userMap = mutableMapOf<Long, Long>()
 
-    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
     suspend fun push() {
-        val entityList = twitterService.findAll()
+        val entityList = twitterService.findByPush(Status.ON)
         for (entity in entityList) {
             val tgId = entity.tgId
-            val list = TwitterLogic.friendTweet(entity)
+            val list = TwitterLogic.friendTweet(entity).sortedBy { -it.id }
             val newList = mutableListOf<TwitterPojo>()
             if (userMap.containsKey(tgId)) {
                 val oldId = userMap[tgId]!!
@@ -86,7 +88,7 @@ class TwitterScheduled(
                     }
                 }
             }
-            userMap[tgId] = list[0].id
+            userMap[tgId] = max(list[0].id, userMap[tgId] ?: 0)
         }
     }
 

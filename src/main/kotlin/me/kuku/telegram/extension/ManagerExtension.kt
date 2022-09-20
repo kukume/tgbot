@@ -1,3 +1,5 @@
+@file:Suppress("SpellCheckingInspection")
+
 package me.kuku.telegram.extension
 
 import me.kuku.telegram.entity.*
@@ -25,7 +27,9 @@ class ManagerExtension(
     private val miHoYoService: MiHoYoService,
     private val netEaseService: NetEaseService,
     private val stepService: StepService,
-    private val weiboService: WeiboService
+    private val weiboService: WeiboService,
+    private val twitterService: TwitterService,
+    private val pixivService: PixivService
 ): AbilityExtension {
 
     private fun returnButton(): InlineKeyboardButton {
@@ -42,13 +46,16 @@ class ManagerExtension(
         val miHoYoButton = InlineKeyboardButton("米忽悠").also { it.callbackData = "miHoYoManager" }
         val netEaseButton = InlineKeyboardButton("网易云音乐").also { it.callbackData = "netEaseManager" }
         val xiaomiStepButton = InlineKeyboardButton("刷步数").also { it.callbackData = "stepManager" }
-        val weiboStepButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboManager" }
+        val weiboButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboManager" }
+        val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterManager" }
+        val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivManager" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
             listOf(huYaButton, kuGouButton),
             listOf(miHoYoButton, netEaseButton),
-            listOf(xiaomiStepButton, weiboStepButton)
+            listOf(xiaomiStepButton, weiboButton),
+            listOf(twitterButton, pixivButton)
         ))
     }
 
@@ -504,6 +511,78 @@ class ManagerExtension(
             weiboEntity.sign = Status.OFF
             weiboService.save(weiboEntity)
             editMessage(this, it.message, weiboEntity)
+        }
+    }
+
+    private fun editMessage(bot: BaseAbilityBot, message: Message, twitterEntity: TwitterEntity) {
+        val pushOpenButton = InlineKeyboardButton("推文推送（开）").apply { callbackData = "twitterPushOpen" }
+        val pushCloseButton = InlineKeyboardButton("推文推送（关）").apply { callbackData = "twitterPushClose" }
+        val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
+            listOf(pushOpenButton, pushCloseButton),
+            listOf(returnButton())
+        ))
+        val editMessageText = EditMessageText.builder()
+            .text(
+                """
+            推特管理，当前状态：
+            推文推送：${twitterEntity.push.str()}
+        """.trimIndent()
+            ).replyMarkup(inlineKeyboardMarkup).chatId(message.chatId).messageId(message.messageId).build()
+        bot.execute(editMessageText)
+    }
+
+    fun twitterManager() = callback {
+        query("twitterManager") {
+            val twitterEntity = twitterService.findByTgId(it.from.id) ?: error("未绑定twitter账号")
+            editMessage(this, it.message, twitterEntity)
+        }
+        query("twitterPushOpen") {
+            val twitterEntity = twitterService.findByTgId(it.from.id)!!
+            twitterEntity.push = Status.ON
+            twitterService.save(twitterEntity)
+            editMessage(this, it.message, twitterEntity)
+        }
+        query("twitterPushClose") {
+            val twitterEntity = twitterService.findByTgId(it.from.id)!!
+            twitterEntity.push = Status.OFF
+            twitterService.save(twitterEntity)
+            editMessage(this, it.message, twitterEntity)
+        }
+    }
+
+    private fun editMessage(bot: BaseAbilityBot, message: Message, pixivEntity: PixivEntity) {
+        val pushOpenButton = InlineKeyboardButton("插画推送（开）").apply { callbackData = "pixivPushOpen" }
+        val pushCloseButton = InlineKeyboardButton("插画推送（关）").apply { callbackData = "pixivPushClose" }
+        val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
+            listOf(pushOpenButton, pushCloseButton),
+            listOf(returnButton())
+        ))
+        val editMessageText = EditMessageText.builder()
+            .text(
+                """
+            pixiv管理，当前状态：
+            插画推送：${pixivEntity.push.str()}
+        """.trimIndent()
+            ).replyMarkup(inlineKeyboardMarkup).chatId(message.chatId).messageId(message.messageId).build()
+        bot.execute(editMessageText)
+    }
+
+    fun pixivManager() = callback {
+        query("pixivManager") {
+            val pixivEntity = pixivService.findByTgId(it.from.id) ?: error("未绑定pixiv账号")
+            editMessage(this, it.message, pixivEntity)
+        }
+        query("pixivPushOpen") {
+            val pixivEntity = pixivService.findByTgId(it.from.id)!!
+            pixivEntity.push = Status.ON
+            pixivService.save(pixivEntity)
+            editMessage(this, it.message, pixivEntity)
+        }
+        query("pixivPushClose") {
+            val pixivEntity = pixivService.findByTgId(it.from.id)!!
+            pixivEntity.push = Status.OFF
+            pixivService.save(pixivEntity)
+            editMessage(this, it.message, pixivEntity)
         }
     }
 

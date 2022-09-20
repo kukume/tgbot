@@ -59,7 +59,7 @@ object TwitterLogic {
             val restId = resultJsonNode["rest_id"].asText()
             val ctCookie = OkUtils.cookie(checkResponse)
             val ct0 = OkUtils.cookie(ctCookie, "ct0")!!
-            val resCookie = cookie.replace("ct0=$ct;", "ct0=$ct0")
+            val resCookie = cookie.replace("ct0=$ct;", "ct0=$ct0;")
             TwitterEntity().also {
                 it.cookie = resCookie
                 it.tId = id
@@ -140,7 +140,7 @@ object TwitterLogic {
     }
 
     suspend fun friendTweet(twitterEntity: TwitterEntity): List<TwitterPojo> {
-        val response = OkHttpKtUtils.get("https://twitter.com/i/api/graphql/xDH0v9kM5QTSTNtbAke9TQ/HomeTimeline?variables=%7B%22count%22%3A20%2C%22includePromotedContent%22%3Atrue%2C%22latestControlAvailable%22%3Atrue%2C%22withCommunity%22%3Atrue%2C%22withSuperFollowsUserFields%22%3Atrue%2C%22withDownvotePerspective%22%3Afalse%2C%22withReactionsMetadata%22%3Afalse%2C%22withReactionsPerspective%22%3Afalse%2C%22withSuperFollowsTweetFields%22%3Atrue%7D&features=%7B%22responsive_web_graphql_timeline_navigation_enabled%22%3Afalse%2C%22unified_cards_ad_metadata_container_dynamic_card_content_query_enabled%22%3Afalse%2C%22dont_mention_me_view_api_enabled%22%3Atrue%2C%22responsive_web_uc_gql_enabled%22%3Atrue%2C%22vibe_api_enabled%22%3Atrue%2C%22responsive_web_edit_tweet_api_enabled%22%3Atrue%2C%22graphql_is_translatable_rweb_tweet_is_translatable_enabled%22%3Afalse%2C%22standardized_nudges_misinfo%22%3Atrue%2C%22tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled%22%3Afalse%2C%22interactive_text_enabled%22%3Atrue%2C%22responsive_web_text_conversations_enabled%22%3Afalse%2C%22responsive_web_enhance_cards_enabled%22%3Atrue%7D",
+        val response = OkHttpKtUtils.get("https://twitter.com/i/api/graphql/xDH0v9kM5QTSTNtbAke9TQ/HomeTimeline?variables=%7B%22count%22%3A20%2C%22includePromotedContent%22%3Afalse%2C%22latestControlAvailable%22%3Atrue%2C%22withCommunity%22%3Atrue%2C%22withSuperFollowsUserFields%22%3Atrue%2C%22withDownvotePerspective%22%3Afalse%2C%22withReactionsMetadata%22%3Afalse%2C%22withReactionsPerspective%22%3Afalse%2C%22withSuperFollowsTweetFields%22%3Atrue%7D&features=%7B%22responsive_web_graphql_timeline_navigation_enabled%22%3Afalse%2C%22unified_cards_ad_metadata_container_dynamic_card_content_query_enabled%22%3Afalse%2C%22dont_mention_me_view_api_enabled%22%3Atrue%2C%22responsive_web_uc_gql_enabled%22%3Atrue%2C%22vibe_api_enabled%22%3Atrue%2C%22responsive_web_edit_tweet_api_enabled%22%3Atrue%2C%22graphql_is_translatable_rweb_tweet_is_translatable_enabled%22%3Afalse%2C%22standardized_nudges_misinfo%22%3Atrue%2C%22tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled%22%3Afalse%2C%22interactive_text_enabled%22%3Atrue%2C%22responsive_web_text_conversations_enabled%22%3Afalse%2C%22responsive_web_enhance_cards_enabled%22%3Atrue%7D",
             mapOf<String, String>().auth(twitterEntity)
         )
         if (response.code != 200) error("cookie已失效")

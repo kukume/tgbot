@@ -2,7 +2,8 @@ package me.kuku.telegram.extension
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
-import me.kuku.telegram.config.TelegramConfig
+import me.kuku.telegram.config.TelegramBot
+import me.kuku.telegram.logic.ToolLogic
 import me.kuku.telegram.logic.YgoLogic
 import me.kuku.telegram.utils.*
 import me.kuku.utils.*
@@ -13,6 +14,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendAudio
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia
@@ -24,7 +26,8 @@ import java.io.InputStream
 @Service
 class ToolExtension(
     private val ygoLogic: YgoLogic,
-    private val telegramConfig: TelegramConfig
+    private val telegramBot: TelegramBot,
+    private val toolLogic: ToolLogic
 ): AbilityExtension {
 
     fun queryYgoCard() = ability("ygo", "游戏王查卡", 1) {
@@ -64,9 +67,13 @@ class ToolExtension(
         val loLiConButton = InlineKeyboardButton("LoLiCon").also { it.callbackData = "LoLiConTool" }
         val fishermanCalendarButton = InlineKeyboardButton("摸鱼日历").also { it.callbackData = "FishermanCalendarTool" }
         val ttsButton = InlineKeyboardButton("tts").also { it.callbackData = "ttsTool" }
+        val baiKeButton = InlineKeyboardButton("百科").also { it.callbackData = "baiKeTool" }
+        val saucenaoButton = InlineKeyboardButton("saucenao识图").also { it.callbackData = "saucenaoTool" }
+//        val dCloudButton = InlineKeyboardButton("dcloud上传").also { it.callbackData = "dCloudTool" }
         return InlineKeyboardMarkup(listOf(
             listOf(loLiConButton, fishermanCalendarButton),
-            listOf(ttsButton)
+            listOf(ttsButton, baiKeButton),
+            listOf(saucenaoButton)
         ))
     }
 
@@ -176,7 +183,7 @@ class ToolExtension(
             val voice = message.voice ?: error("您发送的不为语言")
             val getFile = GetFile(voice.fileId)
             val file = execute(getFile)
-            val url = "https://api.telegram.org/file/bot${telegramConfig.token}/${file.filePath}"
+            val url = "https://api.telegram.org/file/bot${telegramBot.botToken}/${file.filePath}"
             val bb = "data:audio/wav;base64," + OkHttpKtUtils.getBytes(url).base64Encode()
             OkHttpKtUtils.websocket("wss://spaces.huggingface.tech/innnky/soft-vits-vc/queue/join") {
                 open {
@@ -204,6 +211,45 @@ class ToolExtension(
             }
         }
 
+    }
+
+    fun baiKeTool() = callback("baiKeTool") {
+        val chatId = it.message.chatId
+        val sendMessage = execute(SendMessage(chatId.toString(), "请发送百科内容"))
+        val nextMessage = it.waitNextMessage()
+        val text = nextMessage.text
+        val res = toolLogic.baiKe(text)
+        val deleteMessage = DeleteMessage(chatId.toString(), nextMessage.messageId)
+        execute(deleteMessage)
+        val sendDeleteMessage = DeleteMessage(chatId.toString(), sendMessage.messageId)
+        execute(sendDeleteMessage)
+        execute(SendMessage(chatId.toString(), res))
+    }
+
+    fun saucenaoTool() = callback("saucenaoTool") {
+        val chatId = it.message.chatId
+        execute(SendMessage.builder().text("请发送需要识别的图片").chatId(chatId).build())
+        val message = it.waitNextMessage()
+        val photoList = message.photo
+        if (photoList.isEmpty()) error("您发送的不为图片")
+        val photo = photoList.last()
+        val getFile = GetFile(photo.fileId)
+        val file = execute(getFile)
+        val url = "https://api.telegram.org/file/bot${telegramBot.botToken}/${file.filePath}"
+        val newUrl = toolLogic.dCloudUpload(url)
+        val list = toolLogic.saucenao(newUrl)
+        if (list.isEmpty()) error("未找到结果")
+        val result = list[0]
+        val sendMessage = SendMessage(chatId.toString(), """
+            相似度：${result.similarity}
+            名字：${result.indexName}
+            标题：${result.title}
+            预览链接：${result.thumbnail}
+            源链接：${result.extUrls}
+            作者：${result.author} 
+            作者主页：${result.authUrl}
+        """.trimIndent())
+        execute(sendMessage)
     }
 
 

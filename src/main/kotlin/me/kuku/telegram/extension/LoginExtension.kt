@@ -1,3 +1,5 @@
+@file:Suppress("SpellCheckingInspection")
+
 package me.kuku.telegram.extension
 
 import kotlinx.coroutines.delay
@@ -36,7 +38,8 @@ class LoginExtension(
     private val weiboService: WeiboService,
     private val miHoYoService: MiHoYoService,
     private val douYinService: DouYinService,
-    private val twitterService: TwitterService
+    private val twitterService: TwitterService,
+    private val pixivService: PixivService
 ): AbilityExtension {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -53,6 +56,7 @@ class LoginExtension(
         val weiboStepButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboLogin" }
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinLogin" }
         val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterLogin" }
+        val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivLogin" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -60,7 +64,7 @@ class LoginExtension(
             listOf(miHoYoButton, netEaseButton),
             listOf(xiaomiStepButton, leXinStepButton),
             listOf(weiboStepButton, douYinButton),
-            listOf(twitterButton)
+            listOf(twitterButton, pixivButton)
         ))
     }
 
@@ -431,6 +435,32 @@ class LoginExtension(
                 .messageId(messageId).replyMarkup(markup).build()
             execute(editMessageText)
         }
+        query("twitterLoginByUsername") {
+            val chatId = it.message.chatId
+            val tgId = it.from.id
+            execute(SendMessage(chatId.toString(), "请发送twitter的用户名"))
+            val usernameMessage = it.waitNextMessage()
+            val username = usernameMessage.text
+            execute(SendMessage(chatId.toString(), "请发送twitter的密码"))
+            val passwordMessage = it.waitNextMessage()
+            val password = passwordMessage.text
+            try {
+                val twitterEntity = TwitterLogic.login(username, password)
+                val queryEntity = twitterService.findByTgId(tgId) ?: TwitterEntity().also { en -> en.tgId = tgId }
+                queryEntity.cookie = twitterEntity.cookie
+                queryEntity.csrf = twitterEntity.csrf
+                queryEntity.tId = twitterEntity.tId
+                queryEntity.tRestId = twitterEntity.tRestId
+                twitterService.save(queryEntity)
+                execute(SendMessage(chatId.toString(), "绑定twitter成功"))
+            } finally {
+                val deleteMessage = DeleteMessage(chatId.toString(), usernameMessage.messageId)
+                execute(deleteMessage)
+                val deleteMsg = DeleteMessage(chatId.toString(), passwordMessage.messageId)
+                execute(deleteMsg)
+            }
+
+        }
         query("twitterCookieLogin") {
             val chatId = it.message.chatId
             val tgId = it.from.id
@@ -449,7 +479,41 @@ class LoginExtension(
             twitterService.save(queryEntity)
             val deleteMessage = DeleteMessage(chatId.toString(), nextMessage.messageId)
             execute(deleteMessage)
-            execute(SendMessage(chatId.toString(), "保存twitter成功"))
+            execute(SendMessage(chatId.toString(), "绑定twitter成功"))
+        }
+    }
+
+    fun pixivLogin() = callback {
+        query("pixivLogin") {
+            val chatId = it.message.chatId
+            val messageId = it.message.messageId
+            val loginButton = inlineKeyboardButton("使用微博app扫码登陆", "pixivLoginByWeibo")
+            val cookieButton = inlineKeyboardButton("cookie登录", "pixivCookieLogin")
+            val markup = InlineKeyboardMarkup(listOf(
+                listOf(loginButton),
+                listOf(cookieButton),
+                returnButton()
+            ))
+            val editMessageText = EditMessageText.builder().text("请选择pixiv登录方式").chatId(chatId)
+                .messageId(messageId).replyMarkup(markup).build()
+            execute(editMessageText)
+        }
+        query("pixivLoginByWeibo") {
+            error("没写")
+        }
+        query("pixivCookieLogin") {
+            val chatId = it.message.chatId
+            val tgId = it.from.id
+            execute(SendMessage(chatId.toString(), "请发送pixiv的cookie"))
+            val nextMessage = it.waitNextMessage()
+            val cookie = nextMessage.text
+            PixivLogic.followImage(PixivEntity().also { ii -> ii.cookie = cookie })
+            val pixivEntity = pixivService.findByTgId(tgId) ?: PixivEntity().also { ii -> ii.tgId = tgId }
+            pixivEntity.cookie = cookie
+            pixivService.save(pixivEntity)
+            val deleteMessage = DeleteMessage(chatId.toString(), nextMessage.messageId)
+            execute(deleteMessage)
+            execute(SendMessage(chatId.toString(), "绑定pixiv成功"))
         }
     }
 
