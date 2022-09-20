@@ -89,7 +89,7 @@ class BiliBilliScheduled(
                     newList.add(biliBiliPojo)
                 }
                 for (biliBiliPojo in newList) {
-                    val text = "#哔哩哔哩动态推送\n哔哩哔哩有新动态了！！\n${BiliBiliLogic.convertStr(biliBiliPojo)}"
+                    val text = "#哔哩哔哩动态推送\n${BiliBiliLogic.convertStr(biliBiliPojo)}"
                     val bvId = if (biliBiliPojo.bvId.isNotEmpty()) biliBiliPojo.bvId
                     else if (biliBiliPojo.forwardBvId.isNotEmpty()) biliBiliPojo.forwardBvId
                     else ""

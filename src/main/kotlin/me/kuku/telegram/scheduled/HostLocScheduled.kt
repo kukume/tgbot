@@ -36,7 +36,6 @@ class HostLocScheduled(
             for (hostLocEntity in hostLocList) {
                 val str = """
                     #HostLoc新帖推送
-                    Loc有新帖了！！
                     标题：${hostLocPost.title}
                     昵称：${hostLocPost.name}
                     链接：${hostLocPost.url}

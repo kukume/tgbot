@@ -4,11 +4,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.*
-import me.kuku.telegram.utils.ability
-import me.kuku.telegram.utils.callback
-import me.kuku.telegram.utils.execute
-import me.kuku.telegram.utils.waitNextMessage
+import me.kuku.telegram.utils.*
 import me.kuku.utils.OkHttpKtUtils
+import me.kuku.utils.OkUtils
 import me.kuku.utils.base64Decode
 import me.kuku.utils.toUrlEncode
 import org.springframework.stereotype.Service
@@ -16,6 +14,7 @@ import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
@@ -36,7 +35,8 @@ class LoginExtension(
     private val stepService: StepService,
     private val weiboService: WeiboService,
     private val miHoYoService: MiHoYoService,
-    private val douYinService: DouYinService
+    private val douYinService: DouYinService,
+    private val twitterService: TwitterService
 ): AbilityExtension {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -52,14 +52,28 @@ class LoginExtension(
         val leXinStepButton = InlineKeyboardButton("乐心运动").also { it.callbackData = "leXinStepLogin" }
         val weiboStepButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboLogin" }
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinLogin" }
+        val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterLogin" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
             listOf(huYaButton, kuGouButton),
             listOf(miHoYoButton, netEaseButton),
             listOf(xiaomiStepButton, leXinStepButton),
-            listOf(weiboStepButton, douYinButton)
+            listOf(weiboStepButton, douYinButton),
+            listOf(twitterButton)
         ))
+    }
+
+    private fun returnButton(): List<InlineKeyboardButton> {
+        return listOf(inlineKeyboardButton("返回", "returnLogin"))
+    }
+
+    fun returnLogin() = callback("returnLogin") {
+        val chatId = it.message.chatId
+        val messageId = it.message.messageId
+        val editMessageText = EditMessageText.builder().chatId(chatId).messageId(messageId).text("请选择登录选项")
+            .replyMarkup(loginKeyboardMarkup()).build()
+        execute(editMessageText)
     }
 
     fun login() = ability("login", "登录") {
@@ -399,6 +413,43 @@ class LoginExtension(
                 error(result.message)
             }
             delay(2000)
+        }
+    }
+
+    fun twitterLogin() = callback {
+        query("twitterLogin") {
+            val chatId = it.message.chatId
+            val messageId = it.message.messageId
+            val loginButton = inlineKeyboardButton("模拟登录", "twitterLoginByUsername")
+            val cookieButton = inlineKeyboardButton("cookie登录", "twitterCookieLogin")
+            val markup = InlineKeyboardMarkup(listOf(
+                listOf(loginButton),
+                listOf(cookieButton),
+                returnButton()
+            ))
+            val editMessageText = EditMessageText.builder().text("请选择twitter登录方式").chatId(chatId)
+                .messageId(messageId).replyMarkup(markup).build()
+            execute(editMessageText)
+        }
+        query("twitterCookieLogin") {
+            val chatId = it.message.chatId
+            val tgId = it.from.id
+            execute(SendMessage(chatId.toString(), "请发送twitter的cookie"))
+            val nextMessage = it.waitNextMessage()
+            val cookie = nextMessage.text
+            val ct0 = OkUtils.cookie(cookie, "ct0") ?: error("cookie中必须包含ct0")
+            val entity = TwitterEntity().also { entity ->
+                entity.cookie = cookie
+                entity.csrf = ct0
+            }
+            TwitterLogic.friendTweet(entity)
+            val queryEntity = twitterService.findByTgId(tgId) ?: TwitterEntity().also { en -> en.tgId = tgId }
+            queryEntity.cookie = cookie
+            queryEntity.csrf = ct0
+            twitterService.save(queryEntity)
+            val deleteMessage = DeleteMessage(chatId.toString(), nextMessage.messageId)
+            execute(deleteMessage)
+            execute(SendMessage(chatId.toString(), "保存twitter成功"))
         }
     }
 

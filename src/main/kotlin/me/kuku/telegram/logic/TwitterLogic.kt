@@ -1,9 +1,13 @@
+@file:Suppress("DuplicatedCode")
+
 package me.kuku.telegram.logic
 
+import com.fasterxml.jackson.databind.JsonNode
 import me.kuku.telegram.entity.TwitterEntity
 import me.kuku.utils.MyUtils
 import me.kuku.utils.OkHttpKtUtils
 import me.kuku.utils.OkUtils
+import org.jsoup.Jsoup
 
 object TwitterLogic {
 
@@ -43,7 +47,6 @@ object TwitterLogic {
             """.trimIndent()), headers)
             response.close()
             val cookie = OkUtils.cookie(response)
-            println(cookie)
             val ct = OkUtils.cookie(cookie, "ct0")!!
             val checkResponse = OkHttpKtUtils.get("https://twitter.com/i/api/graphql/4jeP7HyKpQUitFUTWedrqA/Viewer?variables=%7B%22withCommunitiesMemberships%22%3Atrue%2C%22withCommunitiesCreation%22%3Atrue%2C%22withSuperFollowsUserFields%22%3Atrue%7D&features=%7B%22responsive_web_graphql_timeline_navigation_enabled%22%3Afalse%7D",
                 headers.also {
@@ -55,13 +58,130 @@ object TwitterLogic {
             val id = resultJsonNode["id"].asText()
             val restId = resultJsonNode["rest_id"].asText()
             val ctCookie = OkUtils.cookie(checkResponse)
-            val resCookie = cookie.replace("ct0=$ct;", "ct0=${OkUtils.cookie(ctCookie, "ct0")}")
+            val ct0 = OkUtils.cookie(ctCookie, "ct0")!!
+            val resCookie = cookie.replace("ct0=$ct;", "ct0=$ct0")
             TwitterEntity().also {
                 it.cookie = resCookie
                 it.tId = id
                 it.tRestId = restId
+                it.csrf = ct0
             }
         } else error(loginJsonNode["errors"][0]["message"].asText())
     }
 
+    private fun Map<String, String>.auth(twitterEntity: TwitterEntity): MutableMap<String, String> {
+        val map = auth()
+        map["cookie"] = twitterEntity.cookie
+        map["x-csrf-token"] = twitterEntity.csrf
+        return map
+    }
+
+    private fun convert(jsonNode: JsonNode): TwitterPojo? {
+        val content = jsonNode["content"]["itemContent"]
+        if (content?.get("socialContext") != null) return null
+        val result = content?.get("tweet_results")?.get("result") ?: return null
+        val legacy = result["legacy"] ?: return null
+        val createdAt = legacy["created_at"].asText()
+        val text = legacy["full_text"].asText()
+        val userid = legacy["user_id_str"].asLong()
+        val userResult = result["core"]["user_results"]["result"]
+        val userLegacy = userResult["legacy"]
+        val username = userLegacy["name"].asText()
+        val screenName = userLegacy["screen_name"].asText()
+        val source = Jsoup.parse(legacy["source"].asText()).text()
+        val id = legacy["id_str"].asLong()
+        val pojo = TwitterPojo(id, createdAt, text, userid, username, screenName, source)
+        legacy["extended_entities"]?.get("media")?.let {
+            for (node in it) {
+                val type = node["type"].asText()
+                if (type == "photo") {
+                    pojo.photoList.add(node["media_url_https"].asText())
+                }
+                if (type == "video") {
+                    val url = node["video_info"]["variants"][0]["url"].asText()
+                    pojo.videoList.add(url)
+                }
+            }
+        }
+        result["quoted_status_result"]?.let {
+            pojo.forward = true
+            val quotedResult = it["result"]
+            val forwardId = quotedResult["rest_id"].asLong()
+            val forwardUserResult = quotedResult["core"]["user_results"]["result"]
+            val forwardUserid = forwardUserResult["rest_id"].asLong()
+            val forwardUserLegacy = forwardUserResult["legacy"]
+            val forwardUsername = forwardUserLegacy["name"].asText()
+            val forwardScreenName = forwardUserLegacy["screen_name"].asText()
+            val quotedLegacy = quotedResult["legacy"]
+            val forwardText = quotedLegacy["full_text"].asText()
+            val forwardCreatedAt = quotedLegacy["created_at"].asText()
+            val forwardSource = Jsoup.parse(quotedLegacy["source"].asText()).text()
+            pojo.forwardId = forwardId
+            pojo.forwardCreatedAt = forwardCreatedAt
+            pojo.forwardText = forwardText
+            pojo.forwardUserid = forwardUserid
+            pojo.forwardUsername = forwardUsername
+            pojo.forwardScreenName = forwardScreenName
+            pojo.forwardSource = forwardSource
+            quotedLegacy["extended_entities"]?.get("media")?.let { media ->
+                for (node in media) {
+                    val type = node["type"].asText()
+                    if (type == "photo") {
+                        pojo.forwardPhotoList.add(node["media_url_https"].asText())
+                    }
+                    if (type == "video") {
+                        val url = node["video_info"]["variants"][0]["url"].asText()
+                        pojo.forwardVideoList.add(url)
+                    }
+                }
+            }
+        }
+        return pojo
+    }
+
+    suspend fun friendTweet(twitterEntity: TwitterEntity): List<TwitterPojo> {
+        val response = OkHttpKtUtils.get("https://twitter.com/i/api/graphql/xDH0v9kM5QTSTNtbAke9TQ/HomeTimeline?variables=%7B%22count%22%3A20%2C%22includePromotedContent%22%3Atrue%2C%22latestControlAvailable%22%3Atrue%2C%22withCommunity%22%3Atrue%2C%22withSuperFollowsUserFields%22%3Atrue%2C%22withDownvotePerspective%22%3Afalse%2C%22withReactionsMetadata%22%3Afalse%2C%22withReactionsPerspective%22%3Afalse%2C%22withSuperFollowsTweetFields%22%3Atrue%7D&features=%7B%22responsive_web_graphql_timeline_navigation_enabled%22%3Afalse%2C%22unified_cards_ad_metadata_container_dynamic_card_content_query_enabled%22%3Afalse%2C%22dont_mention_me_view_api_enabled%22%3Atrue%2C%22responsive_web_uc_gql_enabled%22%3Atrue%2C%22vibe_api_enabled%22%3Atrue%2C%22responsive_web_edit_tweet_api_enabled%22%3Atrue%2C%22graphql_is_translatable_rweb_tweet_is_translatable_enabled%22%3Afalse%2C%22standardized_nudges_misinfo%22%3Atrue%2C%22tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled%22%3Afalse%2C%22interactive_text_enabled%22%3Atrue%2C%22responsive_web_text_conversations_enabled%22%3Afalse%2C%22responsive_web_enhance_cards_enabled%22%3Atrue%7D",
+            mapOf<String, String>().auth(twitterEntity)
+        )
+        if (response.code != 200) error("cookie已失效")
+        val jsonNode = OkUtils.json(response)
+        val list = mutableListOf<TwitterPojo>()
+        val arrayNode = jsonNode["data"]["home"]["home_timeline_urt"]["instructions"][0]["entries"]
+        for (node in arrayNode) {
+            convert(node)?.let {
+                list.add(it)
+            }
+        }
+        return list
+    }
+
+    fun convertStr(twitterPojo: TwitterPojo): String {
+        val sb = StringBuilder()
+        sb.appendLine(twitterPojo.username)
+            .appendLine("发布时间：${twitterPojo.createdAt}")
+            .appendLine("内容：${twitterPojo.text}")
+            .append("链接：${twitterPojo.url()}")
+        if (twitterPojo.forward) {
+            sb.appendLine()
+                .appendLine("转发自：${twitterPojo.forwardUsername}")
+                .appendLine("发布时间：${twitterPojo.forwardCreatedAt}")
+                .appendLine("内容：${twitterPojo.forwardText}")
+                .append("链接：${twitterPojo.forwardUrl()}")
+        }
+        return sb.toString()
+    }
+
+}
+
+data class TwitterPojo(val id: Long, val createdAt: String, val text: String, val userid: Long, val username: String, val screenName: String, val source: String,
+                       var forward: Boolean = false, var forwardId: Long = 0, var forwardCreatedAt: String = "", var forwardText: String = "",
+                       var forwardUserid: Long = 0, var forwardUsername: String = "", var forwardScreenName: String = "", var forwardSource: String = "") {
+    val photoList = mutableListOf<String>()
+    val videoList = mutableListOf<String>()
+    val forwardPhotoList = mutableListOf<String>()
+    val forwardVideoList = mutableListOf<String>()
+
+    fun url() = "https://twitter.com/$screenName/status/$id"
+
+    fun forwardUrl() = "https://twitter.com/$forwardScreenName/status/$forwardId"
 }

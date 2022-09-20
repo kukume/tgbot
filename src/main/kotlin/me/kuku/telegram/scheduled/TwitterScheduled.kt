@@ -1,10 +1,10 @@
 package me.kuku.telegram.scheduled
 
 import me.kuku.telegram.config.TelegramBot
-import me.kuku.telegram.entity.Status
-import me.kuku.telegram.entity.WeiboService
-import me.kuku.telegram.logic.WeiboLogic
-import me.kuku.telegram.logic.WeiboPojo
+import me.kuku.telegram.entity.TwitterService
+import me.kuku.telegram.logic.TwitterLogic
+import me.kuku.telegram.logic.TwitterPojo
+import me.kuku.utils.MyUtils
 import me.kuku.utils.OkHttpKtUtils
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -18,52 +18,44 @@ import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 @Component
-class WeiboScheduled(
-    private val weiboService: WeiboService,
+class TwitterScheduled(
+    private val twitterService: TwitterService,
     private val telegramBot: TelegramBot
 ) {
 
     private val userMap = mutableMapOf<Long, Long>()
 
-    @Scheduled(cron = "0 51 4 * * ?")
-    suspend fun sign() {
-        val list = weiboService.findBySign(Status.ON)
-        for (weiboEntity in list) {
-            WeiboLogic.superTalkSign(weiboEntity)
-        }
-    }
-
-    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
-    suspend fun userMonitor() {
-        val weiboList = weiboService.findByPush(Status.ON)
-        for (weiboEntity in weiboList) {
-            val tgId = weiboEntity.tgId
-            val result = WeiboLogic.friendWeibo(weiboEntity)
-            val list = result.data ?: continue
-            val newList = mutableListOf<WeiboPojo>()
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
+    suspend fun push() {
+        val entityList = twitterService.findAll()
+        for (entity in entityList) {
+            val tgId = entity.tgId
+            val list = TwitterLogic.friendTweet(entity)
+            val newList = mutableListOf<TwitterPojo>()
             if (userMap.containsKey(tgId)) {
-                for (weiboPojo in list) {
-                    if (weiboPojo.id <= userMap[tgId]!!) break
-                    newList.add(weiboPojo)
+                val oldId = userMap[tgId]!!
+                for (twitterPojo in list) {
+                    if (twitterPojo.id <= oldId) break
+                    newList.add(twitterPojo)
                 }
-                for (weiboPojo in newList) {
-                    val text = "#微博动态推送\n${WeiboLogic.convert(weiboPojo)}"
-                    val videoUrl = if (weiboPojo.videoUrl.isNotEmpty()) weiboPojo.videoUrl
-                    else if (weiboPojo.forwardVideoUrl.isNotEmpty()) weiboPojo.forwardVideoUrl
+                for (twitterPojo in newList) {
+                    val text = "#Twitter新推推送\n${TwitterLogic.convertStr(twitterPojo)}"
+                    val videoUrl = if (twitterPojo.videoList.isNotEmpty()) twitterPojo.videoList[0]
+                    else if (twitterPojo.forwardVideoList.isNotEmpty()) twitterPojo.forwardVideoList[0]
                     else ""
                     try {
                         if (videoUrl.isNotEmpty()) {
                             OkHttpKtUtils.getByteStream(videoUrl).use {
-                                val sendVideo = SendVideo(tgId.toString(), InputFile(it, "${weiboPojo.bid}.mp4"))
+                                val sendVideo = SendVideo(tgId.toString(), InputFile(it, "${twitterPojo.id}.mp4"))
                                 sendVideo.caption = text
                                 telegramBot.execute(sendVideo)
                             }
-                        } else if (weiboPojo.imageUrl.isNotEmpty() || weiboPojo.forwardImageUrl.isNotEmpty()) {
-                            val imageList = weiboPojo.imageUrl
-                            imageList.addAll(weiboPojo.forwardImageUrl)
+                        } else if (twitterPojo.photoList.isNotEmpty() || twitterPojo.forwardPhotoList.isNotEmpty()) {
+                            val imageList = twitterPojo.photoList
+                            imageList.addAll(twitterPojo.forwardPhotoList)
                             if (imageList.size == 1) {
                                 OkHttpKtUtils.getByteStream(imageList[0]).use {
-                                    val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "${weiboPojo.bid}.jpg"))
+                                    val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "${twitterPojo.id}.jpg"))
                                     sendPhoto.caption = text
                                     telegramBot.execute(sendPhoto)
                                 }
@@ -76,7 +68,7 @@ class WeiboScheduled(
                                         val imageUrl = imageList[i]
                                         val iis = OkHttpKtUtils.getByteStream(imageUrl)
                                         ii.add(iis)
-                                        val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
+                                        val name = MyUtils.randomLetter(5) + ".jpg"
                                         val mediaPhoto =
                                             InputMediaPhoto.builder().isNewMedia(true).newMediaStream(iis).mediaName(name).media("attach://$name").build()
                                         mediaPhoto.caption = text
@@ -97,6 +89,5 @@ class WeiboScheduled(
             userMap[tgId] = list[0].id
         }
     }
-
 
 }

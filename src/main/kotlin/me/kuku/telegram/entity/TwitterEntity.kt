@@ -7,13 +7,14 @@ import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
-@Document
+@Document("twitter")
 class TwitterEntity {
     var id: String? = null
     var tgId: Long = 0
     var tId: String = ""
     var tRestId: String = ""
     var cookie: String = ""
+    var csrf: String = ""
 }
 
 interface TwitterRepository: ReactiveMongoRepository<TwitterEntity, String> {
