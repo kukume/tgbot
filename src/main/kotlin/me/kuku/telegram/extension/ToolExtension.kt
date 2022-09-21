@@ -17,6 +17,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.InputFile
+import org.telegram.telegrambots.meta.api.objects.PhotoSize
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
@@ -69,11 +70,11 @@ class ToolExtension(
         val ttsButton = InlineKeyboardButton("tts").also { it.callbackData = "ttsTool" }
         val baiKeButton = InlineKeyboardButton("百科").also { it.callbackData = "baiKeTool" }
         val saucenaoButton = InlineKeyboardButton("saucenao识图").also { it.callbackData = "saucenaoTool" }
-//        val dCloudButton = InlineKeyboardButton("dcloud上传").also { it.callbackData = "dCloudTool" }
+        val dCloudButton = InlineKeyboardButton("dcloud上传").also { it.callbackData = "dCloudTool" }
         return InlineKeyboardMarkup(listOf(
             listOf(loLiConButton, fishermanCalendarButton),
             listOf(ttsButton, baiKeButton),
-            listOf(saucenaoButton)
+            listOf(saucenaoButton, dCloudButton)
         ))
     }
 
@@ -224,6 +225,37 @@ class ToolExtension(
         val sendDeleteMessage = DeleteMessage(chatId.toString(), sendMessage.messageId)
         execute(sendDeleteMessage)
         execute(SendMessage(chatId.toString(), res))
+    }
+
+    fun dCloudTool() = callback("dCloudTool") {
+        val chatId = it.message.chatId
+        execute(SendMessage.builder().text("请发送图片").chatId(chatId).build())
+        val message = it.waitNextMessage()
+        val photoList = message.photo
+        if (photoList.isEmpty()) error("您发送的不为图片")
+        val uploadPhotoMap = mutableMapOf<Int, PhotoSize>()
+        var i = 1
+        var size = 0
+        for (photoSize in photoList) {
+            if (photoSize.fileSize > size) {
+                size = photoSize.fileSize
+                uploadPhotoMap[i] = photoSize
+            } else {
+                size = photoSize.fileSize
+                uploadPhotoMap[++i] = photoSize
+            }
+        }
+        val sb = StringBuilder()
+        uploadPhotoMap.values.forEach { fileSzie ->
+            val getFile = GetFile(fileSzie.fileId)
+            val file = execute(getFile)
+            val url = "https://api.telegram.org/file/bot${telegramBot.botToken}/${file.filePath}"
+            val newUrl = toolLogic.dCloudUpload(url)
+            sb.appendLine(newUrl)
+        }
+        val deleteMessage = DeleteMessage(chatId.toString(), message.messageId)
+        execute(deleteMessage)
+        execute(SendMessage(chatId.toString(), sb.removeSuffix("\n").toString()))
     }
 
     fun saucenaoTool() = callback("saucenaoTool") {
