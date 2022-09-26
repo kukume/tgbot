@@ -1,5 +1,6 @@
 package me.kuku.telegram.scheduled
 
+import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.BiliBiliService
@@ -38,6 +39,7 @@ class BiliBilliScheduled(
             BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
             BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
             BiliBiliLogic.liveSign(biliBiliEntity)
+            delay(3000)
         }
     }
 
@@ -46,6 +48,7 @@ class BiliBilliScheduled(
         val list = biliBiliService.findByLive(Status.ON)
         for (biliBiliEntity in list) {
             val result = BiliBiliLogic.followed(biliBiliEntity)
+            delay(3000)
             if (result.failure()) continue
             val tgId = biliBiliEntity.tgId
             if (!liveMap.containsKey(tgId)) liveMap[tgId] = mutableMapOf()
@@ -80,6 +83,7 @@ class BiliBilliScheduled(
         for (biliBiliEntity in biliBiliList) {
             val tgId = biliBiliEntity.tgId
             val result = BiliBiliLogic.friendDynamic(biliBiliEntity)
+            delay(3000)
             val list = result.data ?: continue
             val newList = mutableListOf<BiliBiliPojo>()
             if (userMap.containsKey(tgId)) {

@@ -2,12 +2,12 @@
 
 package me.kuku.telegram.scheduled
 
+import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.PixivService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.PixivLogic
 import me.kuku.telegram.logic.PixivPojo
-import me.kuku.utils.OkHttpKtUtils
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup
@@ -32,6 +32,7 @@ class PixivScheduled(
         for (pixivEntity in entityList) {
             val tgId = pixivEntity.tgId
             val list = PixivLogic.followImage(pixivEntity)
+            delay(3000)
             val newList = mutableListOf<PixivPojo>()
             if (userMap.containsKey(tgId)) {
                 val oldId = userMap[tgId]!!
@@ -52,7 +53,7 @@ class PixivScheduled(
                         if (innerList.size == 1) {
                             val url = imageList[0]
                             val name = url.substring(url.lastIndexOf('/') + 1)
-                            OkHttpKtUtils.getByteStream(url).use {
+                            PixivLogic.imageIs(url).use {
                                 val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "$name.jpg"))
                                 sendPhoto.caption = text
                                 telegramBot.execute(sendPhoto)
@@ -63,8 +64,8 @@ class PixivScheduled(
                             try {
                                 for (imageUrl in innerList) {
                                     val iis = PixivLogic.imageIs(imageUrl)
-                                    ii.add(iis)
                                     val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
+                                    ii.add(iis)
                                     val mediaPhoto =
                                         InputMediaPhoto.builder().isNewMedia(true).newMediaStream(iis).mediaName(name).media("attach://$name").build()
                                     mediaPhoto.caption = text

@@ -27,6 +27,7 @@ class BaiduScheduled(
                 baiduLogic.ybbWatchAd(baiduEntity, "v3")
             }
             baiduLogic.ybbSign(baiduEntity)
+            delay(3000)
         }
     }
 

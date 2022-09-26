@@ -1,5 +1,6 @@
 package me.kuku.telegram.scheduled
 
+import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.entity.WeiboService
@@ -30,6 +31,7 @@ class WeiboScheduled(
         val list = weiboService.findBySign(Status.ON)
         for (weiboEntity in list) {
             WeiboLogic.superTalkSign(weiboEntity)
+            delay(3000)
         }
     }
 
@@ -39,6 +41,7 @@ class WeiboScheduled(
         for (weiboEntity in weiboList) {
             val tgId = weiboEntity.tgId
             val result = WeiboLogic.friendWeibo(weiboEntity)
+            delay(3000)
             val list = result.data ?: continue
             val newList = mutableListOf<WeiboPojo>()
             if (userMap.containsKey(tgId)) {

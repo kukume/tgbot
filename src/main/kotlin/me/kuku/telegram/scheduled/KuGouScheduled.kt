@@ -1,5 +1,6 @@
 package me.kuku.telegram.scheduled
 
+import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.KuGouService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.KuGouLogic
@@ -18,6 +19,7 @@ class KuGouScheduled(
         for (kuGouEntity in list) {
             kuGouLogic.musicianSign(kuGouEntity)
             kuGouLogic.listenMusic(kuGouEntity)
+            delay(3000)
         }
     }
 

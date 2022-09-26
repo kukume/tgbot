@@ -1,5 +1,6 @@
 package me.kuku.telegram.scheduled
 
+import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.MiHoYoService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.MiHoYoLogic
@@ -17,6 +18,7 @@ class MiHoYoScheduled(
         val list = miHoYoService.findBySign(Status.ON)
         for (miHoYoEntity in list) {
             MiHoYoLogic.sign(miHoYoEntity)
+            delay(3000)
         }
     }
 

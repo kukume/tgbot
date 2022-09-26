@@ -1,5 +1,6 @@
 package me.kuku.telegram.scheduled
 
+import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.DouYuService
 import me.kuku.telegram.entity.HuYaService
@@ -28,6 +29,7 @@ class LiveScheduled(
         val list = douYuService.findByLive(Status.ON)
         for (douYuEntity in list) {
             val baseResult = douYuLogic.room(douYuEntity)
+            delay(3000)
             if (baseResult.failure()) continue
             val rooms = baseResult.data()
             val tgId = douYuEntity.tgId
@@ -58,6 +60,7 @@ class LiveScheduled(
     suspend fun huYa() {
         val list = huYaService.findByLive(Status.ON)
         for (huYaEntity in list) {
+            delay(3000)
             val baseResult = huYaLogic.live(huYaEntity)
             if (baseResult.failure()) continue
             val lives = baseResult.data()

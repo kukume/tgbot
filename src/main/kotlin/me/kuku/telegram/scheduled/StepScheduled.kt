@@ -1,5 +1,6 @@
 package me.kuku.telegram.scheduled
 
+import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.StepService
 import me.kuku.telegram.logic.LeXinStepLogic
 import me.kuku.telegram.logic.XiaomiStepLogic
@@ -18,6 +19,7 @@ class StepScheduled(
             val step = stepEntity.step
             XiaomiStepLogic.modifyStepCount(stepEntity, step)
             LeXinStepLogic.modifyStepCount(stepEntity, step)
+            delay(3000)
         }
     }
 

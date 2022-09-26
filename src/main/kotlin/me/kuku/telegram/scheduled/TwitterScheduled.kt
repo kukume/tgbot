@@ -1,5 +1,6 @@
 package me.kuku.telegram.scheduled
 
+import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.entity.TwitterService
@@ -16,8 +17,8 @@ import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import java.io.InputStream
+import java.lang.Long.max
 import java.util.concurrent.TimeUnit
-import kotlin.math.max
 
 @Component
 class TwitterScheduled(
@@ -33,6 +34,8 @@ class TwitterScheduled(
         for (entity in entityList) {
             val tgId = entity.tgId
             val list = TwitterLogic.friendTweet(entity).sortedBy { -it.id }
+            delay(3000)
+            if (list.isEmpty()) continue
             val newList = mutableListOf<TwitterPojo>()
             if (userMap.containsKey(tgId)) {
                 val oldId = userMap[tgId]!!
