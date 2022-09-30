@@ -158,7 +158,7 @@ object BiliBiliLogic {
     }
 
     suspend fun videoByBvId(biliBiliEntity: BiliBiliEntity, bvId: String): File {
-        val htmlUrl = "https://www.bilibili.com/video/$bvId"
+        val htmlUrl = "https://www.bilibili.com/video/$bvId/"
         val response = OkHttpKtUtils.get(htmlUrl, OkUtils.referer(biliBiliEntity.cookie))
         return if (response.code != 200) {
             response.close()
