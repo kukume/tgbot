@@ -32,7 +32,8 @@ class BaiduLogic (
                 val ss = jsonNode.getString("channel_v").toJsonNode()
                 if (ss.getInteger("status") == 0) {
                     val v = ss.getString("v")
-                    val response = OkHttpKtUtils.get("https://passport.baidu.com/v3/login/main/qrbdusslogin?v=${System.currentTimeMillis()}&bduss=$v").apply { close() }
+                    val response = OkHttpKtUtils.get("https://passport.baidu.com/v3/login/main/qrbdusslogin?v=${System.currentTimeMillis()}&bduss=$v")
+                    response.close()
                     val cookie = OkUtils.cookie(response)
                     CommonResult.success(BaiduEntity().also {
                         it.cookie = cookie

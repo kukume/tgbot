@@ -3,7 +3,6 @@
 package me.kuku.telegram.extension
 
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
@@ -96,22 +95,23 @@ class LoginExtension(
                 .apply { caption = "请使用百度app扫码登陆，百度网盘等均可" }
             execute(photo)
         }
-        withTimeout(1000 * 60 * 2) {
-            val baiduEntity = baiduService.findByTgId(it.from.id) ?: BaiduEntity().apply {
-                tgId = it.from.id
-            }
-            while (true) {
-                try {
-                    val result = baiduLogic.checkQrcode(qrcode)
-                    if (result.success()) {
-                        val newEntity = result.data()
-                        baiduEntity.cookie = newEntity.cookie
-                        baiduService.save(baiduEntity)
-                        val sendMessage = SendMessage(it.message.chatId.toString(), "绑定百度成功")
-                        execute(sendMessage)
-                    }
-                } catch (ignore: Exception) {}
-            }
+        val baiduEntity = baiduService.findByTgId(it.from.id) ?: BaiduEntity().apply {
+            tgId = it.from.id
+        }
+        var i = 0
+        while (true) {
+            if (++i > 10) error("百度二维码已超时")
+            delay(3000)
+            try {
+                val result = baiduLogic.checkQrcode(qrcode)
+                if (result.success()) {
+                    val newEntity = result.data()
+                    baiduEntity.cookie = newEntity.cookie
+                    baiduService.save(baiduEntity)
+                    val sendMessage = SendMessage(it.message.chatId.toString(), "绑定百度成功")
+                    execute(sendMessage)
+                }
+            } catch (ignore: Exception) {}
         }
     }
 
