@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
-import java.util.concurrent.TimeUnit
 
 @Component
 class ConfigScheduled(
@@ -19,7 +18,7 @@ class ConfigScheduled(
     private val telegramBot: TelegramBot
 ) {
 
-    @Scheduled(cron = "0 40 19 * * ?")
+    @Scheduled(cron = "0 0 20 * * ?")
     suspend fun positiveEnergyPush() {
         val entityList = configService.findByPositiveEnergy(Status.ON)
         if (entityList.isEmpty()) return
