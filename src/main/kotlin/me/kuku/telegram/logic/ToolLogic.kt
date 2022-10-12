@@ -1,10 +1,15 @@
 package me.kuku.telegram.logic
 
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.utils.io.jvm.javaio.*
 import me.kuku.pojo.CommonResult
+import me.kuku.telegram.utils.ffmpeg
 import me.kuku.utils.*
 import okhttp3.MultipartBody
 import org.jsoup.Jsoup
 import org.springframework.stereotype.Service
+import java.io.File
 import java.nio.charset.Charset
 
 @Service
@@ -82,6 +87,41 @@ class ToolLogic {
             .addFormDataPart("type", "3")
             .addFormDataPart("file", "${MyUtils.randomLetter(6)}.jpg", OkUtils.streamBody(OkHttpKtUtils.getBytes(url))).build())
         return jsonNode["url"]?.asText() ?: error(jsonNode["message"].asText())
+    }
+
+    suspend fun positiveEnergy(date: String): File {
+        DateTimeFormatterUtils.parseToLocalDate(date, "yyyyMMdd")
+        val html = client.get("http://tv.cctv.com/lm/xwlb/day/$date.shtml").bodyAsText()
+        val url =
+            Jsoup.parse(html).getElementsByTag("li").first()?.getElementsByTag("a")?.last()?.attr("href") ?: error("未找到新闻联播链接")
+        val nextHtml = client.get(url).bodyAsText()
+        val guid = MyUtils.regex("guid = \"", "\";", nextHtml) ?: error("没有找到guid")
+        val tsp = System.currentTimeMillis().toString().substring(0, 10)
+        val vc = "${tsp}204947899B86370B879139C08EA3B5E88267BF11E55294143CAE692F250517A4C10C".md5().uppercase()
+        val jsonNode =
+            client.get("https://vdn.apps.cntv.cn/api/getHttpVideoInfo.do?pid=$guid&client=flash&im=0&tsp=$tsp&vn=2049&vc=$vc&uid=BF11E55294143CAE692F250517A4C10C&wlan=")
+                .bodyAsText().toJsonNode()
+        val urlList = jsonNode["video"]["chapters4"].map { it["url"].asText() }
+        val list = mutableListOf<File>()
+        for (i in urlList.indices) {
+            client.get(urlList[i]).bodyAsChannel().toInputStream().use { iis ->
+                val file = IOUtils.writeTmpFile("$date-$i.mp4", iis, false)
+                list.add(file)
+            }
+        }
+        val tsFileList = mutableListOf<File>()
+        for (file in list) {
+            val path = file.absolutePath
+            val newPath = path.replace(".mp4", ".ts")
+            ffmpeg("ffmpeg -i $path -vcodec copy -acodec copy -vbsf h264_mp4toannexb $newPath")
+            tsFileList.add(File(newPath))
+        }
+        val str = tsFileList.joinToString("|") { it.absolutePath }
+        val newPath = tsFileList[0].absolutePath.replace("$date-0.ts", "$date-output.mp4")
+        ffmpeg("ffmpeg -i \"concat:$str\" -acodec copy -vcodec copy -absf aac_adtstoasc $newPath")
+        list.forEach { it.delete() }
+        tsFileList.forEach { it.delete() }
+        return File(newPath)
     }
 
 }

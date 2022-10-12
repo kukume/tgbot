@@ -2,19 +2,15 @@ package me.kuku.telegram.logic
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.contains
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.ResultStatus
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.BiliBiliEntity
+import me.kuku.telegram.utils.ffmpeg
 import me.kuku.utils.*
 import okhttp3.MultipartBody
 import okio.ByteString
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
-import kotlin.concurrent.thread
 
 object BiliBiliLogic {
 
@@ -176,30 +172,10 @@ object BiliBiliLogic {
             OkHttpKtUtils.getByteStream(audioUrl, OkUtils.referer(htmlUrl)).use {
                 audioFile = IOUtils.writeTmpFile("${bvId}.mp3", it, false)
             }
-            val runtime = Runtime.getRuntime()
             val videoPath = videoFile.absolutePath
             val audioPath = audioFile.absolutePath
             val outputPath = videoPath.replace(bvId, "${bvId}output")
-            val process = withContext(Dispatchers.IO) {
-                runtime.exec("${if (System.getProperty("os.name").contains("Windows")) "cmd /C " else ""}ffmpeg -i $videoPath -i $audioPath -c:v copy -c:a aac -strict experimental $outputPath")
-            }
-            thread(true) {
-                BufferedReader(InputStreamReader(process.inputStream)).use { br ->
-                    while (true) {
-                        br.readLine() ?: break
-                    }
-                }
-            }
-            thread(true) {
-                BufferedReader(InputStreamReader(process.errorStream)).use { br ->
-                    while (true) {
-                        br.readLine() ?: break
-                    }
-                }
-            }
-            withContext(Dispatchers.IO) {
-                process.waitFor()
-            }
+            ffmpeg("ffmpeg -i $videoPath -i $audioPath -c:v copy -c:a aac -strict experimental $outputPath")
             videoFile.delete()
             audioFile.delete()
             File(outputPath)

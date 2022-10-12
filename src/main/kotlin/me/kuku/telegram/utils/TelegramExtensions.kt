@@ -66,6 +66,14 @@ private fun invokeCallback(bot: BaseAbilityBot, query: CallbackQuery, block: sus
     }
 }
 
+private fun invokeOtherCallback(bot: BaseAbilityBot, query: CallbackQuery, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit) {
+    JobManager.now {
+        runCatching {
+            block.invoke(bot, query)
+        }
+    }
+}
+
 fun ability(name: String, info: String = "这个命令没有描述", input: Int = 0, reply: Reply? = null, locality: Locality = Locality.ALL,
             privacy: Privacy = Privacy.PUBLIC, block: suspend MessageContext.() -> Unit): Ability {
     return Ability.builder().locality(locality).privacy(privacy).name(name).info(info).input(input).action {
@@ -104,6 +112,10 @@ class CallBackQ {
 
     val startWithMap = mutableMapOf<String, suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
 
+    val beforeList = mutableListOf<suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
+
+    val afterList = mutableListOf<suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
+
     fun query(name: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
         map[name] = block
         return this
@@ -111,6 +123,16 @@ class CallBackQ {
 
     fun queryStartWith(name: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
         startWithMap[name] = block
+        return this
+    }
+
+    fun before(block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
+        beforeList.add(block)
+        return this
+    }
+
+    fun after(block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
+        afterList.add(block)
         return this
     }
 
@@ -122,12 +144,14 @@ fun callback(body: CallBackQ.() -> Unit): Reply {
     return Reply.of({bot, upd ->
         val callbackQuery = upd.callbackQuery
         val data = callbackQuery.data
+        q.beforeList.forEach { invokeOtherCallback(bot, callbackQuery, it) }
         q.map[data]?.let {
             invokeCallback(bot, callbackQuery, it)
         }
         q.startWithMap.forEach { (k, v) ->
             if (data.startsWith(k)) invokeCallback(bot, callbackQuery, v)
         }
+        q.afterList.forEach { invokeOtherCallback(bot, callbackQuery, it) }
     }, pre@{ upd ->
         val query = upd.callbackQuery ?: return@pre false
         val resData = query.data
