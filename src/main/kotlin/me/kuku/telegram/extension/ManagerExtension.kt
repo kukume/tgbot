@@ -432,8 +432,11 @@ class ManagerExtension(
 
     private fun editMessage(bot: BaseAbilityBot, message: Message, stepEntity: StepEntity) {
         val modifyStepButton = InlineKeyboardButton("修改步数").apply { callbackData = "modifyStep" }
+        val stepOffsetOpenButton = InlineKeyboardButton("步数偏移（开）").apply { callbackData = "stepOffsetOpen" }
+        val stepOffsetCloseButton = InlineKeyboardButton("步数偏移（关）").apply { callbackData = "stepOffsetClose" }
         val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
             listOf(modifyStepButton),
+            listOf(stepOffsetOpenButton, stepOffsetCloseButton),
             listOf(returnButton())
         ))
         val editMessageText = EditMessageText.builder()
@@ -441,6 +444,7 @@ class ManagerExtension(
                 """
             刷步数管理，当前状态：
             自动步数：${stepEntity.step} (小于0为关闭自动刷步数)
+            步数偏移：${stepEntity.offset.str()} （开启则会在设置的自动步数范围中随机修改）
         """.trimIndent()
             ).replyMarkup(inlineKeyboardMarkup).chatId(message.chatId).messageId(message.messageId).build()
         bot.execute(editMessageText)
@@ -457,6 +461,18 @@ class ManagerExtension(
             execute(SendMessage(chatId.toString(), "请发送需要修改的步数"))
             val step = it.waitNextMessage().text
             stepEntity.step = step.toIntOrNull() ?: -1
+            stepService.save(stepEntity)
+            editMessage(this, it.message, stepEntity)
+        }
+        query("stepOffsetOpen") {
+            val stepEntity = stepService.findByTgId(it.from.id)!!
+            stepEntity.offset = Status.ON
+            stepService.save(stepEntity)
+            editMessage(this, it.message, stepEntity)
+        }
+        query("stepOffsetClose") {
+            val stepEntity = stepService.findByTgId(it.from.id)!!
+            stepEntity.offset = Status.OFF
             stepService.save(stepEntity)
             editMessage(this, it.message, stepEntity)
         }

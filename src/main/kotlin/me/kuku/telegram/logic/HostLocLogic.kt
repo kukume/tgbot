@@ -3,16 +3,14 @@ package me.kuku.telegram.logic
 import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
-import me.kuku.utils.JobManager
 import me.kuku.utils.MyUtils
 import me.kuku.utils.OkHttpKtUtils
 import me.kuku.utils.OkUtils
 import org.jsoup.Jsoup
-import java.io.IOException
 
 object HostLocLogic {
 
-    suspend fun login(username: String, password: String): CommonResult<String> {
+    suspend fun login(username: String, password: String): String {
         val map = mapOf(
             "fastloginfield" to "username", "username" to username, "cookietime" to "2592000",
             "password" to password, "quickforward" to "yes", "handlekey" to "ls"
@@ -21,32 +19,30 @@ object HostLocLogic {
             map, OkUtils.headers("", "https://hostloc.com/forum.php", UA.PC))
         val str = OkUtils.str(response)
         return if (str.contains("https://hostloc.com/forum.php"))
-            CommonResult.success(OkUtils.cookie(response))
-        else CommonResult.failure("账号或密码错误或其他原因登录失败！")
+            OkUtils.cookie(response)
+        else error("账号或密码错误或其他原因登录失败！")
     }
 
-    suspend fun isLogin(cookie: String): Boolean {
+    private suspend fun checkLogin(cookie: String) {
         val html = OkHttpKtUtils.getStr("https://hostloc.com/home.php?mod=spacecp",
             OkUtils.headers(cookie, "", UA.PC))
         val text = Jsoup.parse(html).getElementsByTag("title").first()!!.text()
-        return text.contains("个人资料")
+        val b = text.contains("个人资料")
+        if (!b) error("cookie已失效")
     }
 
-    fun sign(cookie: String) {
-        JobManager.now{
-            val urlList = mutableListOf<String>()
-            for (i in 0..12) {
-                val num = MyUtils.randomInt(10000, 50000)
-                urlList.add("https://hostloc.com/space-uid-$num.html")
-            }
-            for (url in urlList) {
-                delay(5000)
-                try {
-                    OkHttpKtUtils.get(url, OkUtils.headers(cookie, "https://hostloc.com/forum.php", UA.PC))
-                        .close()
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                }
+    suspend fun sign(cookie: String) {
+        checkLogin(cookie)
+        val urlList = mutableListOf<String>()
+        for (i in 0..12) {
+            val num = MyUtils.randomInt(10000, 50000)
+            urlList.add("https://hostloc.com/space-uid-$num.html")
+        }
+        for (url in urlList) {
+            delay(5000)
+            kotlin.runCatching {
+                OkHttpKtUtils.get(url, OkUtils.headers(cookie, "https://hostloc.com/forum.php", UA.PC))
+                    .close()
             }
         }
     }

@@ -2,8 +2,7 @@ package me.kuku.telegram.scheduled
 
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
-import me.kuku.telegram.entity.Status
-import me.kuku.telegram.entity.WeiboService
+import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.WeiboLogic
 import me.kuku.telegram.logic.WeiboPojo
 import me.kuku.utils.OkHttpKtUtils
@@ -21,7 +20,8 @@ import java.util.concurrent.TimeUnit
 @Component
 class WeiboScheduled(
     private val weiboService: WeiboService,
-    private val telegramBot: TelegramBot
+    private val telegramBot: TelegramBot,
+    private val logService: LogService
 ) {
 
     private val userMap = mutableMapOf<Long, Long>()
@@ -30,7 +30,17 @@ class WeiboScheduled(
     suspend fun sign() {
         val list = weiboService.findBySign(Status.ON)
         for (weiboEntity in list) {
-            WeiboLogic.superTalkSign(weiboEntity)
+            val logEntity = LogEntity().also {
+                it.type = LogType.Weibo
+                it.tgId = weiboEntity.tgId
+            }
+            kotlin.runCatching {
+                WeiboLogic.superTalkSign(weiboEntity)
+                logEntity.text = "成功"
+            }.onFailure {
+                logEntity.text = "失败"
+            }
+            logService.save(logEntity)
             delay(3000)
         }
     }

@@ -203,7 +203,7 @@ class KuGouLogic {
         }
     }
 
-    suspend fun musicianSign(kuGouEntity: KuGouEntity): CommonResult<Void> {
+    suspend fun musicianSign(kuGouEntity: KuGouEntity): String {
         // 1014
         // 1058
         val kuGoo = kuGouEntity.kuGoo
@@ -215,11 +215,11 @@ class KuGouLogic {
             "mid" to time, "uuid" to time)
         val jsonNode =
             OkHttpKtUtils.postJson("https://h5activity.kugou.com/v1/musician/do_signed?${signature2(map)}", mapOf())
-        return if (jsonNode.getInteger("errcode") == 0) CommonResult.success(message = "酷狗音乐人签到成功！")
-        else CommonResult.failure("酷狗音乐人签到失败！" + jsonNode.getString("errmsg"))
+        return if (jsonNode.getInteger("errcode") == 0) "酷狗音乐人签到成功！"
+        else error("酷狗音乐人签到失败！" + jsonNode.getString("errmsg"))
     }
 
-    suspend fun listenMusic(kuGouEntity: KuGouEntity): CommonResult<Void> {
+    suspend fun listenMusic(kuGouEntity: KuGouEntity): String {
 //        val aId = MyUtils.regex("a_id=", "&", kuGouEntity.kuGoo)!!
         val map = mutableMapOf("userid" to kuGouEntity.userid.toString(), "token" to kuGouEntity.token,
             "appid" to "3116", "clientver" to "10547", "clienttime" to (System.currentTimeMillis() / 1000).toString(),
@@ -228,8 +228,8 @@ class KuGouLogic {
         val jsonNode = OkHttpKtUtils.postJson("https://gateway.kugou.com/v2/report/listen_song?${signature3(map, other)}",
             OkUtils.text(other), mapOf("x-router" to "youth.kugou.com", "User-Agent" to "Android12-1070-10536-130-0-ReportPlaySongToServerProtocol-wifi"))
         val code = jsonNode.getInteger("error_code")
-        return if (code == 0 || code == 130012) CommonResult.success()
-        else CommonResult.failure(jsonNode.getString("error_msg"))
+        return if (code == 0 || code == 130012) "成功"
+        else error(jsonNode.getString("error_msg"))
     }
 
 }

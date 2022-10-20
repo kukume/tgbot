@@ -92,24 +92,24 @@ class ExecExtension(
             val chatId = it.message.chatId
             val tgId = it.from.id
             val baiduEntity = baiduService.findByTgId(tgId)!!
-            val ss = baiduLogic.tieBaSign(baiduEntity)
-            val sendMessage = SendMessage.builder().text(ss.message).chatId(chatId).build()
+            baiduLogic.tieBaSign(baiduEntity)
+            val sendMessage = SendMessage.builder().text("贴吧签到成功").chatId(chatId).build()
             execute(sendMessage)
         }
         query("ybbSign") {
             val chatId = it.message.chatId
             val tgId = it.from.id
             val baiduEntity = baiduService.findByTgId(tgId)!!
-            val result = baiduLogic.ybbSign(baiduEntity)
-            val sendMessage = SendMessage.builder().text(result.message).chatId(chatId).build()
+            baiduLogic.ybbSign(baiduEntity)
+            val sendMessage = SendMessage.builder().text("游帮帮签到成功").chatId(chatId).build()
             execute(sendMessage)
         }
         query("ybbWatchAd") {
             val chatId = it.message.chatId
             val tgId = it.from.id
             val baiduEntity = baiduService.findByTgId(tgId)!!
-            val res = baiduLogic.ybbWatchAd(baiduEntity, "v3")
-            val sendMessage = SendMessage.builder().text(res.message).chatId(chatId).build()
+            baiduLogic.ybbWatchAd(baiduEntity, "v3")
+            val sendMessage = SendMessage.builder().text("游帮帮观看广告成功").chatId(chatId).build()
             execute(sendMessage)
         }
     }
@@ -129,18 +129,12 @@ class ExecExtension(
             val tgId = it.from.id
             val biliBiliEntity = biliBiliService.findByTgId(tgId)!!
             val firstRank = BiliBiliLogic.ranking()[0]
-            val res = BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
+            BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
             val sendMessage = SendMessage().also { message -> message.chatId = chatId.toString() }
-            if (res.failure()) {
-                sendMessage.text = res.message
-                execute(sendMessage)
-            } else {
-                BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
-                BiliBiliLogic.liveSign(biliBiliEntity)
-                sendMessage.text = "哔哩哔哩签到成功"
-                execute(sendMessage)
-            }
-
+            BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
+            BiliBiliLogic.liveSign(biliBiliEntity)
+            sendMessage.text = "哔哩哔哩签到成功"
+            execute(sendMessage)
         }
     }
 
@@ -179,16 +173,16 @@ class ExecExtension(
             val chatId = it.message.chatId
             val tgId = it.from.id
             val kuGouEntity = kuGouService.findByTgId(tgId)!!
-            val res = kuGouLogic.musicianSign(kuGouEntity)
-            val sendMessage = SendMessage.builder().chatId(chatId).text(res.message).build()
+            kuGouLogic.musicianSign(kuGouEntity)
+            val sendMessage = SendMessage.builder().chatId(chatId).text("酷狗音乐人签到成功").build()
             execute(sendMessage)
         }
         query("kuGouListen") {
             val chatId = it.message.chatId
             val tgId = it.from.id
             val kuGouEntity = kuGouService.findByTgId(tgId)!!
-            val res = kuGouLogic.listenMusic(kuGouEntity)
-            val sendMessage = SendMessage.builder().chatId(chatId).text(res.message).build()
+            kuGouLogic.listenMusic(kuGouEntity)
+            val sendMessage = SendMessage.builder().chatId(chatId).text("酷狗听歌得vip成功").build()
             execute(sendMessage)
         }
     }
@@ -207,8 +201,8 @@ class ExecExtension(
             val chatId = it.message.chatId
             val tgId = it.from.id
             val miHoYoEntity = miHoYoService.findByTgId(tgId)!!
-            val result = MiHoYoLogic.sign(miHoYoEntity)
-            val sendMessage = SendMessage.builder().chatId(chatId).text(result.message).build()
+            MiHoYoLogic.sign(miHoYoEntity)
+            val sendMessage = SendMessage.builder().chatId(chatId).text("原神签到成功").build()
             execute(sendMessage)
         }
     }
@@ -286,10 +280,9 @@ class ExecExtension(
         }
         query("xiaomiStepExec") {
             val chatId = it.message.chatId
-            val tgId = it.from.id
             execute(SendMessage.builder().chatId(chatId).text("请发送需要刷的步数").build())
             val step = it.waitNextMessage().text.toIntOrNull() ?: error("步数不为数字")
-            val stepEntity = stepService.findByTgId(tgId)!!
+            val stepEntity = stepService.findByTgId(it.from.id)!!
             val res = XiaomiStepLogic.modifyStepCount(stepEntity, step)
             execute(SendMessage.builder().chatId(chatId).text(res.message).build())
         }

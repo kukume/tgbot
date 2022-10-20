@@ -41,7 +41,7 @@ class PixivScheduled(
                     newList.add(pixivPojo)
                 }
                 for (pixivPojo in newList) {
-                    val text = PixivLogic.convertStr(pixivPojo)
+                    val text = "#pixiv推送\n${PixivLogic.convertStr(pixivPojo)}"
                     val imageList = PixivLogic.imageById(pixivPojo.id)
                     val sendList = mutableListOf<MutableList<String>>()
                     for (i in imageList.indices) {

@@ -3,8 +3,7 @@ package me.kuku.telegram.scheduled
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.config.TelegramConfig
-import me.kuku.telegram.entity.BiliBiliService
-import me.kuku.telegram.entity.Status
+import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.BiliBiliPojo
 import me.kuku.utils.OkHttpKtUtils
@@ -24,7 +23,8 @@ import java.util.concurrent.TimeUnit
 class BiliBilliScheduled(
     private val biliBiliService: BiliBiliService,
     private val telegramBot: TelegramBot,
-    private val telegramConfig: TelegramConfig
+    private val telegramConfig: TelegramConfig,
+    private val logService: LogService
 ) {
 
     private val liveMap = mutableMapOf<Long, MutableMap<Long, Boolean>>()
@@ -35,10 +35,20 @@ class BiliBilliScheduled(
     suspend fun sign() {
         val list = biliBiliService.findBySign(Status.ON)
         for (biliBiliEntity in list) {
-            val firstRank = BiliBiliLogic.ranking()[0]
-            BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
-            BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
-            BiliBiliLogic.liveSign(biliBiliEntity)
+            val logEntity = LogEntity().apply {
+                tgId = biliBiliEntity.tgId
+                type = LogType.BiliBili
+            }
+            kotlin.runCatching {
+                val firstRank = BiliBiliLogic.ranking()[0]
+                BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
+                BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
+                BiliBiliLogic.liveSign(biliBiliEntity)
+                logEntity.text = "成功"
+            }.onFailure {
+                logEntity.text = "失败"
+            }
+            logService.save(logEntity)
             delay(3000)
         }
     }

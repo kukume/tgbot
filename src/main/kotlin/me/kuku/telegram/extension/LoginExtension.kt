@@ -203,15 +203,11 @@ class LoginExtension(
         val passwordSendMessage = SendMessage(chatId.toString(), "请发送密码")
         execute(passwordSendMessage)
         val password = it.waitNextMessage().text
-        val res = HostLocLogic.login(account, password)
-        val text = if (res.success()) {
-            val cookie = res.data()
-            val hostLocEntity = hostLocService.findByTgId(userid) ?: HostLocEntity().apply { tgId = userid }
-            hostLocEntity.cookie = cookie
-            hostLocService.save(hostLocEntity)
-            "绑定HostLoc成功"
-        } else res.message
-        val sendMessage = SendMessage(chatId.toString(), text)
+        val cookie = HostLocLogic.login(account, password)
+        val hostLocEntity = hostLocService.findByTgId(userid) ?: HostLocEntity().apply { tgId = userid }
+        hostLocEntity.cookie = cookie
+        hostLocService.save(hostLocEntity)
+        val sendMessage = SendMessage(chatId.toString(), "绑定HostLoc成功")
         execute(sendMessage)
     }
 

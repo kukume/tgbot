@@ -24,7 +24,7 @@ class MailScheduled(
 ) {
 
 
-    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
+//    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     @Transactional
     suspend fun check() {
         val mailList = mailService.findAll()

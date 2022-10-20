@@ -54,14 +54,14 @@ class BaiduLogic (
         return map
     }
 
-    suspend fun ybbWatchAd(baiduEntity: BaiduEntity, version: String = "v2"): CommonResult<Void> {
+    suspend fun ybbWatchAd(baiduEntity: BaiduEntity, version: String = "v2"): String {
         val preJsonNode = OkHttpKtUtils.getJson("https://api-gt.baidu.com/v1/server/task?version=$version", ybbDefaultHeader().also {
             it["cookie"] = baiduEntity.cookie
         })
-        if (!preJsonNode.getBoolean("success")) return CommonResult.failure(preJsonNode["errors"]["message_cn"].asText())
+        if (!preJsonNode.getBoolean("success")) error(preJsonNode["errors"]["message_cn"].asText())
         val preResult = preJsonNode["result"]
         val ll = preResult.filter { it.getString("name") in listOf("看视频送时长", "看视频送积分") }
-        if (ll.isEmpty()) return CommonResult.failure("没有这个任务")
+        if (ll.isEmpty()) error("没有这个任务")
         val sign = ll[0].getString("sign")
         val time = System.currentTimeMillis()
         val tenTime = time / 1000
@@ -76,19 +76,19 @@ class BaiduLogic (
                 it["cookie"] = baiduEntity.cookie
             }
         )
-        return if (resultJsonObject.getBoolean("success")) CommonResult.success(message = "观看广告成功！", data = null)
-        else CommonResult.failure(resultJsonObject["errors"]["message_cn"].asText())
+        return if (resultJsonObject.getBoolean("success")) "观看广告成功！"
+        else error(resultJsonObject["errors"]["message_cn"].asText())
     }
 
-    suspend fun ybbSign(baiduEntity: BaiduEntity): CommonResult<Void> {
+    suspend fun ybbSign(baiduEntity: BaiduEntity): String {
         val map = ybbDefaultHeader()
         map["cookie"] = baiduEntity.cookie
         map["referer"] = "https://ybb.baidu.com/m/pages/h5/sign-activity?channel=xiaomi&device=android&appversion=2.3.14&cuid=8D795D0D8C8AB781BD0E0B807B0B1B0F%7CVCUIVQGDM&systemversion=31"
         map["user-agent"] = "Mozilla/5.0 (Linux; Android 12; M2007J3SC Build/SKQ1.211006.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/100.0.4896.79 Mobile Safari/537.36 com.baidu.ybb/2.3.14"
         val jsonObject = OkHttpKtUtils.postJson("https://ybb.baidu.com/api/v1/server/scores",
             OkUtils.json("""{"type": "daily"}"""), map)
-        return if (jsonObject.getBoolean("success")) CommonResult.success()
-        else CommonResult.failure(jsonObject["errors"]["message_cn"].asText())
+        return if (jsonObject.getBoolean("success")) "成功"
+        else error(jsonObject["errors"]["message_cn"].asText())
     }
 
     private suspend fun getSToken(baiduEntity: BaiduEntity, url: String): String {
@@ -108,7 +108,7 @@ class BaiduLogic (
         return sToken
     }
 
-    suspend fun tieBaSign(baiduEntity: BaiduEntity): CommonResult<Void> {
+    suspend fun tieBaSign(baiduEntity: BaiduEntity): String {
         val sToken = baiduEntity.tieBaSToken
         val url = "https://tieba.baidu.com/f/like/mylike?v=${System.currentTimeMillis()}"
         if (sToken.isEmpty()) saveSToken(baiduEntity, url)
@@ -129,9 +129,9 @@ class BaiduLogic (
             val tbs = MyUtils.regex("'tbs': \"", "\"", html)!!
             val jsonObject = OkHttpKtUtils.postJson("https://tieba.baidu.com/sign/add", mapOf("ie" to "utf-8", "kw" to s, "tbs" to tbs),
                 headers)
-            if (!arrayOf(1101, 0).contains(jsonObject.getInteger("no"))) return CommonResult.failure(jsonObject.getString("error"))
+            if (!arrayOf(1101, 0).contains(jsonObject.getInteger("no"))) error(jsonObject.getString("error"))
         }
-        return CommonResult.success(message = "贴吧签到成功！", data = null)
+        return "贴吧签到成功！"
     }
 }
 

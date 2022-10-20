@@ -19,6 +19,7 @@ class StepEntity {
     var leXinAccessToken: String = ""
     var miLoginToken: String = ""
     var step: Int = -1
+    var offset: Status = Status.OFF
 }
 
 interface StepRepository: ReactiveMongoRepository<StepEntity, String> {

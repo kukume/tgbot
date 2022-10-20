@@ -2,8 +2,7 @@ package me.kuku.telegram.scheduled
 
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
-import me.kuku.telegram.entity.HostLocService
-import me.kuku.telegram.entity.Status
+import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.HostLocLogic
 import me.kuku.telegram.logic.HostLocPost
 import org.springframework.scheduling.annotation.Scheduled
@@ -14,7 +13,8 @@ import java.util.concurrent.TimeUnit
 @Component
 class HostLocScheduled(
     private val hostLocService: HostLocService,
-    private val telegramBot: TelegramBot
+    private val telegramBot: TelegramBot,
+    private val logService: LogService
 ) {
     private var locId = 0
 
@@ -51,7 +51,17 @@ class HostLocScheduled(
     suspend fun sign() {
         val list = hostLocService.findBySign(Status.ON)
         for (hostLocEntity in list) {
-            HostLocLogic.sign(hostLocEntity.cookie)
+            val logEntity = LogEntity().also {
+                it.tgId = hostLocEntity.tgId
+                it.type = LogType.HostLoc
+            }
+            kotlin.runCatching {
+                HostLocLogic.sign(hostLocEntity.cookie)
+                logEntity.text = "成功"
+            }.onFailure {
+                logEntity.text = "失败"
+            }
+            logService.save(logEntity)
         }
     }
 

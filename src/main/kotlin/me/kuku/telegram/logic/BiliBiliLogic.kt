@@ -251,11 +251,11 @@ object BiliBiliLogic {
         return BiliBiliLive(dataJsonNode.get("title")?.asText() ?: "", id, dataJsonNode.get("url")?.asText() ?: "", status == 1)
     }
 
-    suspend fun liveSign(biliBiliEntity: BiliBiliEntity): CommonResult<Void> {
+    suspend fun liveSign(biliBiliEntity: BiliBiliEntity): String {
         val jsonNode = OkHttpKtUtils.getJson("https://api.live.bilibili.com/xlive/web-ucenter/v1/sign/DoSign",
             OkUtils.cookie(biliBiliEntity.cookie))
-        return if (jsonNode.getInteger("code") == 0) CommonResult.success()
-        else CommonResult.failure(jsonNode.getString("message"))
+        return if (jsonNode.getInteger("code") == 0) "成功"
+        else error(jsonNode.getString("message"))
     }
 
     suspend fun like(biliBiliEntity: BiliBiliEntity, id: String, isLike: Boolean): CommonResult<Void> {
@@ -367,21 +367,21 @@ object BiliBiliLogic {
         return list
     }
 
-    suspend fun report(biliBiliEntity: BiliBiliEntity, aid: String, cid: String, proGRes: Int): CommonResult<Void> {
+    suspend fun report(biliBiliEntity: BiliBiliEntity, aid: String, cid: String, proGRes: Int): String {
         val map = mapOf("aid" to aid, "cid" to cid, "progres" to proGRes.toString(),
             "csrf" to biliBiliEntity.token)
         val jsonNode = OkHttpKtUtils.postJson("http://api.bilibili.com/x/v2/history/report", map,
             OkUtils.cookie(biliBiliEntity.cookie))
-        return if (jsonNode.getInteger("code") == 0) CommonResult.success()
-        else CommonResult.failure(jsonNode.getString("message"))
+        return if (jsonNode.getInteger("code") == 0) "成功"
+        else error(jsonNode.getString("message"))
     }
 
-    suspend fun share(biliBiliEntity: BiliBiliEntity, aid: String): CommonResult<Void> {
+    suspend fun share(biliBiliEntity: BiliBiliEntity, aid: String): String {
         val map = mapOf("aid" to aid, "csrf" to biliBiliEntity.token)
         val jsonNode = OkHttpKtUtils.postJson("https://api.bilibili.com/x/web-interface/share/add", map,
             OkUtils.cookie(biliBiliEntity.cookie))
-        return if (jsonNode.getInteger("code") == 0) CommonResult.success()
-        else CommonResult.failure(jsonNode.getString("message"))
+        return if (jsonNode.getInteger("code") == 0) "成功"
+        else error(jsonNode.getString("message"))
     }
 
     suspend fun getReplay(biliBiliEntity: BiliBiliEntity, oid: String, page: Int): List<BiliBiliReplay> {

@@ -4,4 +4,31 @@
 
 Demo：https://t.me/kukume_bot
 
-[kukubot](https://github.com/kukume/kukubot) 的telegram版
+## Environment
+
+JDK17 + Mongodb
+
+## Config
+
+```yaml
+kuku:
+  telegram:
+    # @BotFather获取到的token
+    token:
+    # bot的用户名
+    username:
+    # 机器人管理员的id
+    creatorId:
+    # 代理地址
+    proxyHost:
+    # 代理端口
+    proxyPort: 0
+    # 代理类型，可选 NO_PROXY（不设置代理）、HTTP、SOCKS4、SOCKS5
+    proxyType: NO_PROXY
+    # 自建的tg服务器的地址（包含http://或者https://），如果填了，
+    # 上传文件到机器人的功能均会失效，如果不填，动态推送将不能推送50M以上的视频
+    url: 
+```
+
+## LICENSE
+AGPL

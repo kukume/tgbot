@@ -61,12 +61,12 @@ object MiHoYoLogic {
             "cookie" to miHoYoEntity.cookie)
     }
 
-    suspend fun sign(miHoYoEntity: MiHoYoEntity): CommonResult<Void> {
+    suspend fun sign(miHoYoEntity: MiHoYoEntity): String {
         val ssJsonNode = OkHttpKtUtils.getJson("https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie?game_biz=hk4e_cn",
             OkUtils.cookie(miHoYoEntity.cookie))
-        if (ssJsonNode.getInteger("retcode") != 0) return CommonResult.failure(ssJsonNode.getString("message"))
+        if (ssJsonNode.getInteger("retcode") != 0) error(ssJsonNode.getString("message"))
         val jsonArray = ssJsonNode["data"]["list"]
-        if (jsonArray.size() == 0) return CommonResult.failure("您还没有原神角色！！")
+        if (jsonArray.size() == 0) error("您还没有原神角色！！")
         var jsonNode: JsonNode? = null
         for (obj in jsonArray) {
             jsonNode = OkHttpKtUtils.postJson("https://api-takumi.mihoyo.com/event/bbs_sign_reward/sign",
@@ -74,9 +74,9 @@ object MiHoYoLogic {
                 headerMap(miHoYoEntity))
         }
         return when (jsonNode?.getInteger("retcode")) {
-            0 -> CommonResult.success(message = "签到成功！！")
-            -5003 -> CommonResult.success(message = "今日已签到！！")
-            else -> CommonResult.failure(jsonNode?.getString("message") ?: "未知错误")
+            0 -> "签到成功！！"
+            -5003 -> "今日已签到！！"
+            else -> error(jsonNode?.get("message")?.asText() ?: "未知错误")
         }
     }
 
