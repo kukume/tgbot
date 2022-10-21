@@ -10,14 +10,10 @@ class IndexExtension: AbilityExtension {
 
     fun start() = ability("start", "start") {
         sendMd("""
-            *kuku*的自动签到机器人。发送 /commands 可以查看所有指令哦
-        """.trimIndent())
-    }
-
-    fun about() = ability("about", "关于") {
-        sendMd("""
+            *kuku*的自动签到机器人。发送 /commands 可以查看所有指令
             机器人开源地址 https://github.com/kukume/tgbot
-            点个star把
+            求求点个star把
+            有问题可以发issues或者email：`kuku@kuku.me`
         """.trimIndent())
     }
 

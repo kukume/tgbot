@@ -47,6 +47,7 @@ class BiliBilliScheduled(
                 logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"
+                logEntity.sendFailMessage(telegramBot)
             }
             logService.save(logEntity)
             delay(3000)

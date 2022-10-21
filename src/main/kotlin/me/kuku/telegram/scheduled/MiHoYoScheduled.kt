@@ -1,6 +1,7 @@
 package me.kuku.telegram.scheduled
 
 import kotlinx.coroutines.delay
+import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.MiHoYoLogic
 import org.springframework.scheduling.annotation.Scheduled
@@ -9,7 +10,8 @@ import org.springframework.stereotype.Component
 @Component
 class MiHoYoScheduled(
     private val miHoYoService: MiHoYoService,
-    private val logService: LogService
+    private val logService: LogService,
+    private val telegramBot: TelegramBot
 ) {
 
 
@@ -26,6 +28,7 @@ class MiHoYoScheduled(
                 logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"
+                logEntity.sendFailMessage(telegramBot)
             }
             logService.save(logEntity)
             delay(3000)

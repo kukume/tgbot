@@ -1,6 +1,7 @@
 package me.kuku.telegram.scheduled
 
 import kotlinx.coroutines.delay
+import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.NetEaseLogic
 import org.springframework.scheduling.annotation.Scheduled
@@ -9,7 +10,8 @@ import org.springframework.stereotype.Component
 @Component
 class NetEaseScheduled(
     private val netEaseService: NetEaseService,
-    private val logService: LogService
+    private val logService: LogService,
+    private val telegramBot: TelegramBot
 ) {
 
     @Scheduled(cron = "0 12 7 * * ?")
@@ -28,6 +30,7 @@ class NetEaseScheduled(
                 logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"
+                logEntity.sendFailMessage(telegramBot)
             }
             logService.save(logEntity)
         }
@@ -53,6 +56,7 @@ class NetEaseScheduled(
                 logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"
+                logEntity.sendFailMessage(telegramBot)
             }
             logService.save(logEntity)
         }

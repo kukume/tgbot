@@ -1,6 +1,7 @@
 package me.kuku.telegram.scheduled
 
 import kotlinx.coroutines.delay
+import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.KuGouLogic
 import org.springframework.scheduling.annotation.Scheduled
@@ -10,7 +11,8 @@ import org.springframework.stereotype.Component
 class KuGouScheduled(
     private val kuGouService: KuGouService,
     private val kuGouLogic: KuGouLogic,
-    private val logService: LogService
+    private val logService: LogService,
+    private val telegramBot: TelegramBot
 ) {
 
     @Scheduled(cron = "0 41 3 * * ?")
@@ -27,6 +29,7 @@ class KuGouScheduled(
                 logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"
+                logEntity.sendFailMessage(telegramBot)
             }
             logService.save(logEntity)
             delay(3000)

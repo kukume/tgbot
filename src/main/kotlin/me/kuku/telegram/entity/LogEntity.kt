@@ -21,7 +21,7 @@ class LogEntity: BaseEntity() {
     fun sendFailMessage(telegramBot: TelegramBot) {
         val sendMessage = SendMessage()
         sendMessage.chatId = tgId.toString()
-        sendMessage.text = "${type.value}自动签到失败，请手动执行以查看原因"
+        sendMessage.text = "#自动签到失败提醒\n${type.value}自动签到失败，请手动执行以查看原因"
         telegramBot.execute(sendMessage)
     }
 }
