@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -27,6 +28,8 @@ interface KuGouRepository: ReactiveMongoRepository<KuGouEntity, String> {
 
     fun findBySign(sign: Status): Flux<KuGouEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -41,4 +44,7 @@ class KuGouService(
     suspend fun save(kuGouEntity: KuGouEntity): KuGouEntity = kuGouRepository.save(kuGouEntity).awaitSingle()
 
     suspend fun findAll(): List<KuGouEntity> = kuGouRepository.findAll().collectList().awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = kuGouRepository.deleteByTgId(tgId).awaitSingleOrNull()
 }

@@ -20,8 +20,8 @@ class LogExtension(
     private val logService: LogService
 ): AbilityExtension {
 
-    private suspend fun replyMarkup(before: LocalDateTime, after: LocalDateTime): InlineKeyboardMarkup {
-        val logList = logService.findByCreateTimeBetween(before, after)
+    private suspend fun replyMarkup(before: LocalDateTime, after: LocalDateTime, tgId: Long): InlineKeyboardMarkup {
+        val logList = logService.findByCreateTimeBetweenAndTgId(before, after, tgId)
         val list = mutableListOf<List<InlineKeyboardButton>>()
         for (logEntity in logList) {
             val single = listOf(InlineKeyboardButton("${logEntity.type.value} - ${logEntity.text}").apply { callbackData = "logNone" })
@@ -43,7 +43,7 @@ class LogExtension(
         val sendMessage = SendMessage()
         sendMessage.chatId = chatId().toString()
         val before = LocalDate.now().atTime(0, 0)
-        sendMessage.replyMarkup = replyMarkup(before, before.plusDays(1))
+        sendMessage.replyMarkup = replyMarkup(before, before.plusDays(1), user().id)
         sendMessage.text = "${DateTimeFormatterUtils.format(before, "yyyy-MM-dd")}的自动签到日志"
         execute(sendMessage)
     }
@@ -56,7 +56,7 @@ class LogExtension(
         editMessageText.text = "${before}的自动签到日志"
         editMessageText.messageId = it.message.messageId
         val beforeTime = before.atTime(0, 0)
-        editMessageText.replyMarkup = replyMarkup(beforeTime, beforeTime.plusDays(1))
+        editMessageText.replyMarkup = replyMarkup(beforeTime, beforeTime.plusDays(1), it.from.id)
         execute(editMessageText)
     }
 

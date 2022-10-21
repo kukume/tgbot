@@ -27,7 +27,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.telegram:telegrambots:6.1.0")
     implementation("org.telegram:telegrambots-abilities:6.1.0")
-    implementation("me.kuku:utils:1.4")
+    implementation("me.kuku:utils:1.5")
     implementation("org.jsoup:jsoup:1.15.3")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     kapt("org.springframework.boot:spring-boot-configuration-processor")

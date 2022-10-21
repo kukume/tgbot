@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -27,6 +28,8 @@ interface HostLocRepository: ReactiveMongoRepository<HostLocEntity, String> {
 
     fun findBySign(sign: Status): Flux<HostLocEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -42,4 +45,7 @@ class HostLocService(
     suspend fun save(hostLocEntity: HostLocEntity): HostLocEntity = hostLocRepository.save(hostLocEntity).awaitSingle()
 
     suspend fun findAll(): List<HostLocEntity> = hostLocRepository.findAll().collectList().awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = hostLocRepository.deleteByTgId(tgId).awaitSingleOrNull()
 }

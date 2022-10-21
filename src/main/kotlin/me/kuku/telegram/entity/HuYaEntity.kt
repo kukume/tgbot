@@ -5,6 +5,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -22,6 +23,8 @@ interface HuYaRepository: ReactiveMongoRepository<HuYaEntity, String> {
 
     fun findByLive(live: Status): Flux<HuYaEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -36,5 +39,8 @@ class HuYaService(
     suspend fun save(huYaEntity: HuYaEntity): HuYaEntity = huYaRepository.save(huYaEntity).awaitSingle()
 
     suspend fun findAll(): List<HuYaEntity> = huYaRepository.findAll().collectList().awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = huYaRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
 }

@@ -35,6 +35,7 @@ enum class LogType(val value: String) {
     KuGou("酷狗"),
     GenShin("原神"),
     NetEase("网易云"),
+    NetEaseMusician("网易云音乐人"),
     Step("修改步数"),
     Weibo("微博")
 }
@@ -43,6 +44,8 @@ interface LogRepository: ReactiveMongoRepository<LogEntity, Int> {
     fun findByTgId(tgId: Long): Flux<LogEntity>
     fun findByType(logType: LogType): Flux<LogEntity>
     fun findByCreateTimeBetween(before: LocalDateTime, after: LocalDateTime): Flux<LogEntity>
+
+    fun findByCreateTimeBetweenAndTgId(before: LocalDateTime, after: LocalDateTime, tgId: Long): Flux<LogEntity>
 }
 
 @Service
@@ -57,4 +60,7 @@ class LogService(
     suspend fun save(logEntity: LogEntity): LogEntity = logRepository.save(logEntity).awaitSingle()
 
     suspend fun findByCreateTimeBetween(before: LocalDateTime, after: LocalDateTime): List<LogEntity> = logRepository.findByCreateTimeBetween(before, after).collectList().awaitSingle()
+
+    suspend fun findByCreateTimeBetweenAndTgId(before: LocalDateTime, after: LocalDateTime, tgId: Long): List<LogEntity> =
+        logRepository.findByCreateTimeBetweenAndTgId(before, after, tgId).collectList().awaitSingle()
 }

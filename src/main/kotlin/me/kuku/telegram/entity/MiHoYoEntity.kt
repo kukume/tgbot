@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -24,6 +25,8 @@ interface MiHoYoRepository: ReactiveMongoRepository<MiHoYoEntity, String> {
 
     fun findBySign(sign: Status): Flux<MiHoYoEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -38,5 +41,8 @@ class MiHoYoService(
     suspend fun save(miHoYoEntity: MiHoYoEntity): MiHoYoEntity = miHoYoRepository.save(miHoYoEntity).awaitSingle()
 
     suspend fun findAll(): List<MiHoYoEntity> = miHoYoRepository.findAll().collectList().awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = miHoYoRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
 }

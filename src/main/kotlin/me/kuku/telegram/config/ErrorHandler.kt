@@ -9,14 +9,14 @@ class AbilityHandler: ApplicationListener<TelegramAbilityExceptionEvent> {
 
     override fun onApplicationEvent(event: TelegramAbilityExceptionEvent) {
         val messageContext = event.messageContext
-        messageContext.silent().send(event.ex.message, messageContext.chatId())
+        messageContext.silent().send(event.ex.toString(), messageContext.chatId())
     }
 }
 
 @Component
 class ReplyHandler: ApplicationListener<TelegramReplyExceptionEvent> {
     override fun onApplicationEvent(event: TelegramReplyExceptionEvent) {
-        event.bot.silent().send(event.ex.message, event.update.message.chatId)
+        event.bot.silent().send(event.ex.toString(), event.update.message.chatId)
     }
 }
 
@@ -24,6 +24,6 @@ class ReplyHandler: ApplicationListener<TelegramReplyExceptionEvent> {
 class CallbackHandler: ApplicationListener<TelegramCallbackExceptionEvent> {
     override fun onApplicationEvent(event: TelegramCallbackExceptionEvent) {
         val bot = event.bot
-        bot.silent().send(event.ex.message, event.query.message.chatId)
+        bot.silent().send(event.ex.toString(), event.query.message.chatId)
     }
 }

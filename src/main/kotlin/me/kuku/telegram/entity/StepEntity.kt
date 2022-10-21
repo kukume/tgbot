@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -28,6 +29,8 @@ interface StepRepository: ReactiveMongoRepository<StepEntity, String> {
 
     fun findByStepIsGreaterThan(step: Int): Flux<StepEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -40,5 +43,8 @@ class StepService(
     suspend fun findByAuto(): List<StepEntity> = stepRepository.findByStepIsGreaterThan(0).collectList().awaitSingle()
 
     suspend fun save(stepEntity: StepEntity): StepEntity = stepRepository.save(stepEntity).awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = stepRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
 }

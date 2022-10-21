@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -25,6 +26,8 @@ interface PixivRepository: ReactiveMongoRepository<PixivEntity, String> {
 
     fun findByPush(push: Status): Flux<PixivEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -37,5 +40,8 @@ class PixivService(
     suspend fun findByPush(push: Status): List<PixivEntity> = pixivRepository.findByPush(push).collectList().awaitSingle()
 
     suspend fun save(piXivEntity: PixivEntity): PixivEntity = pixivRepository.save(piXivEntity).awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = pixivRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
 }

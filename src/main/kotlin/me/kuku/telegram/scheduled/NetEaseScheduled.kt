@@ -38,7 +38,7 @@ class NetEaseScheduled(
         val list = netEaseService.findByMusicianSign(Status.ON)
         for (netEaseEntity in list) {
             val logEntity = LogEntity().also {
-                it.type = LogType.NetEase
+                it.type = LogType.NetEaseMusician
                 it.tgId = netEaseEntity.tgId
             }
             kotlin.runCatching {

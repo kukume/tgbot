@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -24,6 +25,8 @@ interface DouYuRepository: ReactiveMongoRepository<DouYuEntity, String> {
 
     fun findByLive(live: Status): Flux<DouYuEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -37,5 +40,8 @@ class DouYuService(
     suspend fun findByTgId(tgId: Long) = douYuRepository.findByTgId(tgId).awaitSingleOrNull()
 
     suspend fun findAll(): List<DouYuEntity> = douYuRepository.findAll().collectList().awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = douYuRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
 }

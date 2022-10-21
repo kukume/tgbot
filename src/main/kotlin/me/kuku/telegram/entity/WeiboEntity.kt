@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -27,6 +28,8 @@ interface WeiboRepository: ReactiveMongoRepository<WeiboEntity, String> {
 
     fun findBySign(sign: Status): Flux<WeiboEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -41,5 +44,8 @@ class WeiboService(
     suspend fun findBySign(sign: Status): List<WeiboEntity> = weiboRepository.findBySign(sign).collectList().awaitSingle()
 
     suspend fun save(weiboEntity: WeiboEntity): WeiboEntity = weiboRepository.save(weiboEntity).awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = weiboRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
 }

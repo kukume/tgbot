@@ -1,7 +1,6 @@
 package me.kuku.telegram.utils
 
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.*
 import me.kuku.telegram.config.TelegramAbilityExceptionEvent
 import me.kuku.telegram.config.TelegramCallbackExceptionEvent
 import me.kuku.telegram.config.TelegramReplyExceptionEvent
@@ -36,48 +35,34 @@ internal lateinit var db: DBContext
 
 internal lateinit var context: ApplicationContext
 
-private fun invokeAbility(messageContext: MessageContext, block: suspend MessageContext.() -> Unit) {
-    JobManager.now {
-        runCatching {
-            block.invoke(messageContext)
-        }.onFailure {
-            context.publishEvent(TelegramAbilityExceptionEvent(messageContext, it))
-        }
+private suspend fun invokeAbility(messageContext: MessageContext, block: suspend MessageContext.() -> Unit) {
+    runCatching {
+        block.invoke(messageContext)
+    }.onFailure {
+        context.publishEvent(TelegramAbilityExceptionEvent(messageContext, it))
     }
 }
 
-private fun invokeReply(bot: BaseAbilityBot, update: Update, block: suspend BaseAbilityBot.(Update) -> Unit) {
-    JobManager.now {
-        runCatching {
-            block.invoke(bot, update)
-        }.onFailure {
-            context.publishEvent(TelegramReplyExceptionEvent(bot, update, it))
-        }
+private suspend fun invokeReply(bot: BaseAbilityBot, update: Update, block: suspend BaseAbilityBot.(Update) -> Unit) {
+    runCatching {
+        block.invoke(bot, update)
+    }.onFailure {
+        context.publishEvent(TelegramReplyExceptionEvent(bot, update, it))
     }
 }
 
-private fun invokeCallback(bot: BaseAbilityBot, query: CallbackQuery, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit) {
-    JobManager.now {
-        runCatching {
-            block.invoke(bot, query)
-        }.onFailure {
-            context.publishEvent(TelegramCallbackExceptionEvent(bot, query, it))
-        }
-    }
-}
-
-private fun invokeOtherCallback(bot: BaseAbilityBot, query: CallbackQuery, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit) {
-    JobManager.now {
-        runCatching {
-            block.invoke(bot, query)
-        }
+private suspend fun invokeCallback(bot: BaseAbilityBot, query: CallbackQuery, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit) {
+    runCatching {
+        block.invoke(bot, query)
+    }.onFailure {
+        context.publishEvent(TelegramCallbackExceptionEvent(bot, query, it))
     }
 }
 
 fun ability(name: String, info: String = "这个命令没有描述", input: Int = 0, reply: Reply? = null, locality: Locality = Locality.ALL,
             privacy: Privacy = Privacy.PUBLIC, block: suspend MessageContext.() -> Unit): Ability {
     return Ability.builder().locality(locality).privacy(privacy).name(name).info(info).input(input).action {
-        invokeAbility(it, block)
+        JobManager.now { invokeAbility(it, block) }
     }.also { reply?.let { r -> it.reply(r) } }.build()
 }
 
@@ -85,14 +70,14 @@ fun reply(vararg conditions: Predicate<Update>, block: suspend BaseAbilityBot.(U
     val list = conditions.toMutableList()
     list.add { it.message != null }
     return Reply.of({ bot, upd ->
-        invokeReply(bot, upd, block)
+        JobManager.now { invokeReply(bot, upd, block) }
     }, list)
 }
 
 fun replyFlow(onlyIf: Predicate<Update>? = null, nextList: List<Reply>? = null, nextFlowList: List<ReplyFlow>? = null,
               block: suspend BaseAbilityBot.(Update) -> Unit): ReplyFlow {
     val builder = ReplyFlow.builder(db).action { bot, upd ->
-        invokeReply(bot, upd, block)
+        JobManager.now { invokeReply(bot, upd, block) }
     }
     onlyIf ?: run {
         Predicate<Update> {
@@ -108,6 +93,8 @@ fun inlineKeyboardButton(text: String, callbackData: String) = InlineKeyboardBut
 
 class CallBackQ {
 
+    val threadLocal = ThreadLocal<MutableMap<String, Any>>()
+
     val map = mutableMapOf<String, suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
 
     val startWithMap = mutableMapOf<String, suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
@@ -115,6 +102,35 @@ class CallBackQ {
     val beforeList = mutableListOf<suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
 
     val afterList = mutableListOf<suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
+
+    fun set(key: String, value: Any) {
+        val cacheMap = threadLocal.get()
+        cacheMap[key] = value
+    }
+
+    inline fun <reified T: Any> get(key: String): T? {
+        val cacheMap = threadLocal.get()
+        return cacheMap[key] as? T
+    }
+
+    inline fun <reified T: Any> getOrFail(key: String): T {
+        return get(key) ?: error("$key not found")
+    }
+
+    inline fun <reified T: Any> firstArg(): T {
+        val cacheMap = threadLocal.get()
+        return cacheMap.values.toList()[0] as T
+    }
+
+    inline fun <reified T: Any> secondArg(): T {
+        val cacheMap = threadLocal.get()
+        return cacheMap.values.toList()[1] as T
+    }
+
+    inline fun <reified T: Any> thirdArg(): T {
+        val cacheMap = threadLocal.get()
+        return cacheMap.values.toList()[2] as T
+    }
 
     fun query(name: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
         map[name] = block
@@ -144,14 +160,18 @@ fun callback(body: CallBackQ.() -> Unit): Reply {
     return Reply.of({bot, upd ->
         val callbackQuery = upd.callbackQuery
         val data = callbackQuery.data
-        q.beforeList.forEach { invokeOtherCallback(bot, callbackQuery, it) }
-        q.map[data]?.let {
-            invokeCallback(bot, callbackQuery, it)
+        JobManager.now {
+            launch(Dispatchers.Default + q.threadLocal.asContextElement(mutableMapOf())) {
+                q.beforeList.forEach { invokeCallback(bot, callbackQuery, it) }
+                q.map[data]?.let {
+                    invokeCallback(bot, callbackQuery, it)
+                }
+                q.startWithMap.forEach { (k, v) ->
+                    if (data.startsWith(k)) invokeCallback(bot, callbackQuery, v)
+                }
+                q.afterList.forEach { invokeCallback(bot, callbackQuery, it) }
+            }
         }
-        q.startWithMap.forEach { (k, v) ->
-            if (data.startsWith(k)) invokeCallback(bot, callbackQuery, v)
-        }
-        q.afterList.forEach { invokeOtherCallback(bot, callbackQuery, it) }
     }, pre@{ upd ->
         val query = upd.callbackQuery ?: return@pre false
         val resData = query.data
@@ -171,7 +191,7 @@ fun callback(body: CallBackQ.() -> Unit): Reply {
 
 fun callback(data: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): Reply {
     return Reply.of({ bot, upd ->
-        invokeCallback(bot, upd.callbackQuery, block)
+        JobManager.now { invokeCallback(bot, upd.callbackQuery, block) }
     }, pre@{ upd ->
         val query = upd.callbackQuery ?: return@pre false
         val resData = query.data
@@ -181,7 +201,7 @@ fun callback(data: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit
 
 fun callbackStartWith(data: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): Reply {
     return Reply.of({ bot, upd ->
-        invokeCallback(bot, upd.callbackQuery, block)
+        JobManager.now { invokeCallback(bot, upd.callbackQuery, block) }
     }, pre@{ upd ->
         val query = upd.callbackQuery ?: return@pre false
         val resData = query.data
@@ -192,7 +212,7 @@ fun callbackStartWith(data: String, block: suspend BaseAbilityBot.(CallbackQuery
 fun callbackFlow(data: String, nextList: List<Reply>? = null, nextFlowList: List<ReplyFlow>? = null,
                  block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): ReplyFlow {
     val builder = ReplyFlow.builder(db).action { bot, upd ->
-        invokeCallback(bot, upd.callbackQuery, block)
+        JobManager.now { invokeCallback(bot, upd.callbackQuery, block) }
     }.onlyIf onlyIf@{ upd ->
         val query = upd.callbackQuery ?: return@onlyIf false
         val resData = query.data

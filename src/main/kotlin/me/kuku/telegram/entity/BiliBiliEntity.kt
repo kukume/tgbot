@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -33,6 +34,8 @@ interface BiliBiliRepository: ReactiveMongoRepository<BiliBiliEntity, String> {
 
     fun findByLive(live: Status): Flux<BiliBiliEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -51,5 +54,8 @@ class BiliBiliService(
     suspend fun save(biliEntity: BiliBiliEntity) = biliBiliRepository.save(biliEntity).awaitSingleOrNull()
 
     suspend fun findAll(): List<BiliBiliEntity> = biliBiliRepository.findAll().collectList().awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = biliBiliRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
 }

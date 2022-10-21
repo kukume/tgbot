@@ -5,6 +5,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -25,6 +26,8 @@ interface TwitterRepository: ReactiveMongoRepository<TwitterEntity, String> {
 
     fun findByPush(push: Status): Flux<TwitterEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 @Service
@@ -38,6 +41,9 @@ class TwitterService(
 
     suspend fun save(entity: TwitterEntity): TwitterEntity = twitterRepository.save(entity).awaitSingle()
 
-    suspend fun findByPush(push: Status) = twitterRepository.findByPush(push).collectList().awaitSingle()
+    suspend fun findByPush(push: Status): List<TwitterEntity> = twitterRepository.findByPush(push).collectList().awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = twitterRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
 }

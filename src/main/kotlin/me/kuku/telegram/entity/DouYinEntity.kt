@@ -5,6 +5,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
 
 @Document("dou_yin")
@@ -20,6 +21,8 @@ interface DouYinRepository: ReactiveMongoRepository<DouYinEntity, String> {
 
     fun findByTgId(tgId: Long): Mono<DouYinEntity>
 
+    fun deleteByTgId(tgId: Long): Mono<Void>
+
 }
 
 
@@ -31,4 +34,7 @@ class DouYinService(
     suspend fun save(douYinEntity: DouYinEntity): DouYinEntity = douYinRepository.save(douYinEntity).awaitSingle()
 
     suspend fun findByTgId(tgId: Long) = douYinRepository.findByTgId(tgId).awaitSingleOrNull()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = douYinRepository.deleteByTgId(tgId).awaitSingleOrNull()
 }
