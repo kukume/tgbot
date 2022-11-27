@@ -42,7 +42,9 @@ class PixivScheduled(
                 }
                 for (pixivPojo in newList) {
                     val text = "#pixiv推送\n${PixivLogic.convertStr(pixivPojo)}"
-                    val imageList = PixivLogic.imageById(pixivPojo.id)
+                    val imageList = kotlin.runCatching {
+                        PixivLogic.imageById(pixivPojo.id)
+                    }.getOrNull() ?: continue
                     val sendList = mutableListOf<MutableList<String>>()
                     for (i in imageList.indices) {
                         val uu = imageList[i]

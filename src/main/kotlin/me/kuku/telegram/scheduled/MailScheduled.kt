@@ -13,9 +13,9 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.TimeUnit
-import javax.mail.*
-import javax.mail.internet.InternetAddress
-import javax.mail.internet.MimeUtility
+import jakarta.mail.*
+import jakarta.mail.internet.InternetAddress
+import jakarta.mail.internet.MimeUtility
 
 @Component
 class MailScheduled(

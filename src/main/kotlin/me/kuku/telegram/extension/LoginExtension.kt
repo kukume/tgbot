@@ -38,7 +38,8 @@ class LoginExtension(
     private val miHoYoService: MiHoYoService,
     private val douYinService: DouYinService,
     private val twitterService: TwitterService,
-    private val pixivService: PixivService
+    private val pixivService: PixivService,
+    private val buffService: BuffService
 ): AbilityExtension {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -56,6 +57,7 @@ class LoginExtension(
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinLogin" }
         val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterLogin" }
         val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivLogin" }
+        val buffButton = InlineKeyboardButton("网易Buff").also { it.callbackData = "buffLogin" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -63,7 +65,8 @@ class LoginExtension(
             listOf(miHoYoButton, netEaseButton),
             listOf(xiaomiStepButton, leXinStepButton),
             listOf(weiboStepButton, douYinButton),
-            listOf(twitterButton, pixivButton)
+            listOf(twitterButton, pixivButton),
+            listOf(buffButton)
         ))
     }
 
@@ -507,6 +510,60 @@ class LoginExtension(
             val pixivEntity = pixivService.findByTgId(tgId) ?: PixivEntity().also { ii -> ii.tgId = tgId }
             pixivEntity.cookie = cookie
             pixivService.save(pixivEntity)
+            val deleteMessage = DeleteMessage(chatId.toString(), nextMessage.messageId)
+            execute(deleteMessage)
+            execute(SendMessage(chatId.toString(), "绑定pixiv成功"))
+        }
+    }
+
+    fun buffLogin() = callback {
+        query("buffLogin") {
+            val chatId = it.message.chatId
+            val messageId = it.message.messageId
+            val loginButton = inlineKeyboardButton("使用手机验证码登陆", "buffLoginByPhoneCode")
+            val cookieButton = inlineKeyboardButton("cookie登录", "buffLoginByCookie")
+            val markup = InlineKeyboardMarkup(listOf(
+                listOf(loginButton),
+                listOf(cookieButton),
+                returnButton()
+            ))
+            val editMessageText = EditMessageText.builder().text("请选择网易buff登录方式").chatId(chatId)
+                .messageId(messageId).replyMarkup(markup).build()
+            execute(editMessageText)
+        }
+        query("buffLoginByPhoneCode") {
+            val chatId = it.message.chatId
+            val tgId = it.from.id
+            execute(SendMessage.builder().text("请发送手机号").chatId(chatId).build())
+            val phone = it.waitNextMessage().text
+            var s = false
+            for (i in 0..2) {
+                s = kotlin.runCatching {
+                    BuffLogic.login1(phone)
+                    true
+                }.getOrDefault(false)
+                delay(1000)
+            }
+            if (!s) error("验证码识别失败，请重试")
+            execute(SendMessage.builder().text("请发送验证码").chatId(chatId).build())
+            val code = it.waitNextMessage().text
+            val buffEntity = BuffLogic.login2(phone, code)
+            val saveEntity = buffService.findByTgId(tgId) ?: BuffEntity().also { entity -> entity.tgId = tgId }
+            saveEntity.csrf = buffEntity.csrf
+            saveEntity.cookie = buffEntity.cookie
+            buffService.save(saveEntity)
+            execute(SendMessage.builder().text("绑定网易buff成功").chatId(chatId).build())
+        }
+        query("buffLoginByCookie") {
+            val chatId = it.message.chatId
+            val tgId = it.from.id
+            execute(SendMessage(chatId.toString(), "请发送网易buff的cookie"))
+            val nextMessage = it.waitNextMessage()
+            val cookie = nextMessage.text
+            BuffLogic.search(BuffEntity().also { en -> en.cookie = cookie }, "m9刺刀")
+            val buffEntity = buffService.findByTgId(tgId) ?: BuffEntity().also { ii -> ii.tgId = tgId }
+            buffEntity.cookie = cookie
+            buffService.save(buffEntity)
             val deleteMessage = DeleteMessage(chatId.toString(), nextMessage.messageId)
             execute(deleteMessage)
             execute(SendMessage(chatId.toString(), "绑定pixiv成功"))

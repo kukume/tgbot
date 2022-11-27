@@ -41,8 +41,11 @@ class BiliBilliScheduled(
             }
             kotlin.runCatching {
                 val firstRank = BiliBiliLogic.ranking()[0]
+                delay(3000)
                 BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
+                delay(3000)
                 BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
+                delay(3000)
                 BiliBiliLogic.liveSign(biliBiliEntity)
                 logEntity.text = "成功"
             }.onFailure {
@@ -67,6 +70,7 @@ class BiliBilliScheduled(
             for (up in result.data()) {
                 val id = up.id.toLong()
                 val name = up.name
+                delay(3000)
                 val live = BiliBiliLogic.live(id.toString())
                 if (live.id.isEmpty()) continue
                 val b = live.status
@@ -93,8 +97,8 @@ class BiliBilliScheduled(
         val biliBiliList = biliBiliService.findByPush(Status.ON)
         for (biliBiliEntity in biliBiliList) {
             val tgId = biliBiliEntity.tgId
-            val result = BiliBiliLogic.friendDynamic(biliBiliEntity)
             delay(3000)
+            val result = BiliBiliLogic.friendDynamic(biliBiliEntity)
             val list = result.data ?: continue
             val newList = mutableListOf<BiliBiliPojo>()
             if (userMap.containsKey(tgId)) {
@@ -112,6 +116,7 @@ class BiliBilliScheduled(
                         if (bvId.isNotEmpty() && telegramConfig.url.isNotEmpty()) {
                             var file: File? = null
                             try {
+                                delay(3000)
                                 file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
                                 file.inputStream().use { iis ->
                                     val sendVideo =

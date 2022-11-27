@@ -2,6 +2,7 @@ package me.kuku.telegram.config
 
 import me.kuku.telegram.utils.context
 import me.kuku.telegram.utils.db
+import org.mapdb.DBMaker
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.ApplicationContext
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
 import org.telegram.abilitybots.api.bot.AbilityBot
 import org.telegram.abilitybots.api.bot.BaseAbilityBot
+import org.telegram.abilitybots.api.db.MapDBContext
 import org.telegram.abilitybots.api.objects.MessageContext
 import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.bots.DefaultBotOptions
@@ -19,6 +21,7 @@ import org.telegram.telegrambots.meta.TelegramBotsApi
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
+import java.io.File
 
 @Component
 class TelegramBean(
@@ -79,9 +82,21 @@ class ApplicationStart(
     }
 }
 
+private fun createDbContext(botUsername: String): MapDBContext {
+    if (botUsername.isEmpty()) error("kuku.telegram.username can't empty")
+    val dir = File("config")
+    if (!dir.exists()) dir.mkdir()
+    return MapDBContext(DBMaker
+        .fileDB(File("config${File.separator}$botUsername"))
+        .fileMmapEnableIfSupported()
+        .closeOnJvmShutdown()
+        .transactionEnable()
+        .make())
+}
+
 class TelegramBot(botToken: String, botUsername: String, private val creatorId: Long, botOptions: DefaultBotOptions,
                   private val applicationContext: ApplicationContext):
-    AbilityBot(botToken, botUsername, botOptions) {
+    AbilityBot(botToken, botUsername, createDbContext(botUsername), botOptions) {
 
     override fun creatorId() = creatorId
 

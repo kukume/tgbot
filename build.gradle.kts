@@ -3,12 +3,12 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    val kotlinVersion = "1.7.20"
+    val kotlinVersion = "1.7.21"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     id("org.jetbrains.kotlin.kapt") version kotlinVersion
-    id("org.springframework.boot") version "2.7.4"
-    id("io.spring.dependency-management") version "1.0.14.RELEASE"
+    id("org.springframework.boot") version "3.0.0"
+    id("io.spring.dependency-management") version "1.1.0"
 }
 
 group = "me.kuku"
@@ -16,7 +16,7 @@ version = "1.0-SNAPSHOT"
 java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
-    mavenLocal()
+//    mavenLocal()
     maven("https://nexus.kuku.me/repository/maven-public/")
     mavenCentral()
 }
@@ -27,7 +27,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.telegram:telegrambots:6.1.0")
     implementation("org.telegram:telegrambots-abilities:6.1.0")
-    implementation("me.kuku:utils:1.5")
+    implementation("me.kuku:utils:1.7")
     implementation("org.jsoup:jsoup:1.15.3")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
