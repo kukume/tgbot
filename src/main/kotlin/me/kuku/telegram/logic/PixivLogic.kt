@@ -49,7 +49,7 @@ object PixivLogic {
 
     fun convertStr(pixivPojo: PixivPojo): String {
         val sb = StringBuilder()
-        sb.appendLine(pixivPojo.username)
+        sb.appendLine("#${pixivPojo.username}")
             .appendLine("标题：${pixivPojo.title}")
             .appendLine("描述：${pixivPojo.alt}")
             .appendLine("创建时间：${pixivPojo.createDate}")

@@ -43,17 +43,17 @@ private suspend fun invokeAbility(messageContext: MessageContext, block: suspend
     }
 }
 
-private suspend fun invokeReply(bot: BaseAbilityBot, update: Update, block: suspend BaseAbilityBot.(Update) -> Unit) {
+private suspend fun invokeReply(bot: BaseAbilityBot, update: Update, block: suspend TelegramReplyContext.() -> Unit) {
     runCatching {
-        block.invoke(bot, update)
+        block.invoke(TelegramReplyContext(bot, update))
     }.onFailure {
         context.publishEvent(TelegramReplyExceptionEvent(bot, update, it))
     }
 }
 
-private suspend fun invokeCallback(bot: BaseAbilityBot, query: CallbackQuery, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit) {
+private suspend fun invokeCallback(bot: BaseAbilityBot, query: CallbackQuery, block: suspend TelegramCallbackContext.() -> Unit) {
     runCatching {
-        block.invoke(bot, query)
+        block.invoke(TelegramCallbackContext(bot, query))
     }.onFailure {
         context.publishEvent(TelegramCallbackExceptionEvent(bot, query, it))
     }
@@ -66,7 +66,7 @@ fun ability(name: String, info: String = "这个命令没有描述", input: Int 
     }.also { reply?.let { r -> it.reply(r) } }.build()
 }
 
-fun reply(vararg conditions: Predicate<Update>, block: suspend BaseAbilityBot.(Update) -> Unit): Reply {
+fun reply(vararg conditions: Predicate<Update>, block: suspend TelegramReplyContext.() -> Unit): Reply {
     val list = conditions.toMutableList()
     list.add { it.message != null }
     return Reply.of({ bot, upd ->
@@ -75,7 +75,7 @@ fun reply(vararg conditions: Predicate<Update>, block: suspend BaseAbilityBot.(U
 }
 
 fun replyFlow(onlyIf: Predicate<Update>? = null, nextList: List<Reply>? = null, nextFlowList: List<ReplyFlow>? = null,
-              block: suspend BaseAbilityBot.(Update) -> Unit): ReplyFlow {
+              block: suspend TelegramReplyContext.() -> Unit): ReplyFlow {
     val builder = ReplyFlow.builder(db).action { bot, upd ->
         JobManager.now { invokeReply(bot, upd, block) }
     }
@@ -95,13 +95,13 @@ class CallBackQ {
 
     val threadLocal = ThreadLocal<MutableMap<String, Any>>()
 
-    val map = mutableMapOf<String, suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
+    val map = mutableMapOf<String, suspend TelegramCallbackContext.() -> Unit>()
 
-    val startWithMap = mutableMapOf<String, suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
+    val startWithMap = mutableMapOf<String, suspend TelegramCallbackContext.() -> Unit>()
 
-    val beforeList = mutableListOf<suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
+    val beforeList = mutableListOf<suspend TelegramCallbackContext.() -> Unit>()
 
-    val afterList = mutableListOf<suspend BaseAbilityBot.(CallbackQuery) -> Unit>()
+    val afterList = mutableListOf<suspend TelegramCallbackContext.() -> Unit>()
 
     fun set(key: String, value: Any) {
         val cacheMap = threadLocal.get()
@@ -132,22 +132,22 @@ class CallBackQ {
         return cacheMap.values.toList()[2] as T
     }
 
-    fun query(name: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
+    fun query(name: String, block: suspend TelegramCallbackContext.() -> Unit): CallBackQ {
         map[name] = block
         return this
     }
 
-    fun queryStartWith(name: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
+    fun queryStartWith(name: String, block: suspend TelegramCallbackContext.() -> Unit): CallBackQ {
         startWithMap[name] = block
         return this
     }
 
-    fun before(block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
+    fun before(block: suspend TelegramCallbackContext.() -> Unit): CallBackQ {
         beforeList.add(block)
         return this
     }
 
-    fun after(block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): CallBackQ {
+    fun after(block: suspend TelegramCallbackContext.() -> Unit): CallBackQ {
         afterList.add(block)
         return this
     }
@@ -189,7 +189,7 @@ fun callback(body: CallBackQ.() -> Unit): Reply {
     })
 }
 
-fun callback(data: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): Reply {
+fun callback(data: String, block: suspend TelegramCallbackContext.() -> Unit): Reply {
     return Reply.of({ bot, upd ->
         JobManager.now { invokeCallback(bot, upd.callbackQuery, block) }
     }, pre@{ upd ->
@@ -199,7 +199,7 @@ fun callback(data: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit
     })
 }
 
-fun callbackStartWith(data: String, block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): Reply {
+fun callbackStartWith(data: String, block: suspend TelegramCallbackContext.() -> Unit): Reply {
     return Reply.of({ bot, upd ->
         JobManager.now { invokeCallback(bot, upd.callbackQuery, block) }
     }, pre@{ upd ->
@@ -210,7 +210,7 @@ fun callbackStartWith(data: String, block: suspend BaseAbilityBot.(CallbackQuery
 }
 
 fun callbackFlow(data: String, nextList: List<Reply>? = null, nextFlowList: List<ReplyFlow>? = null,
-                 block: suspend BaseAbilityBot.(CallbackQuery) -> Unit): ReplyFlow {
+                 block: suspend TelegramCallbackContext.() -> Unit): ReplyFlow {
     val builder = ReplyFlow.builder(db).action { bot, upd ->
         JobManager.now { invokeCallback(bot, upd.callbackQuery, block) }
     }.onlyIf onlyIf@{ upd ->
@@ -280,4 +280,14 @@ class ContextSession: ApplicationListener<TelegramUpdateEvent> {
         val message = update.message ?: return
         contextSessionCacheMap.remove(message.chatId.toString())?.resume(message)
     }
+}
+
+class TelegramReplyContext(val bot: BaseAbilityBot, val update: Update) {
+
+}
+
+class TelegramCallbackContext(val bot: BaseAbilityBot, val query: CallbackQuery) {
+
+
+
 }

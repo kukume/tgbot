@@ -37,7 +37,7 @@ class HostLocScheduled(
                 val str = """
                     #HostLoc新帖推送
                     标题：${hostLocPost.title}
-                    昵称：${hostLocPost.name}
+                    昵称：#${hostLocPost.name}
                     链接：${hostLocPost.url}
                     内容：${HostLocLogic.postContent(hostLocPost.url, hostLocEntity.cookie)}
                 """.trimIndent()

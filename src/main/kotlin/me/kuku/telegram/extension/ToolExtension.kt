@@ -45,13 +45,13 @@ class ToolExtension(
     }
 
     fun selectCard() = callbackStartWith("ygoCard") {
-        val id = it.data.split("-")[1]
+        val id = query.data.split("-")[1]
         val card = ygoLogic.searchDetail(id.toLong())
         val sendPhoto = SendPhoto()
-        sendPhoto.chatId = it.message.chatId.toString()
+        sendPhoto.chatId = query.message.chatId.toString()
         sendPhoto.photo = InputFile(OkHttpKtUtils.getByteStream(card.imageUrl), "${card.japaneseName}.jpg")
         sendPhoto.caption = "中文名：${card.chineseName}\n日文名：${card.japaneseName}\n英文名：${card.englishName}\n效果：\n${card.effect}"
-        execute(sendPhoto)
+        bot.execute(sendPhoto)
     }
 
     fun loLiCon() = ability("lolicon", "lolicon图片") {
@@ -88,7 +88,7 @@ class ToolExtension(
     }
 
     fun colorPic() = callback("LoLiConTool") {
-        val chatId = it.message.chatId
+        val chatId = query.message.chatId
         val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=2")
         val list = jsonNode["data"].map { node -> node["urls"]["original"].asText() }
         val inputMediaList = mutableListOf<InputMedia>()
@@ -104,7 +104,7 @@ class ToolExtension(
                 ii.add(bis)
             }
             val sendMediaGroup = SendMediaGroup(chatId.toString(), inputMediaList)
-            execute(sendMediaGroup)
+            bot.execute(sendMediaGroup)
         } finally {
             ii.forEach { iis -> iis.close() }
         }
@@ -112,8 +112,8 @@ class ToolExtension(
 
     fun fishermanCalendar() = callback("FishermanCalendarTool") {
         OkHttpKtUtils.getByteStream("https://api.kukuqaq.com/fishermanCalendar?preview").use { iis ->
-            val sendPhoto = SendPhoto(it.message.chatId.toString(), InputFile(iis, "FishermanCalendarTool.jpg"))
-            execute(sendPhoto)
+            val sendPhoto = SendPhoto(query.message.chatId.toString(), InputFile(iis, "FishermanCalendarTool.jpg"))
+            bot.execute(sendPhoto)
         }
     }
 
@@ -122,20 +122,20 @@ class ToolExtension(
     }
 
     fun returnMarkup() = callback("returnTool") {
-        val messageId = it.message.messageId
+        val messageId = query.message.messageId
         val editMessageText = EditMessageText()
-        editMessageText.chatId = it.message.chatId.toString()
+        editMessageText.chatId = query.message.chatId.toString()
         editMessageText.replyMarkup = toolKeyboardMarkup()
         editMessageText.messageId = messageId
         editMessageText.text = "请选择小工具"
-        execute(editMessageText)
+        bot.execute(editMessageText)
     }
 
 
     fun tts() = callback {
 
         query("ttsTool") {
-            val messageId = it.message.messageId
+            val messageId = query.message.messageId
             val ttlButton = InlineKeyboardButton("tts").also { bu -> bu.callbackData = "tts" }
             val fishermanCalendarButton = InlineKeyboardButton("变声").also { bu -> bu.callbackData = "voiceChange" }
             val markup =  InlineKeyboardMarkup(listOf(
@@ -143,17 +143,17 @@ class ToolExtension(
                 listOf(returnButton())
             ))
             val editMessageText = EditMessageText()
-            editMessageText.chatId = it.message.chatId.toString()
+            editMessageText.chatId = query.message.chatId.toString()
             editMessageText.replyMarkup = markup
             editMessageText.messageId = messageId
             editMessageText.text = "请选择"
-            execute(editMessageText)
+            bot.execute(editMessageText)
         }
 
         query("tts") {
-            val chatId = it.message.chatId
-            execute(SendMessage.builder().text("请发送生成的语音日语文字").chatId(chatId).build())
-            val text = it.waitNextMessage().text
+            val chatId = query.message.chatId
+            bot.execute(SendMessage.builder().text("请发送生成的语音日语文字").chatId(chatId).build())
+            val text = query.waitNextMessage().text
             val jsonNode = OkHttpKtUtils.postJson("https://hf.space/embed/innnky/vits-nyaru/api/queue/push/", OkUtils.json("""
                 {"fn_index":0,"data":["$text"],"action":"predict","session_hash":""}
             """.trimIndent()))
@@ -170,7 +170,7 @@ class ToolExtension(
                     val base = data[1].asText().substring(22)
                     base.base64Decode().inputStream().use { iis ->
                         val sendAudio = SendAudio(chatId.toString(), InputFile(iis, "tts.wav"))
-                        execute(sendAudio)
+                        bot.execute(sendAudio)
                     }
                     break
                 }
@@ -178,12 +178,12 @@ class ToolExtension(
         }
 
         query("voiceChange") {
-            val chatId = it.message.chatId
-            execute(SendMessage.builder().text("请发送语音").chatId(chatId).build())
-            val message = it.waitNextMessage()
+            val chatId = query.message.chatId
+            bot.execute(SendMessage.builder().text("请发送语音").chatId(chatId).build())
+            val message = query.waitNextMessage()
             val voice = message.voice ?: error("您发送的不为语言")
             val getFile = GetFile(voice.fileId)
-            val file = execute(getFile)
+            val file = bot.execute(getFile)
             val url = "https://api.telegram.org/file/bot${telegramBot.botToken}/${file.filePath}"
             val bb = "data:audio/wav;base64," + OkHttpKtUtils.getBytes(url).base64Encode()
             OkHttpKtUtils.websocket("wss://spaces.huggingface.tech/innnky/soft-vits-vc/queue/join") {
@@ -202,10 +202,10 @@ class ToolExtension(
                         val base = data[1].asText().substring(22)
                         base.base64Decode().inputStream().use { iis ->
                             val sendAudio = SendAudio(chatId.toString(), InputFile(iis, "change.wav"))
-                            execute(sendAudio)
+                            bot.execute(sendAudio)
                         }
                     } else {
-                        silent().send(status, chatId)
+                        bot.silent().send(status, chatId)
                     }
                     close(101, "success")
                 }
@@ -215,22 +215,22 @@ class ToolExtension(
     }
 
     fun baiKeTool() = callback("baiKeTool") {
-        val chatId = it.message.chatId
-        val sendMessage = execute(SendMessage(chatId.toString(), "请发送百科内容"))
-        val nextMessage = it.waitNextMessage()
+        val chatId = query.message.chatId
+        val sendMessage = bot.execute(SendMessage(chatId.toString(), "请发送百科内容"))
+        val nextMessage = query.waitNextMessage()
         val text = nextMessage.text
         val res = toolLogic.baiKe(text)
         val deleteMessage = DeleteMessage(chatId.toString(), nextMessage.messageId)
-        execute(deleteMessage)
+        bot.execute(deleteMessage)
         val sendDeleteMessage = DeleteMessage(chatId.toString(), sendMessage.messageId)
-        execute(sendDeleteMessage)
-        execute(SendMessage(chatId.toString(), res))
+        bot.execute(sendDeleteMessage)
+        bot.execute(SendMessage(chatId.toString(), res))
     }
 
     fun dCloudTool() = callback("dCloudTool") {
-        val chatId = it.message.chatId
-        execute(SendMessage.builder().text("请发送图片").chatId(chatId).build())
-        val message = it.waitNextMessage()
+        val chatId = query.message.chatId
+        bot.execute(SendMessage.builder().text("请发送图片").chatId(chatId).build())
+        val message = query.waitNextMessage()
         val photoList = message.photo
         if (photoList.isEmpty()) error("您发送的不为图片")
         val uploadPhotoMap = mutableMapOf<Int, PhotoSize>()
@@ -248,25 +248,25 @@ class ToolExtension(
         val sb = StringBuilder()
         uploadPhotoMap.values.forEach { fileSzie ->
             val getFile = GetFile(fileSzie.fileId)
-            val file = execute(getFile)
+            val file = bot.execute(getFile)
             val url = "https://api.telegram.org/file/bot${telegramBot.botToken}/${file.filePath}"
             val newUrl = toolLogic.dCloudUpload(url)
             sb.appendLine(newUrl)
         }
         val deleteMessage = DeleteMessage(chatId.toString(), message.messageId)
-        execute(deleteMessage)
-        execute(SendMessage(chatId.toString(), sb.removeSuffix("\n").toString()))
+        bot.execute(deleteMessage)
+        bot.execute(SendMessage(chatId.toString(), sb.removeSuffix("\n").toString()))
     }
 
     fun saucenaoTool() = callback("saucenaoTool") {
-        val chatId = it.message.chatId
-        execute(SendMessage.builder().text("请发送需要识别的图片").chatId(chatId).build())
-        val message = it.waitNextMessage()
+        val chatId = query.message.chatId
+        bot.execute(SendMessage.builder().text("请发送需要识别的图片").chatId(chatId).build())
+        val message = query.waitNextMessage()
         val photoList = message.photo
         if (photoList.isEmpty()) error("您发送的不为图片")
         val photo = photoList.last()
         val getFile = GetFile(photo.fileId)
-        val file = execute(getFile)
+        val file = bot.execute(getFile)
         val url = "https://api.telegram.org/file/bot${telegramBot.botToken}/${file.filePath}"
         val newUrl = toolLogic.dCloudUpload(url)
         val list = toolLogic.saucenao(newUrl)
@@ -281,7 +281,7 @@ class ToolExtension(
             作者：${result.author} 
             作者主页：${result.authUrl}
         """.trimIndent())
-        execute(sendMessage)
+        bot.execute(sendMessage)
     }
 
 

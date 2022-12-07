@@ -80,8 +80,7 @@ class BiliBilliScheduled(
                         val msg = if (b) "直播啦！！" else "下播了！！"
                         telegramBot.silent().send("""
                             #哔哩哔哩开播提醒
-                            哔哩哔哩开播提醒：
-                            $name$msg
+                            #$name $msg
                             标题：${live.title}
                             链接：${live.url}
                         """.trimIndent(), tgId)

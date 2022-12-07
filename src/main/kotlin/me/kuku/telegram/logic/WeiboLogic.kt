@@ -106,14 +106,14 @@ object WeiboLogic {
     fun convert(weiboPojo: WeiboPojo): String {
         val sb = StringBuilder()
         val ipFrom = weiboPojo.ipFrom
-        sb.appendLine(weiboPojo.name)
+        sb.appendLine("#${weiboPojo.name}")
             .appendLine("来自：${ipFrom.ifEmpty { "无" }}")
             .appendLine("发布时间：${weiboPojo.created}")
             .appendLine("内容：${weiboPojo.text}")
             .append("链接：https://m.weibo.cn/status/${weiboPojo.bid}")
         if (weiboPojo.isForward) {
             sb.appendLine()
-                .appendLine("转发自：${weiboPojo.forwardName}")
+                .appendLine("转发自：#${weiboPojo.forwardName}")
                 .appendLine("发布时间：${weiboPojo.forwardTime}")
                 .appendLine("内容：${weiboPojo.forwardText}")
                 .appendLine("链接：https://m.weibo.cn/status/${weiboPojo.forwardBid}")

@@ -49,15 +49,15 @@ class LogExtension(
     }
 
     fun logSwitch() = callbackStartWith("log-") {
-        val data = it.data.substring(4)
+        val data = query.data.substring(4)
         val before = DateTimeFormatterUtils.parseToLocalDate(data, "yyyy-MM-dd")
         val editMessageText = EditMessageText()
-        editMessageText.chatId = it.message.chatId.toString()
+        editMessageText.chatId = query.message.chatId.toString()
         editMessageText.text = "${before}的自动签到日志"
-        editMessageText.messageId = it.message.messageId
+        editMessageText.messageId = query.message.messageId
         val beforeTime = before.atTime(0, 0)
-        editMessageText.replyMarkup = replyMarkup(beforeTime, beforeTime.plusDays(1), it.from.id)
-        execute(editMessageText)
+        editMessageText.replyMarkup = replyMarkup(beforeTime, beforeTime.plusDays(1), query.from.id)
+        bot.execute(editMessageText)
     }
 
 

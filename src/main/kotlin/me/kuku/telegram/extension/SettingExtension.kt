@@ -36,10 +36,10 @@ class SettingExtension(
     }
 
     fun returnSetting() = callback("returnSetting") {
-        val messageId = it.message.messageId
-        val editMessageText = EditMessageText.builder().text("请选择设置选项").chatId(it.message.chatId).messageId(messageId)
+        val messageId = query.message.messageId
+        val editMessageText = EditMessageText.builder().text("请选择设置选项").chatId(query.message.chatId).messageId(messageId)
             .replyMarkup(settingMarkup()).build()
-        execute(editMessageText)
+        bot.execute(editMessageText)
     }
 
     fun blackSetting() = callback {
@@ -47,7 +47,7 @@ class SettingExtension(
             val queryBlackButton = inlineKeyboardButton("查询", "queryBlack")
             val addBlackButton = inlineKeyboardButton("增加", "addBlack")
             val deleteBlackButton = inlineKeyboardButton("删除", "deleteBlack")
-            val editMessageText = EditMessageText.builder().text("请选择黑名单操作：").chatId(it.message.chatId).messageId(it.message.messageId)
+            val editMessageText = EditMessageText.builder().text("请选择黑名单操作：").chatId(query.message.chatId).messageId(query.message.messageId)
                 .replyMarkup(
                     InlineKeyboardMarkup(
                         listOf(
@@ -58,29 +58,29 @@ class SettingExtension(
                         )
                     )
                 ).build()
-            execute(editMessageText)
+            bot.execute(editMessageText)
         }
 
         query("queryBlack") {
             val ss = telegramBot.blacklist().joinToString("\n")
-            val sendMessage = SendMessage.builder().text("黑名单列表如下：\n$ss").chatId(it.message.chatId).build()
-            execute(sendMessage)
+            val sendMessage = SendMessage.builder().text("黑名单列表如下：\n$ss").chatId(query.message.chatId).build()
+            bot.execute(sendMessage)
         }
 
         query("addBlack") {
-            val chatId = it.message.chatId
-            execute(SendMessage(chatId.toString(), "请发送需要新增的黑名单id"))
-            val ss = it.waitNextMessage().text.toLongOrNull() ?: error("发送的不为数字")
+            val chatId = query.message.chatId
+            bot.execute(SendMessage(chatId.toString(), "请发送需要新增的黑名单id"))
+            val ss = query.waitNextMessage().text.toLongOrNull() ?: error("发送的不为数字")
             telegramBot.blacklist().add(ss)
-            execute(SendMessage(chatId.toString(), "增加黑名单成功"))
+            bot.execute(SendMessage(chatId.toString(), "增加黑名单成功"))
         }
 
         query("deleteBlack") {
-            val chatId = it.message.chatId
-            execute(SendMessage(chatId.toString(), "请发送需要删除的黑名单id"))
-            val ss = it.waitNextMessage().text.toLongOrNull() ?: error("发送的不为数字")
+            val chatId = query.message.chatId
+            bot.execute(SendMessage(chatId.toString(), "请发送需要删除的黑名单id"))
+            val ss = query.waitNextMessage().text.toLongOrNull() ?: error("发送的不为数字")
             telegramBot.blacklist().remove(ss)
-            execute(SendMessage(chatId.toString(), "删除黑名单成功"))
+            bot.execute(SendMessage(chatId.toString(), "删除黑名单成功"))
         }
 
     }
@@ -90,7 +90,7 @@ class SettingExtension(
             val queryBlackButton = inlineKeyboardButton("查询", "queryAdmin")
             val addBlackButton = inlineKeyboardButton("增加", "addAdmin")
             val deleteBlackButton = inlineKeyboardButton("删除", "deleteAdmin")
-            val editMessageText = EditMessageText.builder().text("请选择管理员操作：").chatId(it.message.chatId).messageId(it.message.messageId)
+            val editMessageText = EditMessageText.builder().text("请选择管理员操作：").chatId(query.message.chatId).messageId(query.message.messageId)
                 .replyMarkup(
                     InlineKeyboardMarkup(
                         listOf(
@@ -101,29 +101,29 @@ class SettingExtension(
                         )
                     )
                 ).build()
-            execute(editMessageText)
+            bot.execute(editMessageText)
         }
 
         query("queryAdmin") {
             val ss = telegramBot.admins().joinToString("\n")
-            val sendMessage = SendMessage.builder().text("管理员列表如下：\n$ss").chatId(it.message.chatId).build()
-            execute(sendMessage)
+            val sendMessage = SendMessage.builder().text("管理员列表如下：\n$ss").chatId(query.message.chatId).build()
+            bot.execute(sendMessage)
         }
 
         query("addBlack") {
-            val chatId = it.message.chatId
-            execute(SendMessage(chatId.toString(), "请发送需要新增的管理员id"))
-            val ss = it.waitNextMessage().text.toLongOrNull() ?: error("发送的不为数字")
+            val chatId = query.message.chatId
+            bot.execute(SendMessage(chatId.toString(), "请发送需要新增的管理员id"))
+            val ss = query.waitNextMessage().text.toLongOrNull() ?: error("发送的不为数字")
             telegramBot.admins().add(ss)
-            execute(SendMessage(chatId.toString(), "增加管理员成功"))
+            bot.execute(SendMessage(chatId.toString(), "增加管理员成功"))
         }
 
         query("deleteBlack") {
-            val chatId = it.message.chatId
-            execute(SendMessage(chatId.toString(), "请发送需要删除的管理员id"))
-            val ss = it.waitNextMessage().text.toLongOrNull() ?: error("发送的不为数字")
+            val chatId = query.message.chatId
+            bot.execute(SendMessage(chatId.toString(), "请发送需要删除的管理员id"))
+            val ss = query.waitNextMessage().text.toLongOrNull() ?: error("发送的不为数字")
             telegramBot.admins().remove(ss)
-            execute(SendMessage(chatId.toString(), "删除管理员成功"))
+            bot.execute(SendMessage(chatId.toString(), "删除管理员成功"))
         }
     }
 

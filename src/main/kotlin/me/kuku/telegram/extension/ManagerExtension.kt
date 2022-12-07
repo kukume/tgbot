@@ -69,13 +69,13 @@ class ManagerExtension(
     }
 
     fun returnMarkup() = callback("returnManager") {
-        val messageId = it.message.messageId
+        val messageId = query.message.messageId
         val editMessageText = EditMessageText()
-        editMessageText.chatId = it.message.chatId.toString()
+        editMessageText.chatId = query.message.chatId.toString()
         editMessageText.replyMarkup = managerKeyboardMarkup()
         editMessageText.messageId = messageId
         editMessageText.text = "请选择管理选项"
-        execute(editMessageText)
+        bot.execute(editMessageText)
     }
 
     private fun editBaiduMessage(bot: BaseAbilityBot, message: Message, baiduEntity: BaiduEntity) {
@@ -96,22 +96,22 @@ class ManagerExtension(
     }
 
     fun baiduManager() = callback("baiduManager") {
-        val baiduEntity = baiduService.findByTgId(it.from.id) ?: error("未绑定百度账号")
-        editBaiduMessage(this, it.message, baiduEntity)
+        val baiduEntity = baiduService.findByTgId(query.from.id) ?: error("未绑定百度账号")
+        editBaiduMessage(bot, query.message, baiduEntity)
     }
 
     fun baiduSignOpen() = callback("baiduSignOpen") {
-        val baiduEntity = baiduService.findByTgId(it.from.id)!!
+        val baiduEntity = baiduService.findByTgId(query.from.id)!!
         baiduEntity.sign = Status.ON
         baiduService.save(baiduEntity)
-        editBaiduMessage(this, it.message, baiduEntity)
+        editBaiduMessage(bot, query.message, baiduEntity)
     }
 
     fun baiduSignClose() = callback("baiduSignClose") {
-        val baiduEntity = baiduService.findByTgId(it.from.id)!!
+        val baiduEntity = baiduService.findByTgId(query.from.id)!!
         baiduEntity.sign = Status.OFF
         baiduService.save(baiduEntity)
-        editBaiduMessage(this, it.message, baiduEntity)
+        editBaiduMessage(bot, query.message, baiduEntity)
     }
 
     private fun editBiliBiliMessage(bot: BaseAbilityBot, message: Message, biliEntity: BiliBiliEntity) {
@@ -141,44 +141,44 @@ class ManagerExtension(
 
     fun biliBiliManager() = callback {
         query("biliBiliManager") {
-            val biliBiliEntity = biliBiliService.findByTgId(it.from.id) ?: error("未绑定哔哩哔哩账号")
-            editBiliBiliMessage(this, it.message, biliBiliEntity)
+            val biliBiliEntity = biliBiliService.findByTgId(query.from.id) ?: error("未绑定哔哩哔哩账号")
+            editBiliBiliMessage(bot, query.message, biliBiliEntity)
         }
         query("biliBiliPushOpen") {
-            val biliBiliEntity = biliBiliService.findByTgId(it.from.id)!!
+            val biliBiliEntity = biliBiliService.findByTgId(query.from.id)!!
             biliBiliEntity.push = Status.ON
             biliBiliService.save(biliBiliEntity)
-            editBiliBiliMessage(this, it.message, biliBiliEntity)
+            editBiliBiliMessage(bot, query.message, biliBiliEntity)
         }
         query("biliBiliPushClose") {
-            val biliBiliEntity = biliBiliService.findByTgId(it.from.id)!!
+            val biliBiliEntity = biliBiliService.findByTgId(query.from.id)!!
             biliBiliEntity.push = Status.OFF
             biliBiliService.save(biliBiliEntity)
-            editBiliBiliMessage(this, it.message, biliBiliEntity)
+            editBiliBiliMessage(bot, query.message, biliBiliEntity)
         }
         query("biliBiliSignOpen") {
-            val biliBiliEntity = biliBiliService.findByTgId(it.from.id)!!
+            val biliBiliEntity = biliBiliService.findByTgId(query.from.id)!!
             biliBiliEntity.sign = Status.ON
             biliBiliService.save(biliBiliEntity)
-            editBiliBiliMessage(this, it.message, biliBiliEntity)
+            editBiliBiliMessage(bot, query.message, biliBiliEntity)
         }
         query("biliBiliSignClose") {
-            val biliBiliEntity = biliBiliService.findByTgId(it.from.id)!!
+            val biliBiliEntity = biliBiliService.findByTgId(query.from.id)!!
             biliBiliEntity.sign = Status.OFF
             biliBiliService.save(biliBiliEntity)
-            editBiliBiliMessage(this, it.message, biliBiliEntity)
+            editBiliBiliMessage(bot, query.message, biliBiliEntity)
         }
         query("biliBiliLiveOpen") {
-            val biliBiliEntity = biliBiliService.findByTgId(it.from.id)!!
+            val biliBiliEntity = biliBiliService.findByTgId(query.from.id)!!
             biliBiliEntity.live = Status.ON
             biliBiliService.save(biliBiliEntity)
-            editBiliBiliMessage(this, it.message, biliBiliEntity)
+            editBiliBiliMessage(bot, query.message, biliBiliEntity)
         }
         query("biliBiliLiveClose") {
-            val biliBiliEntity = biliBiliService.findByTgId(it.from.id)!!
+            val biliBiliEntity = biliBiliService.findByTgId(query.from.id)!!
             biliBiliEntity.live = Status.OFF
             biliBiliService.save(biliBiliEntity)
-            editBiliBiliMessage(this, it.message, biliBiliEntity)
+            editBiliBiliMessage(bot, query.message, biliBiliEntity)
         }
     }
 
@@ -201,20 +201,20 @@ class ManagerExtension(
 
     fun douYuManager() = callback{
         query("douYuManager") {
-            val douYuEntity = douYuService.findByTgId(it.from.id) ?: error("未绑定斗鱼账号")
-            editDouYuMessage(this, it.message, douYuEntity)
+            val douYuEntity = douYuService.findByTgId(query.from.id) ?: error("未绑定斗鱼账号")
+            editDouYuMessage(bot, query.message, douYuEntity)
         }
         query("douYuLiveOpen") {
-            val douYuEntity = douYuService.findByTgId(it.from.id)!!
+            val douYuEntity = douYuService.findByTgId(query.from.id)!!
             douYuEntity.live = Status.ON
             douYuService.save(douYuEntity)
-            editDouYuMessage(this, it.message, douYuEntity)
+            editDouYuMessage(bot, query.message, douYuEntity)
         }
         query("douYuLiveClose") {
-            val douYuEntity = douYuService.findByTgId(it.from.id)!!
+            val douYuEntity = douYuService.findByTgId(query.from.id)!!
             douYuEntity.live = Status.OFF
             douYuService.save(douYuEntity)
-            editDouYuMessage(this, it.message, douYuEntity)
+            editDouYuMessage(bot, query.message, douYuEntity)
         }
     }
 
@@ -237,20 +237,20 @@ class ManagerExtension(
 
     fun huYaManager() = callback{
         query("huYaManager") {
-            val huYaEntity = huYaService.findByTgId(it.from.id) ?: error("未绑定虎牙账号")
-            editHuYaMessage(this, it.message, huYaEntity)
+            val huYaEntity = huYaService.findByTgId(query.from.id) ?: error("未绑定虎牙账号")
+            editHuYaMessage(bot, query.message, huYaEntity)
         }
         query("huYaLiveOpen") {
-            val huYaEntity = huYaService.findByTgId(it.from.id)!!
+            val huYaEntity = huYaService.findByTgId(query.from.id)!!
             huYaEntity.live = Status.ON
             huYaService.save(huYaEntity)
-            editHuYaMessage(this, it.message, huYaEntity)
+            editHuYaMessage(bot, query.message, huYaEntity)
         }
         query("huYaLiveClose") {
-            val huYaEntity = huYaService.findByTgId(it.from.id)!!
+            val huYaEntity = huYaService.findByTgId(query.from.id)!!
             huYaEntity.live = Status.OFF
             huYaService.save(huYaEntity)
-            editHuYaMessage(this, it.message, huYaEntity)
+            editHuYaMessage(bot, query.message, huYaEntity)
         }
     }
 
@@ -277,32 +277,32 @@ class ManagerExtension(
 
     fun hostLocManager() = callback{
         query("hostLocManager") {
-            val hostLocEntity = hostLocService.findByTgId(it.from.id) ?: error("未绑定HostLoc账号")
-            editHostLocMessage(this, it.message, hostLocEntity)
+            val hostLocEntity = hostLocService.findByTgId(query.from.id) ?: error("未绑定HostLoc账号")
+            editHostLocMessage(bot, query.message, hostLocEntity)
         }
         query("hostLocPushOpen") {
-            val hostLocEntity = hostLocService.findByTgId(it.from.id)!!
+            val hostLocEntity = hostLocService.findByTgId(query.from.id)!!
             hostLocEntity.push = Status.ON
             hostLocService.save(hostLocEntity)
-            editHostLocMessage(this, it.message, hostLocEntity)
+            editHostLocMessage(bot, query.message, hostLocEntity)
         }
         query("hostLocPushClose") {
-            val hostLocEntity = hostLocService.findByTgId(it.from.id)!!
+            val hostLocEntity = hostLocService.findByTgId(query.from.id)!!
             hostLocEntity.push = Status.OFF
             hostLocService.save(hostLocEntity)
-            editHostLocMessage(this, it.message, hostLocEntity)
+            editHostLocMessage(bot, query.message, hostLocEntity)
         }
         query("hostLocSignOpen") {
-            val hostLocEntity = hostLocService.findByTgId(it.from.id)!!
+            val hostLocEntity = hostLocService.findByTgId(query.from.id)!!
             hostLocEntity.sign = Status.ON
             hostLocService.save(hostLocEntity)
-            editHostLocMessage(this, it.message, hostLocEntity)
+            editHostLocMessage(bot, query.message, hostLocEntity)
         }
         query("hostLocSignClose") {
-            val hostLocEntity = hostLocService.findByTgId(it.from.id)!!
+            val hostLocEntity = hostLocService.findByTgId(query.from.id)!!
             hostLocEntity.sign = Status.OFF
             hostLocService.save(hostLocEntity)
-            editHostLocMessage(this, it.message, hostLocEntity)
+            editHostLocMessage(bot, query.message, hostLocEntity)
         }
     }
 
@@ -325,20 +325,20 @@ class ManagerExtension(
 
     fun kuGouManager() = callback{
         query("kuGouManager") {
-            val kuGouEntity = kuGouService.findByTgId(it.from.id) ?: error("未绑定酷狗账号")
-            editKuGouMessage(this, it.message, kuGouEntity)
+            val kuGouEntity = kuGouService.findByTgId(query.from.id) ?: error("未绑定酷狗账号")
+            editKuGouMessage(bot, query.message, kuGouEntity)
         }
         query("kuGouSignOpen") {
-            val kuGouEntity = kuGouService.findByTgId(it.from.id)!!
+            val kuGouEntity = kuGouService.findByTgId(query.from.id)!!
             kuGouEntity.sign = Status.ON
             kuGouService.save(kuGouEntity)
-            editKuGouMessage(this, it.message, kuGouEntity)
+            editKuGouMessage(bot, query.message, kuGouEntity)
         }
         query("kuGouSignClose") {
-            val kuGouEntity = kuGouService.findByTgId(it.from.id)!!
+            val kuGouEntity = kuGouService.findByTgId(query.from.id)!!
             kuGouEntity.sign = Status.OFF
             kuGouService.save(kuGouEntity)
-            editKuGouMessage(this, it.message, kuGouEntity)
+            editKuGouMessage(bot, query.message, kuGouEntity)
         }
     }
 
@@ -361,20 +361,20 @@ class ManagerExtension(
 
     fun miHoYoManager() = callback{
         query("miHoYoManager") {
-            val miHoYoEntity = miHoYoService.findByTgId(it.from.id) ?: error("未绑定酷狗账号")
-            editMessage(this, it.message, miHoYoEntity)
+            val miHoYoEntity = miHoYoService.findByTgId(query.from.id) ?: error("未绑定酷狗账号")
+            editMessage(bot, query.message, miHoYoEntity)
         }
         query("miHoYoSignOpen") {
-            val miHoYoEntity = miHoYoService.findByTgId(it.from.id)!!
+            val miHoYoEntity = miHoYoService.findByTgId(query.from.id)!!
             miHoYoEntity.sign = Status.ON
             miHoYoService.save(miHoYoEntity)
-            editMessage(this, it.message, miHoYoEntity)
+            editMessage(bot, query.message, miHoYoEntity)
         }
         query("miHoYoSignClose") {
-            val miHoYoEntity = miHoYoService.findByTgId(it.from.id)!!
+            val miHoYoEntity = miHoYoService.findByTgId(query.from.id)!!
             miHoYoEntity.sign = Status.OFF
             miHoYoService.save(miHoYoEntity)
-            editMessage(this, it.message, miHoYoEntity)
+            editMessage(bot, query.message, miHoYoEntity)
         }
     }
 
@@ -401,32 +401,32 @@ class ManagerExtension(
 
     fun netEaseManager() = callback{
         query("netEaseManager") {
-            val miHoYoEntity = netEaseService.findByTgId(it.from.id) ?: error("未绑定酷狗账号")
-            editMessage(this, it.message, miHoYoEntity)
+            val miHoYoEntity = netEaseService.findByTgId(query.from.id) ?: error("未绑定酷狗账号")
+            editMessage(bot, query.message, miHoYoEntity)
         }
         query("netEaseSignOpen") {
-            val netEaseEntity = netEaseService.findByTgId(it.from.id)!!
+            val netEaseEntity = netEaseService.findByTgId(query.from.id)!!
             netEaseEntity.sign = Status.ON
             netEaseService.save(netEaseEntity)
-            editMessage(this, it.message, netEaseEntity)
+            editMessage(bot, query.message, netEaseEntity)
         }
         query("netEaseSignClose") {
-            val netEaseEntity = netEaseService.findByTgId(it.from.id)!!
+            val netEaseEntity = netEaseService.findByTgId(query.from.id)!!
             netEaseEntity.sign = Status.OFF
             netEaseService.save(netEaseEntity)
-            editMessage(this, it.message, netEaseEntity)
+            editMessage(bot, query.message, netEaseEntity)
         }
         query("netEaseMusicianSignOpen") {
-            val netEaseEntity = netEaseService.findByTgId(it.from.id)!!
+            val netEaseEntity = netEaseService.findByTgId(query.from.id)!!
             netEaseEntity.musicianSign = Status.ON
             netEaseService.save(netEaseEntity)
-            editMessage(this, it.message, netEaseEntity)
+            editMessage(bot, query.message, netEaseEntity)
         }
         query("netEaseMusicianSignClose") {
-            val netEaseEntity = netEaseService.findByTgId(it.from.id)!!
+            val netEaseEntity = netEaseService.findByTgId(query.from.id)!!
             netEaseEntity.musicianSign = Status.OFF
             netEaseService.save(netEaseEntity)
-            editMessage(this, it.message, netEaseEntity)
+            editMessage(bot, query.message, netEaseEntity)
         }
     }
 
@@ -452,29 +452,29 @@ class ManagerExtension(
 
     fun stepManager() = callback{
         query("stepManager") {
-            val stepEntity = stepService.findByTgId(it.from.id) ?: error("未绑定刷步数的账号")
-            editMessage(this, it.message, stepEntity)
+            val stepEntity = stepService.findByTgId(query.from.id) ?: error("未绑定刷步数的账号")
+            editMessage(bot, query.message, stepEntity)
         }
         query("modifyStep") {
-            val chatId = it.message.chatId
-            val stepEntity = stepService.findByTgId(it.from.id)!!
-            execute(SendMessage(chatId.toString(), "请发送需要修改的步数"))
-            val step = it.waitNextMessage().text
+            val chatId = query.message.chatId
+            val stepEntity = stepService.findByTgId(query.from.id)!!
+            bot.execute(SendMessage(chatId.toString(), "请发送需要修改的步数"))
+            val step = query.waitNextMessage().text
             stepEntity.step = step.toIntOrNull() ?: -1
             stepService.save(stepEntity)
-            editMessage(this, it.message, stepEntity)
+            editMessage(bot, query.message, stepEntity)
         }
         query("stepOffsetOpen") {
-            val stepEntity = stepService.findByTgId(it.from.id)!!
+            val stepEntity = stepService.findByTgId(query.from.id)!!
             stepEntity.offset = Status.ON
             stepService.save(stepEntity)
-            editMessage(this, it.message, stepEntity)
+            editMessage(bot, query.message, stepEntity)
         }
         query("stepOffsetClose") {
-            val stepEntity = stepService.findByTgId(it.from.id)!!
+            val stepEntity = stepService.findByTgId(query.from.id)!!
             stepEntity.offset = Status.OFF
             stepService.save(stepEntity)
-            editMessage(this, it.message, stepEntity)
+            editMessage(bot, query.message, stepEntity)
         }
     }
 
@@ -501,32 +501,32 @@ class ManagerExtension(
 
     fun weiboManager() = callback{
         query("weiboManager") {
-            val weiboEntity = weiboService.findByTgId(it.from.id) ?: error("未绑定HostLoc账号")
-            editMessage(this, it.message, weiboEntity)
+            val weiboEntity = weiboService.findByTgId(query.from.id) ?: error("未绑定HostLoc账号")
+            editMessage(bot, query.message, weiboEntity)
         }
         query("weiboPushOpen") {
-            val weiboEntity = weiboService.findByTgId(it.from.id)!!
+            val weiboEntity = weiboService.findByTgId(query.from.id)!!
             weiboEntity.push = Status.ON
             weiboService.save(weiboEntity)
-            editMessage(this, it.message, weiboEntity)
+            editMessage(bot, query.message, weiboEntity)
         }
         query("weiboPushClose") {
-            val weiboEntity = weiboService.findByTgId(it.from.id)!!
+            val weiboEntity = weiboService.findByTgId(query.from.id)!!
             weiboEntity.push = Status.OFF
             weiboService.save(weiboEntity)
-            editMessage(this, it.message, weiboEntity)
+            editMessage(bot, query.message, weiboEntity)
         }
         query("weiboSignOpen") {
-            val weiboEntity = weiboService.findByTgId(it.from.id)!!
+            val weiboEntity = weiboService.findByTgId(query.from.id)!!
             weiboEntity.sign = Status.ON
             weiboService.save(weiboEntity)
-            editMessage(this, it.message, weiboEntity)
+            editMessage(bot, query.message, weiboEntity)
         }
         query("weiboSignClose") {
-            val weiboEntity = weiboService.findByTgId(it.from.id)!!
+            val weiboEntity = weiboService.findByTgId(query.from.id)!!
             weiboEntity.sign = Status.OFF
             weiboService.save(weiboEntity)
-            editMessage(this, it.message, weiboEntity)
+            editMessage(bot, query.message, weiboEntity)
         }
     }
 
@@ -549,20 +549,20 @@ class ManagerExtension(
 
     fun twitterManager() = callback {
         query("twitterManager") {
-            val twitterEntity = twitterService.findByTgId(it.from.id) ?: error("未绑定twitter账号")
-            editMessage(this, it.message, twitterEntity)
+            val twitterEntity = twitterService.findByTgId(query.from.id) ?: error("未绑定twitter账号")
+            editMessage(bot, query.message, twitterEntity)
         }
         query("twitterPushOpen") {
-            val twitterEntity = twitterService.findByTgId(it.from.id)!!
+            val twitterEntity = twitterService.findByTgId(query.from.id)!!
             twitterEntity.push = Status.ON
             twitterService.save(twitterEntity)
-            editMessage(this, it.message, twitterEntity)
+            editMessage(bot, query.message, twitterEntity)
         }
         query("twitterPushClose") {
-            val twitterEntity = twitterService.findByTgId(it.from.id)!!
+            val twitterEntity = twitterService.findByTgId(query.from.id)!!
             twitterEntity.push = Status.OFF
             twitterService.save(twitterEntity)
-            editMessage(this, it.message, twitterEntity)
+            editMessage(bot, query.message, twitterEntity)
         }
     }
 
@@ -585,20 +585,20 @@ class ManagerExtension(
 
     fun pixivManager() = callback {
         query("pixivManager") {
-            val pixivEntity = pixivService.findByTgId(it.from.id) ?: error("未绑定pixiv账号")
-            editMessage(this, it.message, pixivEntity)
+            val pixivEntity = pixivService.findByTgId(query.from.id) ?: error("未绑定pixiv账号")
+            editMessage(bot, query.message, pixivEntity)
         }
         query("pixivPushOpen") {
-            val pixivEntity = pixivService.findByTgId(it.from.id)!!
+            val pixivEntity = pixivService.findByTgId(query.from.id)!!
             pixivEntity.push = Status.ON
             pixivService.save(pixivEntity)
-            editMessage(this, it.message, pixivEntity)
+            editMessage(bot, query.message, pixivEntity)
         }
         query("pixivPushClose") {
-            val pixivEntity = pixivService.findByTgId(it.from.id)!!
+            val pixivEntity = pixivService.findByTgId(query.from.id)!!
             pixivEntity.push = Status.OFF
             pixivService.save(pixivEntity)
-            editMessage(this, it.message, pixivEntity)
+            editMessage(bot, query.message, pixivEntity)
         }
     }
 

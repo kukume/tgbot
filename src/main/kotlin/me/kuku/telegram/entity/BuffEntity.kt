@@ -6,6 +6,7 @@ import me.kuku.telegram.logic.PaintWearInterval
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
 import java.util.UUID
 
@@ -30,6 +31,8 @@ data class BuffMonitor(
 
 interface BuffRepository: ReactiveMongoRepository<BuffEntity, String> {
     fun findByTgId(tgId: Long): Mono<BuffEntity>
+
+    fun deleteByTgId(tgId: Long): Mono<Void>
 }
 
 @Service
@@ -42,5 +45,8 @@ class BuffService(
     suspend fun findByTgId(tgId: Long): BuffEntity? = buffRepository.findByTgId(tgId).awaitSingleOrNull()
 
     suspend fun findAll(): List<BuffEntity> = buffRepository.findAll().collectList().awaitSingle()
+
+    @Transactional
+    suspend fun deleteByTgId(tgId: Long) = buffRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
 }

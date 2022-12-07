@@ -58,16 +58,16 @@ class ConfigExtension(
 
     fun positiveEnergyConfig() = callback {
         query("positiveEnergyOpen") {
-            val configEntity = configService.findByTgId(it.from.id)!!
+            val configEntity = configService.findByTgId(query.from.id)!!
             configEntity.positiveEnergy = Status.ON
             configService.save(configEntity)
-            editMessage(this, it.message, configEntity)
+            editMessage(bot, query.message, configEntity)
         }
         query("positiveEnergyClose") {
-            val configEntity = configService.findByTgId(it.from.id)!!
+            val configEntity = configService.findByTgId(query.from.id)!!
             configEntity.positiveEnergy = Status.OFF
             configService.save(configEntity)
-            editMessage(this, it.message, configEntity)
+            editMessage(bot, query.message, configEntity)
         }
     }
 

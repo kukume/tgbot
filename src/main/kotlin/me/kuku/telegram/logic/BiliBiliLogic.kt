@@ -144,10 +144,10 @@ object BiliBiliLogic {
         val bvId = biliBiliPojo.bvId
         val ipFrom = biliBiliPojo.ipFrom
         val forwardBvId = biliBiliPojo.forwardBvId
-        var ss = "${biliBiliPojo.name}\n来自：${ipFrom.ifEmpty { "无" }}\n发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.time, pattern)}" +
+        var ss = "#${biliBiliPojo.name}\n来自：${ipFrom.ifEmpty { "无" }}\n发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.time, pattern)}" +
                 "\n内容：${biliBiliPojo.text}\n动态链接：https://t.bilibili.com/${biliBiliPojo.id}\n视频链接：${if (bvId.isNotEmpty()) "https://www.bilibili.com/video/$bvId" else "无"}"
         if (biliBiliPojo.isForward) {
-            ss += "\n转发自：${biliBiliPojo.forwardName}\n发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.forwardTime, pattern)}\n" +
+            ss += "\n转发自：#${biliBiliPojo.forwardName}\n发布时间：${DateTimeFormatterUtils.format(biliBiliPojo.forwardTime, pattern)}\n" +
                     "内容：${biliBiliPojo.forwardText}\n动态链接：https://t.bilibili.com/${biliBiliPojo.forwardId}\n视频链接：${if (forwardBvId.isNotEmpty()) "https://www.bilibili.com/video/$forwardBvId" else "无"}"
         }
         return ss

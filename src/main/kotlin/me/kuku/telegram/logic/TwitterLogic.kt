@@ -157,13 +157,13 @@ object TwitterLogic {
 
     fun convertStr(twitterPojo: TwitterPojo): String {
         val sb = StringBuilder()
-        sb.appendLine(twitterPojo.username)
+        sb.appendLine("#${twitterPojo.username}")
             .appendLine("发布时间：${twitterPojo.createdAt}")
             .appendLine("内容：${twitterPojo.text}")
             .append("链接：${twitterPojo.url()}")
         if (twitterPojo.forward) {
             sb.appendLine()
-                .appendLine("转发自：${twitterPojo.forwardUsername}")
+                .appendLine("转发自：#${twitterPojo.forwardUsername}")
                 .appendLine("发布时间：${twitterPojo.forwardCreatedAt}")
                 .appendLine("内容：${twitterPojo.forwardText}")
                 .append("链接：${twitterPojo.forwardUrl()}")
