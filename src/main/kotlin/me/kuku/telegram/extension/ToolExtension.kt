@@ -1,5 +1,8 @@
 package me.kuku.telegram.extension
 
+import com.fasterxml.jackson.databind.JsonNode
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.config.TelegramBot
@@ -282,6 +285,13 @@ class ToolExtension(
             作者主页：${result.authUrl}
         """.trimIndent())
         bot.execute(sendMessage)
+    }
+
+    fun chat() = ability("chat", "ChatGPT", 1) {
+        val text = firstArg()
+        val jsonNode = client.get("https://api.kukuqaq.com/chat?text=${text.toUrlEncode()}").body<JsonNode>()
+        val result = jsonNode["choices"][0]["text"].asText()
+        execute(SendMessage.builder().text(result).chatId(chatId()).build())
     }
 
 
