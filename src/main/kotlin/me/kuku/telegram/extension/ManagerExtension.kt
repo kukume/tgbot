@@ -3,10 +3,7 @@
 package me.kuku.telegram.extension
 
 import me.kuku.telegram.entity.*
-import me.kuku.telegram.utils.ability
-import me.kuku.telegram.utils.callback
-import me.kuku.telegram.utils.execute
-import me.kuku.telegram.utils.waitNextMessage
+import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Service
 import org.telegram.abilitybots.api.bot.BaseAbilityBot
 import org.telegram.abilitybots.api.util.AbilityExtension
@@ -29,7 +26,8 @@ class ManagerExtension(
     private val stepService: StepService,
     private val weiboService: WeiboService,
     private val twitterService: TwitterService,
-    private val pixivService: PixivService
+    private val pixivService: PixivService,
+    private val douYinService: DouYinService
 ): AbilityExtension {
 
     private fun returnButton(): InlineKeyboardButton {
@@ -49,13 +47,15 @@ class ManagerExtension(
         val weiboButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboManager" }
         val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterManager" }
         val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivManager" }
+        val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinManager" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
             listOf(huYaButton, kuGouButton),
             listOf(miHoYoButton, netEaseButton),
             listOf(xiaomiStepButton, weiboButton),
-            listOf(twitterButton, pixivButton)
+            listOf(twitterButton, pixivButton),
+            listOf(douYinButton)
         ))
     }
 
@@ -615,6 +615,37 @@ class ManagerExtension(
             pixivEntity.push = Status.OFF
             pixivService.save(pixivEntity)
             editMessage(bot, query.message, pixivEntity)
+        }
+    }
+
+    private fun editMessage(bot: BaseAbilityBot, message: Message, douYinEntity: DouYinEntity) {
+        val pushOpenButton = inlineKeyboardButton("视频推送（开）", "douYinPushOpen")
+        val pushCloseButton = inlineKeyboardButton("视频推送（关）", "douYinPushClose")
+        val editMessageText = EditMessageText.builder().chatId(message.chatId).messageId(message.messageId)
+            .text("""
+                抖音管理，当前状态：
+                视频推送：${douYinEntity.push.str()}
+            """.trimIndent()).replyMarkup(InlineKeyboardMarkup(listOf(listOf(pushOpenButton, pushCloseButton), listOf(returnButton()))))
+            .build()
+        bot.execute(editMessageText)
+    }
+
+    fun douYinManager() = callback {
+        "douYinManager" {
+            val douYinEntity = douYinService.findByTgId(tgId) ?: error("未绑定抖音账号")
+            editMessage(bot, message, douYinEntity)
+        }
+        "douYinPushOpen" {
+            val douYinEntity = douYinService.findByTgId(tgId)!!
+            douYinEntity.push = Status.ON
+            douYinService.save(douYinEntity)
+            editMessage(bot, message, douYinEntity)
+        }
+        "douYinPushClose" {
+            val douYinEntity = douYinService.findByTgId(tgId)!!
+            douYinEntity.push = Status.OFF
+            douYinService.save(douYinEntity)
+            editMessage(bot, message, douYinEntity)
         }
     }
 

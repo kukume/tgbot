@@ -4,6 +4,7 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.DouYinService
+import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.DouYinLogic
 import me.kuku.telegram.logic.DouYinWork
 import me.kuku.utils.MyUtils
@@ -25,7 +26,7 @@ class DouYinScheduled(
 
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     suspend fun push() {
-        val douYinList = douYinService.findAll()
+        val douYinList = douYinService.findByPush(Status.ON)
         for (douYinEntity in douYinList) {
             val list = DouYinLogic.followWork(douYinEntity)
             if (list.isEmpty()) continue
