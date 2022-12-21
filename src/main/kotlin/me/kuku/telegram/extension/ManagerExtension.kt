@@ -185,8 +185,11 @@ class ManagerExtension(
     private fun editDouYuMessage(bot: BaseAbilityBot, message: Message, douYuEntity: DouYuEntity) {
         val liveOpenButton = InlineKeyboardButton("开播提醒（开）").apply { callbackData = "douYuLiveOpen" }
         val liveCloseButton = InlineKeyboardButton("开播提醒（关）").apply { callbackData = "douYuLiveClose" }
+        val fishOpenButton = InlineKeyboardButton("鱼吧签到（开）").apply { callbackData = "douYuFishOpen" }
+        val fishCloseButton = InlineKeyboardButton("鱼吧签到（关）").apply { callbackData = "douYuFishClose" }
         val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
             listOf(liveOpenButton, liveCloseButton),
+            listOf(fishOpenButton, fishCloseButton),
             listOf(returnButton())
         ))
         val editMessageText = EditMessageText.builder()
@@ -194,6 +197,7 @@ class ManagerExtension(
                 """
             斗鱼自动签到管理，当前状态：
             开播提醒：${douYuEntity.live.str()}
+            鱼吧签到：${douYuEntity.fishGroup.str()}
         """.trimIndent()
             ).replyMarkup(inlineKeyboardMarkup).chatId(message.chatId).messageId(message.messageId).build()
         bot.execute(editMessageText)
@@ -215,6 +219,18 @@ class ManagerExtension(
             douYuEntity.live = Status.OFF
             douYuService.save(douYuEntity)
             editDouYuMessage(bot, query.message, douYuEntity)
+        }
+        "douYuFishOpen" {
+            val douYuEntity = douYuService.findByTgId(tgId)!!
+            douYuEntity.fishGroup = Status.ON
+            douYuService.save(douYuEntity)
+            editDouYuMessage(bot, message, douYuEntity)
+        }
+        "douYuFishClose" {
+            val douYuEntity = douYuService.findByTgId(tgId)!!
+            douYuEntity.fishGroup = Status.OFF
+            douYuService.save(douYuEntity)
+            editDouYuMessage(bot, message, douYuEntity)
         }
     }
 

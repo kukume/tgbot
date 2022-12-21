@@ -1,7 +1,6 @@
 package me.kuku.telegram.config
 
 import me.kuku.telegram.utils.context
-import me.kuku.telegram.utils.db
 import org.mapdb.DBMaker
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -38,9 +37,7 @@ class TelegramBean(
             botOptions.proxyType = telegramConfig.proxyType
         }
         context = applicationContext
-        return TelegramBot(telegramConfig.token, telegramConfig.username, telegramConfig.creatorId, botOptions, applicationContext).also {
-            db = it.db()
-        }
+        return TelegramBot(telegramConfig.token, telegramConfig.username, telegramConfig.creatorId, botOptions, applicationContext)
     }
 
 }

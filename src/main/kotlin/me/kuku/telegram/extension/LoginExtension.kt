@@ -2,14 +2,13 @@
 
 package me.kuku.telegram.extension
 
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
-import me.kuku.utils.OkHttpKtUtils
-import me.kuku.utils.OkUtils
-import me.kuku.utils.base64Decode
-import me.kuku.utils.toUrlEncode
+import me.kuku.utils.*
 import org.springframework.stereotype.Service
 import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
@@ -19,6 +18,7 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
+import java.io.InputStream
 
 @Service
 class LoginExtension(
@@ -166,10 +166,10 @@ class LoginExtension(
 
     fun douYuLogin() = callback("douYuLogin") {
         val qrcode = douYuLogic.getQrcode()
-        val imageBase = qrcode.qqLoginQrcode.imageBase
-        imageBase.base64Decode().inputStream().use { iim ->
+        val imageUrl = qrcode.url
+        client.get("https://api.kukuqaq.com/qrcode?text=${imageUrl.toUrlEncode()}").body<InputStream>().use { iim ->
             val photo = SendPhoto(query.message.chatId.toString(), InputFile(iim,
-                "斗鱼登录二维码.jpg")).apply { caption = "请使用斗鱼绑定qq，然后使用qq扫码登录" }
+                "斗鱼登录二维码.jpg")).apply { caption = "请使用斗鱼app扫码登录" }
             bot.execute(photo)
         }
         while (true) {

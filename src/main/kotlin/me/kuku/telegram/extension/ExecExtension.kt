@@ -29,7 +29,9 @@ class ExecExtension(
     private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
-    private val douYinService: DouYinService
+    private val douYinService: DouYinService,
+    private val douYuService: DouYuService,
+    private val douYuLogic: DouYuLogic
 ): AbilityExtension {
 
     private val recommendCache = mutableMapOf<Long, List<DouYinWork>>()
@@ -44,12 +46,13 @@ class ExecExtension(
         val stepButton = InlineKeyboardButton("刷步数").also { it.callbackData = "stepExec" }
         val weiboButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboExec" }
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinExec" }
+        val douYuButton = InlineKeyboardButton("斗鱼").also { it.callbackData = "douYuExec" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(hostLocButton, kuGouButton),
             listOf(miHoYoButton, netEaseButton),
             listOf(stepButton, weiboButton),
-            listOf(douYinButton)
+            listOf(douYinButton, douYuButton)
         ))
     }
 
@@ -400,7 +403,24 @@ class ExecExtension(
             }
         }
 
+    }
 
+    fun douYuExec() = callback {
+
+        query("douYuExec") {
+            douYuService.findByTgId(tgId) ?: error("未绑定斗鱼账号")
+            val fishGroupSignButton = inlineKeyboardButton("鱼吧签到", "fishGroupSign")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(fishGroupSignButton), returnButton()))
+            val editMessageText = EditMessageText.builder().chatId(message.chatId).messageId(message.messageId).text("斗鱼")
+                .replyMarkup(inlineKeyboardMarkup).build()
+            bot.execute(editMessageText)
+        }
+
+        "fishGroupSign" {
+            val douYuEntity = douYuService.findByTgId(tgId)!!
+            douYuLogic.fishGroup(douYuEntity)
+            bot.execute(SendMessage.builder().chatId(chatId).text("斗鱼鱼吧签到成功").build())
+        }
 
     }
 

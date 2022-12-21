@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Document("dou_yin")
@@ -15,6 +16,7 @@ class DouYinEntity {
     var cookie: String = ""
     var userid: Long = 0
     var secUserid: String = ""
+    var push: Status = Status.OFF
 }
 
 interface DouYinRepository: ReactiveMongoRepository<DouYinEntity, String> {
@@ -22,6 +24,8 @@ interface DouYinRepository: ReactiveMongoRepository<DouYinEntity, String> {
     fun findByTgId(tgId: Long): Mono<DouYinEntity>
 
     fun deleteByTgId(tgId: Long): Mono<Void>
+
+    fun findByPush(push: Status): Flux<DouYinEntity>
 
 }
 
@@ -37,4 +41,9 @@ class DouYinService(
 
     @Transactional
     suspend fun deleteByTgId(tgId: Long) = douYinRepository.deleteByTgId(tgId).awaitSingleOrNull()
+
+    suspend fun findAll(): List<DouYinEntity> = douYinRepository.findAll().collectList().awaitSingle()
+
+    suspend fun findByPush(push: Status): List<DouYinEntity> = douYinRepository.findByPush(push).collectList().awaitSingle()
+
 }

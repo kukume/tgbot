@@ -1,6 +1,8 @@
 package me.kuku.telegram.logic
 
 import com.fasterxml.jackson.databind.JsonNode
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import me.kuku.pojo.CommonResult
 import me.kuku.telegram.entity.DouYinEntity
 import me.kuku.utils.*
@@ -86,6 +88,17 @@ object DouYinLogic {
         return list
     }
 
+    private suspend fun allFollow(douYinEntity: DouYinEntity): List<DouYinUser> {
+        val list = mutableListOf<DouYinUser>()
+        var i = 0
+        while (true) {
+            val followList = follow(douYinEntity, i++)
+            list.addAll(followList)
+            if (followList.size < 20) break
+        }
+        return list
+    }
+
     suspend fun work(douYinEntity: DouYinEntity, douYinUser: DouYinUser): List<DouYinWork> {
         val html = OkHttpKtUtils.getStr("https://www.douyin.com/user/${douYinUser.secUid}", OkUtils.cookie(douYinEntity.cookie))
         val jsonNode = MyUtils.regex("application/json\">", "</sc", html)?.toUrlDecode()?.toJsonNode() ?: error("cookie已失效")
@@ -101,8 +114,21 @@ object DouYinLogic {
             val coverList = node["video"]["coverUrlList"].map { it.asText() }
             val musicList = node["music"]["playUrl"]["urlList"].map { it.asText() }
             val id = node.getLong("awemeId")
-            list.add(DouYinWork(desc, id, coverList, videoList, musicList))
+            val time = "${node["createTime"].asText()}000".toLong()
+            val nickname = node["authorInfo"]["nickname"].asText()
+            list.add(DouYinWork(desc, id, nickname, time, coverList, videoList, musicList))
         }
+        return list
+    }
+
+    suspend fun followWork(douYinEntity: DouYinEntity): List<DouYinWork> {
+        val followList = allFollow(douYinEntity)
+        val list = mutableListOf<DouYinWork>()
+        for (douYinUser in followList) {
+            val work = work(douYinEntity, douYinUser)
+            list.addAll(work)
+        }
+        list.sortBy { -it.id }
         return list
     }
 
@@ -119,14 +145,56 @@ object DouYinLogic {
             val musicList = node?.get("music")?.get("play_url")?.get("url_list")?.map { it.asText() } ?: listOf()
             val videoList = node["video"]["bit_rate"][0]["play_addr"]["url_list"].map { it.asText() }
             val coverUrlList = node["video"]["cover"]["url_list"].map { it.asText() }
-            list.add(DouYinWork(desc, id, coverUrlList, videoList, musicList))
+            val time = "${node["createTime"].asText()}000".toLong()
+            val nickname = node["authorInfo"]["nickname"].asText()
+            list.add(DouYinWork(desc, id, nickname, time, coverUrlList, videoList, musicList))
         }
         return list
     }
+
+    suspend fun saveLoginInfo(douYinEntity: DouYinEntity): DouYinSaveLoginInfo {
+        val infoNode = client.get("https://www.douyin.com/passport/user/web_record_status/set/?user_web_record_status=1&aid=6383&account_sdk_source=web&sdk_version=2.2.4-rc.1&verifyFp=verify_lbud0svf_odWpkMXY_pUAP_4A1j_AhjQ_xvyRGbpXusYm&fp=verify_lbud0svf_odWpkMXY_pUAP_4A1j_AhjQ_xvyRGbpXusYm") {
+            headers {
+                cookieString(douYinEntity.cookie)
+            }
+        }.body<JsonNode>()
+        val infoDataNode = infoNode["data"]
+        val errCode = infoDataNode["error_code"].asInt()
+        if (errCode != 2046) error(infoDataNode["description"].asText())
+        val ticket = infoDataNode["verify_ticket"].asText()
+        val mobile = infoDataNode["verify_ways"][0]["mobile"].asText()
+        val sendNode = client.get("https://www.douyin.com/passport/web/send_code/?verify_ticket=$ticket&language=zh&aid=6383&type=22&timestamp=${System.currentTimeMillis()}") {
+            headers {
+                cookieString(douYinEntity.cookie)
+            }
+        }.body<JsonNode>()
+        if (sendNode["message"].asText() != "success") error("发送短信验证码失败（${sendNode["data"]["description"].asText()}），请重试")
+        return DouYinSaveLoginInfo(ticket, mobile)
+    }
+
+    suspend fun verifySaveLoginInfo(douYinEntity: DouYinEntity, douYinSaveLoginInfo: DouYinSaveLoginInfo, code: String) {
+        val response = client.get("https://www.douyin.com/passport/web/validate_code/?verify_ticket=${douYinSaveLoginInfo.ticket}&language=zh&aid=6383&code=$code&type=22&timestamp=${System.currentTimeMillis()}") {
+            headers {
+                cookieString(douYinEntity.cookie)
+            }
+        }
+        val jsonNode = response.body<JsonNode>()
+        if (jsonNode["message"].asText() != "success") error(jsonNode["data"]["description"].asText())
+        val cookie = response.cookie()
+        val resNode = client.get("https://www.douyin.com/passport/user/web_record_status/set/?user_web_record_status=1&aid=6383&account_sdk_source=web&sdk_version=2.2.4-rc.1&verifyFp=verify_lbud0svf_odWpkMXY_pUAP_4A1j_AhjQ_xvyRGbpXusYm&fp=verify_lbud0svf_odWpkMXY_pUAP_4A1j_AhjQ_xvyRGbpXusYm") {
+            headers {
+                cookieString(douYinEntity.cookie + cookie)
+            }
+        }.body<JsonNode>()
+        if (resNode["message"].asText() != "success") error(resNode["data"]["description"].asText())
+    }
+
 }
 
 data class DouYinQrcode(val baseImage: String, val token: String, val cookie: String)
 
 data class DouYinUser(val uid: Long, val secUid: String, val name: String)
 
-data class DouYinWork(val desc: String, val id: Long, val coverUrlList: List<String>, val videoUrlList: List<String>, val musicUrlList: List<String>)
+data class DouYinWork(val desc: String, val id: Long, val nickname: String, val createTime: Long, val coverUrlList: List<String>, val videoUrlList: List<String>, val musicUrlList: List<String>)
+
+data class DouYinSaveLoginInfo(val ticket: String, val mobile: String)

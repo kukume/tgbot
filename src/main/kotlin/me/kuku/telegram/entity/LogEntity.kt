@@ -37,7 +37,8 @@ enum class LogType(val value: String) {
     NetEase("网易云"),
     NetEaseMusician("网易云音乐人"),
     Step("修改步数"),
-    Weibo("微博")
+    Weibo("微博"),
+    DouYu("斗鱼")
 }
 
 interface LogRepository: ReactiveMongoRepository<LogEntity, Int> {

@@ -17,6 +17,7 @@ class DouYuEntity {
     var tgId: Long = 0
     var cookie: String = ""
     var live: Status = Status.OFF
+    var fishGroup: Status = Status.OFF
 }
 
 interface DouYuRepository: ReactiveMongoRepository<DouYuEntity, String> {
@@ -26,6 +27,8 @@ interface DouYuRepository: ReactiveMongoRepository<DouYuEntity, String> {
     fun findByLive(live: Status): Flux<DouYuEntity>
 
     fun deleteByTgId(tgId: Long): Mono<Void>
+
+    fun findByFishGroup(fishGroup: Status): Flux<DouYuEntity>
 
 }
 
@@ -43,5 +46,7 @@ class DouYuService(
 
     @Transactional
     suspend fun deleteByTgId(tgId: Long) = douYuRepository.deleteByTgId(tgId).awaitSingleOrNull()
+
+    suspend fun findByFishGroup(fishGroup: Status): List<DouYuEntity> = douYuRepository.findByFishGroup(fishGroup).collectList().awaitSingle()
 
 }

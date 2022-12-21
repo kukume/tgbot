@@ -123,7 +123,7 @@ class BaiduLogic (
             if (a.isNotEmpty()) list.add(a[0].attr("title"))
         }
         for (s in list) {
-            delay(1000)
+            delay(3000)
             val html =
                 OkHttpKtUtils.getStr("https://tieba.baidu.com/f?kw=${s.toUrlEncode()}&fr=index", headers)
             val tbs = MyUtils.regex("'tbs': \"", "\"", html)!!

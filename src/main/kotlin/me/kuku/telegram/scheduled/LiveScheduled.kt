@@ -2,10 +2,9 @@ package me.kuku.telegram.scheduled
 
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
-import me.kuku.telegram.entity.DouYuService
-import me.kuku.telegram.entity.HuYaService
-import me.kuku.telegram.entity.Status
+import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.DouYuLogic
+import me.kuku.telegram.logic.HostLocLogic
 import me.kuku.telegram.logic.HuYaLogic
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -17,7 +16,8 @@ class LiveScheduled(
     private val douYuLogic: DouYuLogic,
     private val huYaService: HuYaService,
     private val huYaLogic: HuYaLogic,
-    private val telegramBot: TelegramBot
+    private val telegramBot: TelegramBot,
+    private val logService: LogService
 ) {
 
     private val douYuLiveMap = mutableMapOf<Long, MutableMap<Long, Boolean>>()
@@ -53,6 +53,25 @@ class LiveScheduled(
                     }
                 } else map[id] = b
             }
+        }
+    }
+
+    @Scheduled(cron = "0 3 6 * * ?")
+    suspend fun douYuSign() {
+        val list = douYuService.findByFishGroup(Status.ON)
+        for (douYuEntity in list) {
+            val logEntity = LogEntity().also {
+                it.tgId = douYuEntity.tgId
+                it.type = LogType.DouYu
+            }
+            kotlin.runCatching {
+                douYuLogic.fishGroup(douYuEntity)
+                logEntity.text = "成功"
+            }.onFailure {
+                logEntity.text = "失败"
+                logEntity.sendFailMessage(telegramBot)
+            }
+            logService.save(logEntity)
         }
     }
 
