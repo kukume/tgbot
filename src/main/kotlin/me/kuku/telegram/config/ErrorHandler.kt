@@ -14,13 +14,6 @@ class AbilityHandler: ApplicationListener<TelegramAbilityExceptionEvent> {
 }
 
 @Component
-class ReplyHandler: ApplicationListener<TelegramReplyExceptionEvent> {
-    override fun onApplicationEvent(event: TelegramReplyExceptionEvent) {
-        event.bot.silent().send(event.ex.toString(), event.update.message.chatId)
-    }
-}
-
-@Component
 class CallbackHandler: ApplicationListener<TelegramCallbackExceptionEvent> {
     override fun onApplicationEvent(event: TelegramCallbackExceptionEvent) {
         val bot = event.bot

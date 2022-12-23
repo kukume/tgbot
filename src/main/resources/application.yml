@@ -3,6 +3,10 @@ spring:
     mongodb:
       uri: mongodb://localhost/tg
       auto-index-creation: true
+  task:
+    scheduling:
+      pool:
+        size: 10
 
 
 kuku:

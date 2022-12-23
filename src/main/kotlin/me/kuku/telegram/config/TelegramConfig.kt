@@ -127,8 +127,6 @@ class TelegramAbilityExceptionEvent(val messageContext: MessageContext, val ex: 
 
 class TelegramCallbackExceptionEvent(val bot: BaseAbilityBot, val query: CallbackQuery, val ex: Throwable): ApplicationEvent(query)
 
-class TelegramReplyExceptionEvent(val bot: BaseAbilityBot, val update: Update, val ex: Throwable): ApplicationEvent(update)
-
 @Component
 @ConfigurationProperties(prefix = "kuku.telegram")
 class TelegramConfig {

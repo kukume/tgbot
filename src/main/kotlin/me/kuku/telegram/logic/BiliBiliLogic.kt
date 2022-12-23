@@ -2,6 +2,9 @@ package me.kuku.telegram.logic
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.contains
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.ResultStatus
 import me.kuku.pojo.UA
@@ -244,8 +247,12 @@ object BiliBiliLogic {
     }
 
     suspend fun live(id: String): BiliBiliLive {
-        val jsonNode = OkHttpKtUtils.getJsonp("https://api.bilibili.com/x/space/acc/info?mid=$id&jsonp=jsonp",
-            OkUtils.referer("https://space.bilibili.com/$id/"))
+        val jsonNode = client.get("https://api.bilibili.com/x/space/acc/info?mid=$id&jsonp=jsonp") {
+            headers {
+                referer("https://space.bilibili.com/$id/")
+                userAgent(UA.PC.value)
+            }
+        }.body<JsonNode>()
         val dataJsonNode = jsonNode["data"]?.get("live_room") ?: return BiliBiliLive(status = false)
         val status = dataJsonNode.get("liveStatus")?.asInt()
         return BiliBiliLive(dataJsonNode.get("title")?.asText() ?: "", id, dataJsonNode.get("url")?.asText() ?: "", status == 1)
