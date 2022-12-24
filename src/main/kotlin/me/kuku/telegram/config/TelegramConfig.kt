@@ -1,6 +1,10 @@
 package me.kuku.telegram.config
 
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import me.kuku.telegram.utils.context
+import me.kuku.utils.OkHttpKtUtils
+import me.kuku.utils.client
 import org.mapdb.DBMaker
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -17,10 +21,16 @@ import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.DefaultBotOptions.ProxyType
 import org.telegram.telegrambots.meta.TelegramBotsApi
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
+import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Update
+import org.telegram.telegrambots.meta.api.objects.media.InputMedia
+import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
 import java.io.File
+import java.io.InputStream
 
 @Component
 class TelegramBean(
@@ -118,6 +128,37 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
 
     override fun admins(): MutableSet<Long> {
         return db.getSet(ADMINS)
+    }
+
+    suspend fun sendPic(tgId: Long, text: String, picUrl: List<String>) {
+        if (picUrl.size == 1) {
+            val url = picUrl[0]
+            client.get(url).body<InputStream>().use {
+                val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "${url.substring(url.lastIndexOf('/') + 1)}.jpg"))
+                sendPhoto.caption = text
+                execute(sendPhoto)
+            }
+        } else {
+            val inputMediaList = mutableListOf<InputMedia>()
+            val ii = mutableListOf<InputStream>()
+            try {
+                for (imageUrl in picUrl) {
+                    val iis = client.get(imageUrl).body<InputStream>()
+                    val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
+                    val mediaPhoto =
+                        InputMediaPhoto.builder().newMediaStream(iis).media("attach://$name")
+                            .mediaName(name).isNewMedia(true).build()
+                    mediaPhoto.caption = text
+                    mediaPhoto.captionEntities
+                    ii.add(iis)
+                    inputMediaList.add(mediaPhoto)
+                }
+                val sendMediaGroup = SendMediaGroup(tgId.toString(), inputMediaList)
+                execute(sendMediaGroup)
+            } finally {
+                ii.forEach { it.close() }
+            }
+        }
     }
 }
 

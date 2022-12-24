@@ -187,19 +187,21 @@ class ManagerExtension(
         val liveCloseButton = InlineKeyboardButton("开播提醒（关）").apply { callbackData = "douYuLiveClose" }
         val fishOpenButton = InlineKeyboardButton("鱼吧签到（开）").apply { callbackData = "douYuFishOpen" }
         val fishCloseButton = InlineKeyboardButton("鱼吧签到（关）").apply { callbackData = "douYuFishClose" }
+        val fishPushOpenButton = InlineKeyboardButton("鱼吧推送（开）").apply { callbackData = "douYuFishPushOpen" }
+        val fishPushCloseButton = InlineKeyboardButton("鱼吧推送（关）").apply { callbackData = "douYuFishPushClose" }
         val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
             listOf(liveOpenButton, liveCloseButton),
             listOf(fishOpenButton, fishCloseButton),
+            listOf(fishPushOpenButton, fishPushCloseButton),
             listOf(returnButton())
         ))
         val editMessageText = EditMessageText.builder()
-            .text(
-                """
-            斗鱼自动签到管理，当前状态：
-            开播提醒：${douYuEntity.live.str()}
-            鱼吧签到：${douYuEntity.fishGroup.str()}
-        """.trimIndent()
-            ).replyMarkup(inlineKeyboardMarkup).chatId(message.chatId).messageId(message.messageId).build()
+            .text("""
+                斗鱼自动签到管理，当前状态：
+                开播提醒：${douYuEntity.live.str()}
+                鱼吧签到：${douYuEntity.fishGroup.str()}
+                鱼吧推送：${douYuEntity.push.str()}
+            """.trimIndent()).replyMarkup(inlineKeyboardMarkup).chatId(message.chatId).messageId(message.messageId).build()
         bot.execute(editMessageText)
     }
 
@@ -229,6 +231,18 @@ class ManagerExtension(
         "douYuFishClose" {
             val douYuEntity = douYuService.findByTgId(tgId)!!
             douYuEntity.fishGroup = Status.OFF
+            douYuService.save(douYuEntity)
+            editDouYuMessage(bot, message, douYuEntity)
+        }
+        "douYuFishPushOpen" {
+            val douYuEntity = douYuService.findByTgId(tgId)!!
+            douYuEntity.push = Status.ON
+            douYuService.save(douYuEntity)
+            editDouYuMessage(bot, message, douYuEntity)
+        }
+        "douYuFishPushClose" {
+            val douYuEntity = douYuService.findByTgId(tgId)!!
+            douYuEntity.push = Status.OFF
             douYuService.save(douYuEntity)
             editDouYuMessage(bot, message, douYuEntity)
         }

@@ -3,26 +3,23 @@ package me.kuku.telegram.scheduled
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
+import me.kuku.telegram.logic.DouYuFish
 import me.kuku.telegram.logic.DouYuLogic
-import me.kuku.telegram.logic.HostLocLogic
-import me.kuku.telegram.logic.HuYaLogic
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.concurrent.TimeUnit
 
 @Component
-class LiveScheduled(
+class DouYuScheduled(
     private val douYuService: DouYuService,
     private val douYuLogic: DouYuLogic,
-    private val huYaService: HuYaService,
-    private val huYaLogic: HuYaLogic,
-    private val telegramBot: TelegramBot,
-    private val logService: LogService
+    private val logService: LogService,
+    private val telegramBot: TelegramBot
 ) {
 
     private val douYuLiveMap = mutableMapOf<Long, MutableMap<Long, Boolean>>()
 
-    private val huYaLiveMap = mutableMapOf<Long, MutableMap<Long, Boolean>>()
+    private val douYuPushMap = mutableMapOf<Long, Long>()
 
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     suspend fun douYu() {
@@ -76,33 +73,28 @@ class LiveScheduled(
     }
 
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
-    suspend fun huYa() {
-        val list = huYaService.findByLive(Status.ON)
-        for (huYaEntity in list) {
-            delay(3000)
-            val baseResult = huYaLogic.live(huYaEntity)
-            if (baseResult.failure()) continue
-            val lives = baseResult.data()
-            val tgId = huYaEntity.tgId
-            if (!huYaLiveMap.containsKey(tgId)) huYaLiveMap[tgId] = mutableMapOf()
-            val map = huYaLiveMap[tgId]!!
-            for (room in lives) {
-                val id = room.roomId
-                val b = room.isLive
-                if (map.containsKey(id)) {
-                    if (map[id] != b) {
-                        map[id] = b
-                        val msg = if (b) "直播啦！！" else "下播啦"
-                        telegramBot.silent().send("""
-                            #虎牙开播提醒
-                            #${room.nick} $msg
-                            标题：${room.liveDesc}
-                            分类：${room.gameName}
-                            链接：${room.url}
-                        """.trimIndent(), tgId)
+    suspend fun douYuPush() {
+        val entityList = douYuService.findByPush(Status.ON)
+        for (douYuEntity in entityList) {
+            val tgId = douYuEntity.tgId
+            val list = douYuLogic.focusFishGroup(douYuEntity)
+            val newList = mutableListOf<DouYuFish>()
+            if (douYuPushMap.containsKey(tgId)) {
+                val oldId = douYuPushMap[tgId]!!
+                for (biliBiliPojo in list) {
+                    if (biliBiliPojo.id <= oldId) break
+                    newList.add(biliBiliPojo)
+                }
+                for (douYuFish in newList) {
+                    val text = "#斗鱼鱼吧动态推送\n#${douYuFish.nickname}\n内容：${douYuFish.ownerContent}\n标题：${douYuFish.title}\n内容：${douYuFish.content}"
+                    if (douYuFish.image.isNotEmpty()) {
+                        telegramBot.sendPic(tgId, text, douYuFish.image)
+                    } else {
+                        telegramBot.silent().send(text, tgId)
                     }
-                } else map[id] = b
+                }
             }
+            douYuPushMap[tgId] = list[0].id
         }
     }
 

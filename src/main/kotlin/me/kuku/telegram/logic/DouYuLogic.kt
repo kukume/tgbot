@@ -2,6 +2,7 @@ package me.kuku.telegram.logic
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.NullNode
+import com.fasterxml.jackson.module.kotlin.contains
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -78,7 +79,7 @@ class DouYuLogic {
         return CommonResult.success(resultList)
     }
 
-    suspend fun fishGroup(douYuEntity: DouYuEntity) {
+    private suspend fun yuBaCookie(douYuEntity: DouYuEntity): String {
         val loginResponse = client.get("https://passport.douyu.com/lapi/passport/iframe/safeAuth?callback=jQuery111309004936224711857_1671594747590&client_id=5&did=&t=1671594747991&_=${System.currentTimeMillis()}") {
             headers {
                 cookieString(douYuEntity.cookie)
@@ -93,7 +94,11 @@ class DouYuLogic {
                 referer("https://yuba.douyu.com/")
             }
         }
-        val cookie = douYuEntity.cookie + authResponse.cookie()
+        return authResponse.cookie()
+    }
+
+    suspend fun fishGroup(douYuEntity: DouYuEntity) {
+        val cookie = douYuEntity.cookie + yuBaCookie(douYuEntity)
         val jsonNode= client.get("https://yuba.douyu.com/wbapi/web/group/myFollow?page=1&limit=30&official=1&timestamp=${timestamp()}") {
             referer("https://yuba.douyu.com/allclassify/featurelist")
             cookieString(cookie)
@@ -134,8 +139,54 @@ class DouYuLogic {
         return System.currentTimeMillis().toString().substring(0, 8)
     }
 
+    suspend fun focusFishGroup(douYuEntity: DouYuEntity): List<DouYuFish> {
+        val yuBaCookie = yuBaCookie(douYuEntity)
+        val jsonNode = client.get("https://yuba.douyu.com/wbapi/web/followfeed?last_id=0&pagesize=20&timestamp=${timestamp()}") {
+            headers {
+                cookieString(douYuEntity.cookie + yuBaCookie)
+                referer("https://yuba.douyu.com/homepage/main")
+            }
+        }.body<JsonNode>()
+        if (jsonNode["status_code"].asInt() != 200) error(jsonNode["message"].asText())
+        val dataNode = jsonNode["data"]["list"]
+        val list = mutableListOf<DouYuFish>()
+        for (node in dataNode) {
+            val id = node["feed_id"].asLong()
+            val url = node["share_url"].asText()
+            val nickname = node["nick_name"].asText()
+            val uid = node["uid"].asLong()
+            val ownerContent = node["content"].asText()
+            val douYuFish = DouYuFish(id, url, nickname, uid, ownerContent)
+            var post: JsonNode = Jackson.createObjectNode()
+            if (node.contains("post")) {
+                post = node["post"]
+            }
+            if (node.has("source_feed")) {
+                val feed = node["source_feed"]
+                post = feed["post"]
+            }
+            val title = post["title"].asText()
+            val content = post["content"].asText()
+            douYuFish.title = title
+            douYuFish.content = content
+            if (post.has("imglist")) {
+                post["imglist"].forEach { douYuFish.image.add(it["url"].asText()) }
+            }
+            if (post.has("video")) {
+                post["video"].forEach { douYuFish.image.add(it["player"].asText()) }
+            }
+            list.add(douYuFish)
+        }
+        return list
+    }
+
 }
 
 data class DouYuQrcode(val url: String, val code: String)
 
 data class DouYuRoom(val name: String, val nickName: String, val url: String, val gameName: String, val showStatus: Boolean, val online: String, val roomId: Long)
+
+data class DouYuFish(val id: Long, val url: String, val nickname: String, val uid: Long, val ownerContent: String,
+                     var title: String = "", var content: String = "",
+                     val image: MutableList<String> = mutableListOf(), val video: MutableList<String> = mutableListOf()
+)
