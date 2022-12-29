@@ -3,6 +3,7 @@ package me.kuku.telegram.logic
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.telegram.entity.DouYinEntity
 import me.kuku.utils.*
@@ -101,7 +102,7 @@ object DouYinLogic {
 
     suspend fun work(douYinEntity: DouYinEntity, douYinUser: DouYinUser): List<DouYinWork> {
         val html = OkHttpKtUtils.getStr("https://www.douyin.com/user/${douYinUser.secUid}", OkUtils.cookie(douYinEntity.cookie))
-        val jsonNode = MyUtils.regex("application/json\">", "</sc", html)?.toUrlDecode()?.toJsonNode() ?: error("cookie已失效")
+        val jsonNode = MyUtils.regex("application/json\">", "</sc", html)?.toUrlDecode()?.toJsonNode() ?: error("访问频繁")
         val out = jsonNode.iterator().run {
             next()
             next()
@@ -125,6 +126,7 @@ object DouYinLogic {
         val followList = allFollow(douYinEntity)
         val list = mutableListOf<DouYinWork>()
         for (douYinUser in followList) {
+            delay(1000)
             val work = work(douYinEntity, douYinUser)
             list.addAll(work)
         }
@@ -195,6 +197,8 @@ data class DouYinQrcode(val baseImage: String, val token: String, val cookie: St
 
 data class DouYinUser(val uid: Long, val secUid: String, val name: String)
 
-data class DouYinWork(val desc: String, val id: Long, val nickname: String, val createTime: Long, val coverUrlList: List<String>, val videoUrlList: List<String>, val musicUrlList: List<String>)
+data class DouYinWork(val desc: String, val id: Long, val nickname: String, val createTime: Long, val coverUrlList: List<String>, val videoUrlList: List<String>, val musicUrlList: List<String>) {
+    val url = "https://www.douyin.com/video/$id"
+}
 
 data class DouYinSaveLoginInfo(val ticket: String, val mobile: String)

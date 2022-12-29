@@ -28,7 +28,11 @@ class DouYinScheduled(
     suspend fun push() {
         val douYinList = douYinService.findByPush(Status.ON)
         for (douYinEntity in douYinList) {
-            val list = DouYinLogic.followWork(douYinEntity)
+            val list = try {
+                DouYinLogic.followWork(douYinEntity)
+            } catch (e: Exception) {
+                continue
+            }
             if (list.isEmpty()) continue
             val tgId = douYinEntity.tgId
             val newList = mutableListOf<DouYinWork>()
@@ -42,7 +46,7 @@ class DouYinScheduled(
                     val url = douYinWork.videoUrlList.last()
                     client.get(url).body<InputStream>().use {
                         val sendVideo = SendVideo(tgId.toString(), InputFile(it, "${MyUtils.randomLetter(6)}.mp4"))
-                        sendVideo.caption = "#抖音推送\n#${douYinWork.nickname}\n${douYinWork.desc}"
+                        sendVideo.caption = "#抖音推送\n#${douYinWork.nickname}\n${douYinWork.desc}\n链接：${douYinWork.url}"
                         telegramBot.execute(sendVideo)
                     }
                 }

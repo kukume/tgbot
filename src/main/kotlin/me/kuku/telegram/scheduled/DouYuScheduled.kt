@@ -5,6 +5,7 @@ import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.DouYuFish
 import me.kuku.telegram.logic.DouYuLogic
+import me.kuku.utils.JobManager
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.concurrent.TimeUnit
@@ -86,9 +87,11 @@ class DouYuScheduled(
                     newList.add(biliBiliPojo)
                 }
                 for (douYuFish in newList) {
-                    val text = "#斗鱼鱼吧动态推送\n#${douYuFish.nickname}\n内容：${douYuFish.ownerContent}\n标题：${douYuFish.title}\n内容：${douYuFish.content}"
+                    val text = "#斗鱼鱼吧动态推送\n#${douYuFish.nickname}\n标题：${douYuFish.title}\n内容：${douYuFish.content}\n链接：${douYuFish.url}"
                     if (douYuFish.image.isNotEmpty()) {
-                        telegramBot.sendPic(tgId, text, douYuFish.image)
+                        JobManager.delay(1000 * 30) {
+                            telegramBot.sendPic(tgId, text, douYuFish.image)
+                        }
                     } else {
                         telegramBot.silent().send(text, tgId)
                     }

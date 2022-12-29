@@ -6,17 +6,11 @@ import me.kuku.telegram.entity.Status
 import me.kuku.telegram.entity.TwitterService
 import me.kuku.telegram.logic.TwitterLogic
 import me.kuku.telegram.logic.TwitterPojo
-import me.kuku.utils.MyUtils
 import me.kuku.utils.OkHttpKtUtils
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
-import org.telegram.telegrambots.meta.api.objects.media.InputMedia
-import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
-import java.io.InputStream
 import java.lang.Long.max
 import java.util.concurrent.TimeUnit
 
@@ -58,33 +52,7 @@ class TwitterScheduled(
                         } else if (twitterPojo.photoList.isNotEmpty() || twitterPojo.forwardPhotoList.isNotEmpty()) {
                             val imageList = twitterPojo.photoList
                             imageList.addAll(twitterPojo.forwardPhotoList)
-                            if (imageList.size == 1) {
-                                OkHttpKtUtils.getByteStream(imageList[0]).use {
-                                    val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "${twitterPojo.id}.jpg"))
-                                    sendPhoto.caption = text
-                                    telegramBot.execute(sendPhoto)
-                                }
-                            } else {
-                                val ii = mutableListOf<InputStream>()
-                                val inputMediaList = mutableListOf<InputMedia>()
-                                try {
-                                    for (i in imageList.indices) {
-                                        if (i > 9) break
-                                        val imageUrl = imageList[i]
-                                        val iis = OkHttpKtUtils.getByteStream(imageUrl)
-                                        ii.add(iis)
-                                        val name = MyUtils.randomLetter(5) + ".jpg"
-                                        val mediaPhoto =
-                                            InputMediaPhoto.builder().isNewMedia(true).newMediaStream(iis).mediaName(name).media("attach://$name").build()
-                                        mediaPhoto.caption = text
-                                        inputMediaList.add(mediaPhoto)
-                                    }
-                                    val sendMediaGroup = SendMediaGroup(tgId.toString(), inputMediaList)
-                                    telegramBot.execute(sendMediaGroup)
-                                } finally {
-                                    ii.forEach { it.close() }
-                                }
-                            }
+                            telegramBot.sendPic(tgId, text, imageList)
                         } else telegramBot.silent().send(text, tgId)
                     } catch (e: Exception) {
                         telegramBot.silent().send(text, tgId)

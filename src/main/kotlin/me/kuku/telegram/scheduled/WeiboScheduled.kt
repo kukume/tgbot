@@ -1,15 +1,18 @@
 package me.kuku.telegram.scheduled
 
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.WeiboLogic
 import me.kuku.telegram.logic.WeiboPojo
-import me.kuku.utils.OkHttpKtUtils
+import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -62,7 +65,7 @@ class WeiboScheduled(
                     else ""
                     try {
                         if (videoUrl.isNotEmpty()) {
-                            OkHttpKtUtils.getByteStream(videoUrl).use {
+                            client.get(videoUrl).body<InputStream>().use {
                                 val sendVideo = SendVideo(tgId.toString(), InputFile(it, "${weiboPojo.bid}.mp4"))
                                 sendVideo.caption = text
                                 telegramBot.execute(sendVideo)

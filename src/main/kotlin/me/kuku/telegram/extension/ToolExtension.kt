@@ -3,7 +3,9 @@ package me.kuku.telegram.extension
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.logic.ToolLogic
@@ -60,7 +62,9 @@ class ToolExtension(
     fun loLiCon() = ability("lolicon", "lolicon图片") {
         val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?r18=2")
         val url = jsonNode["data"][0]["urls"]["original"].asText()
-        OkHttpKtUtils.getByteStream(url).use { iis ->
+        val bytes = OkHttpKtUtils.getBytes(url)
+        if (bytes.size > 1024 * 10 * 1024) error("图片大于10M，发送失败")
+        bytes.inputStream().use { iis ->
             val sendPhoto = SendPhoto(chatId().toString(), InputFile(iis, url.substring(url.lastIndexOf('/') + 1)))
             bot().execute(sendPhoto)
         }
@@ -99,8 +103,10 @@ class ToolExtension(
         try {
             for (i in list.indices) {
                 val s = list[i]
-                val bis = OkHttpKtUtils.getByteStream(s)
+                val bytes = OkHttpKtUtils.getBytes(s)
+                if (bytes.size > 1024 * 10 * 1024) error("图片大于10M，发送失败")
                 val name = s.substring(s.lastIndexOf('/') + 1)
+                val bis = bytes.inputStream()
                 val mediaPhoto =
                     InputMediaPhoto.builder().newMediaStream(bis).media("attach://$name").mediaName(name).isNewMedia(true).build()
                 inputMediaList.add(mediaPhoto)
