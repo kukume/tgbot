@@ -2,8 +2,9 @@ package me.kuku.telegram.config
 
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import me.kuku.telegram.utils.AbilitySubscriber
+import me.kuku.telegram.utils.CallBackQ
 import me.kuku.telegram.utils.context
-import me.kuku.utils.OkHttpKtUtils
 import me.kuku.utils.client
 import org.mapdb.DBMaker
 import org.springframework.boot.context.event.ApplicationReadyEvent
@@ -15,8 +16,11 @@ import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
 import org.telegram.abilitybots.api.bot.AbilityBot
 import org.telegram.abilitybots.api.bot.BaseAbilityBot
+import org.telegram.abilitybots.api.bot.DefaultAbilities
 import org.telegram.abilitybots.api.db.MapDBContext
+import org.telegram.abilitybots.api.objects.Ability
 import org.telegram.abilitybots.api.objects.MessageContext
+import org.telegram.abilitybots.api.objects.Reply
 import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.DefaultBotOptions.ProxyType
@@ -31,6 +35,10 @@ import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
 import java.io.File
 import java.io.InputStream
+import kotlin.reflect.KClass
+import kotlin.reflect.full.declaredMemberExtensionFunctions
+import kotlin.reflect.full.extensionReceiverParameter
+import kotlin.reflect.jvm.jvmName
 
 @Component
 class TelegramBean(
@@ -54,38 +62,12 @@ class TelegramBean(
 
 @Component
 class ApplicationStart(
-    private val applicationContext: ApplicationContext,
-    private val telegramBot: TelegramBot,
-    private val telegramConfig: TelegramConfig
+    private val telegramBot: TelegramBot
 ): ApplicationListener<ApplicationReadyEvent> {
 
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
-
-        fun interfaces(clazz: Class<*>, list: MutableList<Class<*>>) {
-            list.addAll(clazz.interfaces)
-            if (clazz.superclass != null && clazz.superclass != Any::class.java) interfaces(clazz.superclass, list)
-        }
-
-        if (telegramConfig.token.isNotEmpty()) {
-            val names = applicationContext.beanDefinitionNames
-            val clazzList = mutableListOf<Class<*>>()
-            for (name in names) {
-                applicationContext.getType(name)?.let {
-                    clazzList.add(it)
-                }
-            }
-            for (clazz in clazzList) {
-                mutableListOf<Class<*>>()
-                    .also { interfaces(clazz, it) }.takeIf { it.contains(AbilityExtension::class.java) }?.let {
-                    val ob = applicationContext.getBean(clazz) as? AbilityExtension
-                    ob?.apply {
-                        telegramBot.addExtension(this)
-                    }
-                }
-            }
-            val botsApi = TelegramBotsApi(DefaultBotSession::class.java)
-            botsApi.registerBot(telegramBot)
-        }
+        val botsApi = TelegramBotsApi(DefaultBotSession::class.java)
+        botsApi.registerBot(telegramBot)
     }
 }
 
@@ -106,6 +88,70 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
     AbilityBot(botToken, botUsername, createDbContext(botUsername), botOptions) {
 
     override fun creatorId() = creatorId
+
+    override fun onRegister() {
+        val baseAbilityBotClazz = BaseAbilityBot::class.java
+        val abilitiesField = baseAbilityBotClazz.getDeclaredField("abilities")
+        abilitiesField.isAccessible = true
+        val names = applicationContext.beanDefinitionNames
+        val clazzList = mutableListOf<Class<*>>()
+        val map = mutableMapOf<String, Ability>()
+        val list = mutableListOf<Reply>()
+        for (name in names) {
+            applicationContext.getType(name)?.let {
+                clazzList.add(it)
+            }
+        }
+        clazzList.add(DefaultAbilities::class.java)
+        val abilitySubscriber = AbilitySubscriber()
+        val callBackQ = CallBackQ()
+        for (clazz in clazzList) {
+            val methods = clazz.declaredMethods
+            var any: Any? = null
+            for (method in methods) {
+                val returnType = method.returnType
+                if (returnType == Ability::class.java) {
+                    if (any == null)
+                        any = if (clazz == DefaultAbilities::class.java) DefaultAbilities(this) else applicationContext.getBean(clazz)
+                    val newAny = any
+                    val ability = method.invoke(newAny) as Ability
+                    map[ability.name()] = ability
+                } else if (returnType == Reply::class.java) {
+                    if (any == null)
+                        any = if (clazz == DefaultAbilities::class.java) DefaultAbilities(this) else applicationContext.getBean(clazz)
+                    val newAny = any
+                    val reply = method.invoke(newAny) as Reply
+                    list.add(reply)
+                }
+            }
+            val functions = kotlin.runCatching {
+                clazz.kotlin.declaredMemberExtensionFunctions
+            }.getOrNull() ?: continue
+            for (function in functions) {
+                val type = function.extensionReceiverParameter?.type
+                val kClass = type?.classifier as? KClass<*>
+                val jvmName = kClass?.jvmName
+                if (jvmName == "me.kuku.telegram.utils.AbilitySubscriber") {
+                    val obj = applicationContext.getBean(clazz)
+                    function.call(obj, abilitySubscriber)
+                } else if (jvmName == "me.kuku.telegram.utils.CallBackQ") {
+                    val obj = applicationContext.getBean(clazz)
+                    function.call(obj, callBackQ)
+                }
+            }
+        }
+        @Suppress("UNCHECKED_CAST")
+        map.putAll(abilitySubscriber::class.java.getDeclaredField("abilityMap").also { it.isAccessible = true }.get(abilitySubscriber) as Map<out String, Ability>)
+        @Suppress("UNCHECKED_CAST")
+        list.add(callBackQ::class.java.getDeclaredMethod("toReply").also { it.isAccessible = true }.invoke(callBackQ) as Reply)
+        abilitiesField.set(this, map)
+        val repliesField = baseAbilityBotClazz.getDeclaredField("replies")
+        repliesField.isAccessible = true
+        repliesField.set(this, list)
+        val initStatsMethod = baseAbilityBotClazz.getDeclaredMethod("initStats")
+        initStatsMethod.isAccessible = true
+        initStatsMethod.invoke(this)
+    }
 
     public override fun addExtension(extension: AbilityExtension) {
         super.addExtension(extension)

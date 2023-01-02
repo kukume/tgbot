@@ -23,11 +23,11 @@ class CallBackQ {
 
     val map = mutableMapOf<String, suspend TelegramCallbackContext.() -> Unit>()
 
-    val startWithMap = mutableMapOf<String, suspend TelegramCallbackContext.() -> Unit>()
+    private val startWithMap = mutableMapOf<String, suspend TelegramCallbackContext.() -> Unit>()
 
-    val beforeList = mutableListOf<suspend TelegramCallbackContext.() -> Unit>()
+    private val beforeList = mutableListOf<suspend TelegramCallbackContext.() -> Unit>()
 
-    val afterList = mutableListOf<suspend TelegramCallbackContext.() -> Unit>()
+    private val afterList = mutableListOf<suspend TelegramCallbackContext.() -> Unit>()
 
     fun set(key: String, value: Any) {
         val cacheMap = threadLocal.get()
@@ -83,41 +83,44 @@ class CallBackQ {
         return this
     }
 
+    fun toReply(): Reply {
+        return Reply.of({ bot, upd ->
+            val callbackQuery = upd.callbackQuery
+            val data = callbackQuery.data
+            JobManager.now {
+                launch(Dispatchers.Default + threadLocal.asContextElement(mutableMapOf())) {
+                    beforeList.forEach { invokeCallback(bot, callbackQuery, it) }
+                    map[data]?.let {
+                        invokeCallback(bot, callbackQuery, it)
+                    }
+                    startWithMap.forEach { (k, v) ->
+                        if (data.startsWith(k)) invokeCallback(bot, callbackQuery, v)
+                    }
+                    afterList.forEach { invokeCallback(bot, callbackQuery, it) }
+                }
+            }
+        }, pre@{ upd ->
+            val query = upd.callbackQuery ?: return@pre false
+            val resData = query.data
+            for (entry in map) {
+                if (entry.key == resData) {
+                    return@pre true
+                }
+            }
+            for (entry in startWithMap) {
+                if (resData.startsWith(entry.key)) {
+                    return@pre true
+                }
+            }
+            return@pre false
+        })
+    }
+
 }
 
 fun callback(body: CallBackQ.() -> Unit): Reply {
-    val q = CallBackQ()
-    body.invoke(q)
-    return Reply.of({ bot, upd ->
-        val callbackQuery = upd.callbackQuery
-        val data = callbackQuery.data
-        JobManager.now {
-            launch(Dispatchers.Default + q.threadLocal.asContextElement(mutableMapOf())) {
-                q.beforeList.forEach { invokeCallback(bot, callbackQuery, it) }
-                q.map[data]?.let {
-                    invokeCallback(bot, callbackQuery, it)
-                }
-                q.startWithMap.forEach { (k, v) ->
-                    if (data.startsWith(k)) invokeCallback(bot, callbackQuery, v)
-                }
-                q.afterList.forEach { invokeCallback(bot, callbackQuery, it) }
-            }
-        }
-    }, pre@{ upd ->
-        val query = upd.callbackQuery ?: return@pre false
-        val resData = query.data
-        for (entry in q.map) {
-            if (entry.key == resData) {
-                return@pre true
-            }
-        }
-        for (entry in q.startWithMap) {
-            if (resData.startsWith(entry.key)) {
-                return@pre true
-            }
-        }
-        return@pre false
-    })
+    val q = CallBackQ().apply { body() }
+    return q.toReply()
 }
 
 fun callback(data: String, block: suspend TelegramCallbackContext.() -> Unit): Reply {

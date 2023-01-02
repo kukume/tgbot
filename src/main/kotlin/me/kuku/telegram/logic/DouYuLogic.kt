@@ -129,8 +129,8 @@ class DouYuLogic {
                     }
                 }.bodyAsText().toJsonNode()
                 if (signNode["status_code"].asInt() != 200) error(signNode["data"].asText())
-                delay(2000)
             }
+            delay(2000)
         }
 
     }
@@ -157,7 +157,7 @@ class DouYuLogic {
             val uid = node["uid"].asLong()
             val ownerContent = node["content"].asText()
             val douYuFish = DouYuFish(id, url, nickname, uid, ownerContent)
-            var post: JsonNode = Jackson.createObjectNode()
+            var post: JsonNode? = null
             if (node.contains("post")) {
                 post = node["post"]
             }
@@ -165,16 +165,18 @@ class DouYuLogic {
                 val feed = node["source_feed"]
                 post = feed["post"]
             }
-            val title = post["title"].asText()
-            val content = post["content"].asText()
-            douYuFish.title = title
-            douYuFish.content = content
-            if (post.has("imglist")) {
-                post["imglist"].forEach { douYuFish.image.add(it["url"].asText()) }
-            }
-            if (post.has("video")) {
-                post["video"].forEach { douYuFish.image.add(it["player"].asText()) }
-            }
+            if (post != null) {
+                val title = post["title"].asText()
+                val content = post["content"].asText()
+                douYuFish.title = title
+                douYuFish.content = content
+                if (post.has("imglist")) {
+                    post["imglist"].forEach { douYuFish.image.add(it["url"].asText()) }
+                }
+                if (post.has("video")) {
+                    post["video"].forEach { douYuFish.image.add(it["player"].asText()) }
+                }
+            } else douYuFish.content = douYuFish.ownerContent
             list.add(douYuFish)
         }
         return list
