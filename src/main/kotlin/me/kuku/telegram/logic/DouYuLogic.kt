@@ -130,7 +130,7 @@ class DouYuLogic {
                 }.bodyAsText().toJsonNode()
                 if (signNode["status_code"].asInt() != 200) error(signNode["data"].asText())
             }
-            delay(2000)
+            delay(5000)
         }
 
     }
