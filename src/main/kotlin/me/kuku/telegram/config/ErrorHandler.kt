@@ -1,6 +1,5 @@
 package me.kuku.telegram.config
 
-import me.kuku.telegram.utils.silent
 import org.springframework.context.ApplicationListener
 import org.springframework.stereotype.Component
 
@@ -9,7 +8,7 @@ class AbilityHandler: ApplicationListener<TelegramAbilityExceptionEvent> {
 
     override fun onApplicationEvent(event: TelegramAbilityExceptionEvent) {
         val messageContext = event.messageContext
-        messageContext.silent().send(event.ex.toString(), messageContext.chatId())
+        messageContext.bot().silent().send(event.ex.toString(), messageContext.chatId())
     }
 }
 

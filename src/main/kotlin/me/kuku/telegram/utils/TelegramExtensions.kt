@@ -11,7 +11,6 @@ import org.telegram.abilitybots.api.objects.Privacy
 import org.telegram.abilitybots.api.objects.Reply
 import org.telegram.abilitybots.api.sender.SilentSender
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery
 import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.io.Serializable
@@ -36,25 +35,22 @@ fun ability(name: String, info: String = "这个命令没有描述", input: Int 
 
 fun inlineKeyboardButton(text: String, callbackData: String) = InlineKeyboardButton(text).also { it.callbackData = callbackData }
 
-fun MessageContext.silent(): SilentSender = this.bot().silent()
-
-context(MessageContext)
-fun sendMd(message: String): Optional<Message> {
-    return silent().sendMd(message, chatId())
+fun MessageContext.sendMd(message: String): Optional<Message> {
+    return bot().silent().sendMd(message, chatId())
 }
 
-context(MessageContext)
-fun send(message: String): Optional<Message> {
-    return silent().send(message, chatId())
+fun MessageContext.send(message: String): Optional<Message> {
+    return bot().silent().send(message, chatId())
 }
 
-context(MessageContext)
-fun <T: Serializable, Method: BotApiMethod<T>> execute(method: Method): Optional<T> {
-    return silent().execute(method)
+fun <T: Serializable, Method: BotApiMethod<T>> MessageContext.execute(method: Method): Optional<T> {
+    return bot().silent().execute(method)
 }
 
-class TelegramCallbackContext(val bot: BaseAbilityBot, val query: CallbackQuery) {
-    val message: Message = query.message
-    val tgId = query.from.id
-    val chatId: Long = message.chatId
+class AbilityContext(val messageContext: MessageContext) {
+
+    val bot: BaseAbilityBot = messageContext.bot()
+
+    val silent: SilentSender = bot.silent()
+
 }

@@ -11,11 +11,14 @@ import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.DouYuEntity
+import me.kuku.telegram.entity.DouYuService
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
 
 @Service
-class DouYuLogic {
+class DouYuLogic(
+    private val douYuService: DouYuService
+) {
 
     private val referer = "https://passport.douyu.com/index/login?passport_reg_callback=PASSPORT_REG_SUCCESS_CALLBACK&passport_login_callback=PASSPORT_LOGIN_SUCCESS_CALLBACK&passport_close_callback=PASSPORT_CLOSE_CALLBACK&passport_dp_callback=PASSPORT_DP_CALLBACK&type=login&client_id=1&state=https%3A%2F%2Fwww.douyu.com%2F"
 
@@ -59,7 +62,42 @@ class DouYuLogic {
         }
     }
 
+    private suspend fun renewCookie(douYuEntity: DouYuEntity) {
+        var cookie = douYuEntity.cookie
+        val jsonNode = client.get("https://www.douyu.com/member/panel/userInfo/getInfo") {
+            headers {
+                cookieString(cookie)
+            }
+        }.body<JsonNode>()
+        if (jsonNode["error"].asInt() != 300002) return
+        val response = client.get("https://passport.douyu.com/member/login?state=https%3A%2F%2Fwww.douyu.com%2Fmember%2Fcp") {
+            headers {
+                cookieString(cookie)
+            }
+        }
+        if (response.status == HttpStatusCode.OK) error("登陆已失效，请重新登陆")
+        val url = "https:${response.headers["location"]!!}"
+        val authResponse = client.get(url) {
+            headers {
+                cookieString(cookie)
+                referer("https://www.douyu.com/")
+            }
+        }
+        val cookies = authResponse.setCookie()
+        for (obj in cookies) {
+            val name = obj.name
+            val queryValue = OkUtils.cookie(cookie, name)
+            if (queryValue == null) cookie += "$name=${obj.value}; "
+            else {
+                cookie = cookie.replace(queryValue, obj.value)
+            }
+        }
+        douYuEntity.cookie = cookie
+        douYuService.save(douYuEntity)
+    }
+
     suspend fun room(douYuEntity: DouYuEntity): CommonResult<List<DouYuRoom>> {
+        renewCookie(douYuEntity)
         var i = 1
         val resultList = mutableListOf<DouYuRoom>()
         while (true) {
@@ -68,10 +106,11 @@ class DouYuLogic {
             if (jsonNode.getInteger("error") == 0) {
                 val list = jsonNode["data"]["list"] ?: break
                 if (list is NullNode) break
+                if (list.isEmpty) break
                 for (singleJsonNode in list) {
                     val douYuRoom = DouYuRoom(singleJsonNode.getString("room_name"), singleJsonNode.getString("nickname"),
                         "https://www.douyu.com${singleJsonNode.getString("url")}", singleJsonNode.getString("game_name"), singleJsonNode.getInteger("show_status") == 1 && singleJsonNode.getInteger("videoLoop") == 0 ,
-                        singleJsonNode.getString("online"), singleJsonNode.getLong("room_id"))
+                        singleJsonNode.getString("online"), singleJsonNode.getLong("room_id"), singleJsonNode["room_src"].asText())
                     resultList.add(douYuRoom)
                 }
             } else return CommonResult.failure(jsonNode.getString("msg"))
@@ -186,7 +225,7 @@ class DouYuLogic {
 
 data class DouYuQrcode(val url: String, val code: String)
 
-data class DouYuRoom(val name: String, val nickName: String, val url: String, val gameName: String, val showStatus: Boolean, val online: String, val roomId: Long)
+data class DouYuRoom(val name: String, val nickName: String, val url: String, val gameName: String, val showStatus: Boolean, val online: String, val roomId: Long, val imageUrl: String)
 
 data class DouYuFish(val id: Long, val url: String, val nickname: String, val uid: Long, val ownerContent: String,
                      var title: String = "", var content: String = "",

@@ -8,6 +8,7 @@ import me.kuku.utils.JobManager
 import org.telegram.abilitybots.api.bot.BaseAbilityBot
 import org.telegram.abilitybots.api.objects.Reply
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
+import org.telegram.telegrambots.meta.api.objects.Message
 
 private suspend fun invokeCallback(bot: BaseAbilityBot, query: CallbackQuery, block: suspend TelegramCallbackContext.() -> Unit) {
     runCatching {
@@ -141,4 +142,10 @@ fun callbackStartWith(data: String, block: suspend TelegramCallbackContext.() ->
         val resData = query.data
         resData.startsWith(data)
     })
+}
+
+class TelegramCallbackContext(val bot: BaseAbilityBot, val query: CallbackQuery) {
+    val message: Message = query.message
+    val tgId = query.from.id
+    val chatId: Long = message.chatId
 }

@@ -1,16 +1,21 @@
 package me.kuku.telegram.scheduled
 
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.BiliBiliPojo
+import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import java.io.File
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -35,11 +40,11 @@ class BiliBilliScheduled(
             }
             kotlin.runCatching {
                 val firstRank = BiliBiliLogic.ranking()[0]
-                delay(3000)
+                delay(5000)
                 BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
-                delay(3000)
+                delay(5000)
                 BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
-                delay(3000)
+                delay(5000)
                 BiliBiliLogic.liveSign(biliBiliEntity)
                 logEntity.text = "成功"
             }.onFailure {
@@ -72,18 +77,24 @@ class BiliBilliScheduled(
                     if (map[id] != b) {
                         map[id] = b
                         val msg = if (b) "直播啦！！" else "下播了！！"
-                        telegramBot.silent().send("""
-                            #哔哩哔哩开播提醒
-                            #$name $msg
-                            标题：${live.title}
-                            链接：${live.url}
-                        """.trimIndent(), tgId)
+                        val text = "#哔哩哔哩开播提醒\n#$name $msg\n标题：${live.title}\n链接：${live.url}"
+                        val imageUrl = live.imageUrl
+                        if (imageUrl.isEmpty())
+                            telegramBot.silent().send(text, tgId)
+                        else {
+                            client.get(imageUrl).body<InputStream>().use {
+                                val sendPhoto = SendPhoto()
+                                sendPhoto.chatId = tgId.toString()
+                                sendPhoto.caption = text
+                                sendPhoto.photo = InputFile(it, "live.jpg")
+                                telegramBot.execute(sendPhoto)
+                            }
+                        }
                     }
                 } else map[id] = b
             }
         }
     }
-
 
     @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
     suspend fun userMonitor() {

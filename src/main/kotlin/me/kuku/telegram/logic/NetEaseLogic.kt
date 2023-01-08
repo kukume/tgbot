@@ -165,7 +165,7 @@ object NetEaseLogic {
             val jsonArray = jsonNode["data"]["list"]
             val list = mutableListOf<Mission>()
             jsonArray.forEach {
-                list.add(Mission(it.getLong("userMissionId"), it.getInteger("period"), it.getInteger("type"), it.getString("description")))
+                list.add(Mission(it["userMissionId"]?.asLong(), it.getInteger("period"), it.getInteger("type"), it.getString("description")))
             }
             CommonResult.success(list)
         } else CommonResult.failure(jsonNode.getString("message"))
@@ -203,14 +203,15 @@ object NetEaseLogic {
     }
 
     suspend fun musicianSign(netEaseEntity: NetEaseEntity): CommonResult<Void> {
+        userAccess(netEaseEntity)
         val result = musicianCycleMission(netEaseEntity)
         return if (result.success()) {
             val list = result.data()
             for (mission in list) {
                 if (mission.description == "音乐人中心签到") {
-                    if (mission.type != 100) {
-                        userAccess(netEaseEntity)
-                    }
+//                    if (mission.type != 100) {
+//                        userAccess(netEaseEntity)
+//                    }
                     return musicianReceive(netEaseEntity, mission)
                 }
             }
@@ -303,7 +304,7 @@ object NetEaseLogic {
         return if (res.success()) {
             val id = res.data()
             removeDy(netEaseEntity, id)
-            finishCycleMission(netEaseEntity, "发布动态")
+            finishStageMission(netEaseEntity, "发布动态")
         }
         else CommonResult.failure(res.message)
     }

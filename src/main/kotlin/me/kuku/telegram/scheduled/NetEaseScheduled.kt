@@ -24,10 +24,15 @@ class NetEaseScheduled(
             }
             kotlin.runCatching {
                 delay(3000)
-                NetEaseLogic.sign(netEaseEntity)
-                delay(3000)
-                NetEaseLogic.listenMusic(netEaseEntity)
-                logEntity.text = "成功"
+                val result = NetEaseLogic.sign(netEaseEntity)
+                if (result.failure()) {
+                    logEntity.text = "失败"
+                    logEntity.sendFailMessage(telegramBot)
+                } else {
+                    delay(3000)
+                    NetEaseLogic.listenMusic(netEaseEntity)
+                    logEntity.text = "成功"
+                }
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.sendFailMessage(telegramBot)
@@ -46,12 +51,18 @@ class NetEaseScheduled(
             }
             kotlin.runCatching {
                 for (i in 0..1) {
-                    NetEaseLogic.musicianSign(netEaseEntity)
-                    delay(3000)
-                    NetEaseLogic.publish(netEaseEntity)
-                    delay(3000)
-                    NetEaseLogic.publishMLog(netEaseEntity)
-                    delay(1000 * 60)
+                    val result = NetEaseLogic.musicianSign(netEaseEntity)
+                    if (result.failure()) {
+                        logEntity.text = "失败"
+                        logEntity.sendFailMessage(telegramBot)
+                        break
+                    } else {
+                        delay(3000)
+                        NetEaseLogic.publish(netEaseEntity)
+                        delay(3000)
+                        NetEaseLogic.publishMLog(netEaseEntity)
+                        delay(1000 * 60)
+                    }
                 }
                 logEntity.text = "成功"
             }.onFailure {

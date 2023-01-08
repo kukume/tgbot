@@ -255,7 +255,10 @@ object BiliBiliLogic {
         }.body<JsonNode>()
         val dataJsonNode = jsonNode["data"]?.get("live_room") ?: return BiliBiliLive(status = false)
         val status = dataJsonNode.get("liveStatus")?.asInt()
-        return BiliBiliLive(dataJsonNode.get("title")?.asText() ?: "", id, dataJsonNode.get("url")?.asText() ?: "", status == 1)
+        val title = dataJsonNode.get("title")?.asText() ?: ""
+        val url = dataJsonNode.get("url")?.asText() ?: ""
+        val imageUrl = dataJsonNode.get("cover")?.asText() ?: ""
+        return BiliBiliLive(title, id, url, imageUrl, status == 1)
     }
 
     suspend fun liveSign(biliBiliEntity: BiliBiliEntity): String {
@@ -478,6 +481,7 @@ data class BiliBiliLive(
     var title: String = "",
     var id: String = "",
     var url: String = "",
+    var imageUrl: String = "",
     var status: Boolean = false
 )
 

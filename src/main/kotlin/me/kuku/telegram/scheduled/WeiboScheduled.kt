@@ -49,9 +49,8 @@ class WeiboScheduled(
         val weiboList = weiboService.findByPush(Status.ON)
         for (weiboEntity in weiboList) {
             val tgId = weiboEntity.tgId
-            val result = WeiboLogic.friendWeibo(weiboEntity)
             delay(3000)
-            val list = result.data ?: continue
+            val list = WeiboLogic.followWeibo(weiboEntity)
             val newList = mutableListOf<WeiboPojo>()
             if (userMap.containsKey(tgId)) {
                 for (weiboPojo in list) {
@@ -59,7 +58,9 @@ class WeiboScheduled(
                     newList.add(weiboPojo)
                 }
                 for (weiboPojo in newList) {
-                    val text = "#微博动态推送\n${WeiboLogic.convert(weiboPojo)}"
+                    val ownText = if (weiboPojo.longText) WeiboLogic.longText(weiboEntity, weiboPojo.bid) else weiboPojo.text
+                    val forwardText = if (weiboPojo.forwardLongText) WeiboLogic.longText(weiboEntity, weiboPojo.forwardBid) else weiboPojo.forwardText
+                    val text = "#微博动态推送\n${WeiboLogic.convert(weiboPojo, ownText, forwardText)}"
                     val videoUrl = if (weiboPojo.videoUrl.isNotEmpty()) weiboPojo.videoUrl
                     else if (weiboPojo.forwardVideoUrl.isNotEmpty()) weiboPojo.forwardVideoUrl
                     else ""

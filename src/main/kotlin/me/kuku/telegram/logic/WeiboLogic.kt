@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.contains
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.ResultStatus
 import me.kuku.pojo.UA
@@ -62,6 +65,7 @@ object WeiboLogic {
         weiboPojo.bid = jsonNode.getString("bid")
         weiboPojo.userid = userJsonNode.getString("id")
         weiboPojo.ipFrom = jsonNode["region_name"]?.asText()?.split(" ")?.get(1) ?: "无"
+        weiboPojo.url = "https://m.weibo.cn/status/${weiboPojo.bid}"
         val picNum = jsonNode.getInteger("pic_num")
         if (picNum != 0) {
             val list = weiboPojo.imageUrl
@@ -99,24 +103,25 @@ object WeiboLogic {
             forwardJsonNode["page_info"]?.get("urls")?.get("mp4_720p_mp4")?.asText()?.let {
                 weiboPojo.forwardVideoUrl = it
             }
+            weiboPojo.forwardUrl = "https://m.weibo.cn/status/${weiboPojo.forwardBid}"
         }
         return weiboPojo
     }
 
-    fun convert(weiboPojo: WeiboPojo): String {
+    fun convert(weiboPojo: WeiboPojo, text: String = weiboPojo.text, forwardText: String = weiboPojo.forwardText): String {
         val sb = StringBuilder()
         val ipFrom = weiboPojo.ipFrom
         sb.appendLine("#${weiboPojo.name}")
             .appendLine("来自：${ipFrom.ifEmpty { "无" }}")
             .appendLine("发布时间：${weiboPojo.created}")
-            .appendLine("内容：${weiboPojo.text}")
-            .append("链接：https://m.weibo.cn/status/${weiboPojo.bid}")
+            .appendLine("内容：$text")
+            .append("链接：${weiboPojo.url}")
         if (weiboPojo.isForward) {
             sb.appendLine()
                 .appendLine("转发自：#${weiboPojo.forwardName}")
                 .appendLine("发布时间：${weiboPojo.forwardTime}")
-                .appendLine("内容：${weiboPojo.forwardText}")
-                .appendLine("链接：https://m.weibo.cn/status/${weiboPojo.forwardBid}")
+                .appendLine("内容：$forwardText")
+                .appendLine("链接：${weiboPojo.forwardUrl}")
         }
         return sb.toString()
     }
@@ -194,6 +199,113 @@ object WeiboLogic {
         } else CommonResult.failure("您的cookie已失效，请重新绑定微博")
     }
 
+    private suspend fun group(weiboEntity: WeiboEntity): List<WeiboGroup> {
+        val response = client.get("https://weibo.com/ajax/feed/allGroups?is_new_segment=1&fetch_hot=1") {
+            headers { cookieString(weiboEntity.cookie) }
+        }
+        if (response.status == HttpStatusCode.Found) error("登陆失效，请重新登陆")
+        val jsonNode = response.body<JsonNode>()
+        val list = mutableListOf<WeiboGroup>()
+        val groups = jsonNode["groups"]
+        for (groupsNode in groups) {
+            for (groupNode in groupsNode["group"]) {
+                val gid = groupNode["gid"].asInt()
+                val title = groupNode["title"].asText()
+                list.add(WeiboGroup(title, gid))
+            }
+        }
+        return list
+    }
+
+    private fun followConvert(jsonNode: JsonNode): WeiboPojo {
+        val weiboPojo = WeiboPojo()
+        val createdAt = jsonNode["created_at"].asText()
+        val blogId = jsonNode["mblogid"].asText()
+        val id = jsonNode["id"].asLong()
+        val text = jsonNode["text_raw"].asText()
+        val ipFrom = jsonNode["region_name"].asText()
+        val user = jsonNode["user"]
+        val userid = user["id"].asLong()
+        val username = user["screen_name"].asText()
+        val videoUrl = jsonNode["page_info"]?.get("media_info")?.get("stream_url_hd")?.asText() ?: ""
+        weiboPojo.id = id
+        weiboPojo.name = username
+        weiboPojo.userid = userid.toString()
+        weiboPojo.created = createdAt
+        weiboPojo.text = text
+        weiboPojo.bid = blogId
+        weiboPojo.ipFrom = ipFrom
+        weiboPojo.url = "https://weibo.com/$userid/$blogId"
+        weiboPojo.videoUrl = videoUrl
+        val picIdNode = jsonNode["pic_ids"]
+        val picInfoNode = jsonNode["pic_infos"]
+        for (picNode in picIdNode) {
+            val pic = picNode.asText()
+            val url = picInfoNode[pic]["original"]["url"].asText()
+            weiboPojo.imageUrl.add(url)
+        }
+        weiboPojo.longText = user["isLongText"]?.asBoolean() == true
+        val retweeted = jsonNode["retweeted_status"]
+        if (retweeted != null) {
+            val forwardId = retweeted["id"].asLong()
+            val forwardCreatedAt = retweeted["created_at"].asText()
+            val forwardBlogId = retweeted["mblogid"].asText()
+            val forwardUser = retweeted["user"]
+            val forwardUserid = forwardUser["id"].asLong()
+            val forwardUsername = forwardUser["screen_name"].asText()
+            val forwardIpFrom = retweeted["region_name"]?.asText() ?: ""
+            val forwardText = retweeted["text_raw"].asText()
+            val forwardPic = retweeted["pic_infos"]
+            val picId = retweeted["pic_ids"]
+            for (picNode in picId) {
+                val pic = picNode.asText()
+                val url = forwardPic[pic]["original"]["url"].asText()
+                weiboPojo.forwardImageUrl.add(url)
+            }
+            val forwardVideoUrl = retweeted["page_info"]?.get("media_info")?.get("stream_url_hd")?.asText() ?: ""
+            weiboPojo.isForward = true
+            weiboPojo.forwardId = forwardId.toString()
+            weiboPojo.forwardName = forwardUsername
+            weiboPojo.forwardUserid = forwardUserid
+            weiboPojo.forwardTime = forwardCreatedAt
+            weiboPojo.forwardText = forwardText
+            weiboPojo.forwardBid = forwardBlogId
+            weiboPojo.forwardIpFrom = forwardIpFrom
+            weiboPojo.forwardUrl = "https://weibo.com/$forwardUserid/$forwardBlogId"
+            weiboPojo.forwardVideoUrl = forwardVideoUrl
+            weiboPojo.forwardLongText = retweeted["isLongText"]?.asBoolean() == true
+        }
+        return weiboPojo
+    }
+
+    suspend fun followWeibo(weiboEntity: WeiboEntity): List<WeiboPojo> {
+        val gid = group(weiboEntity).find { it.title == "最新微博" }?.gid ?: error("未找到最新微博的id")
+        val jsonNode = client.get("https://weibo.com/ajax/feed/friendstimeline?list_id=$gid&refresh=4&since_id=0&count=25&fid=$gid") {
+            headers {
+                cookieString(weiboEntity.cookie)
+            }
+        }.body<JsonNode>()
+        val list = mutableListOf<WeiboPojo>()
+        for (status in jsonNode["statuses"]) {
+            if (status["user"]["following"].asBoolean()) {
+                list.add(followConvert(status))
+            }
+        }
+        return list
+    }
+
+    suspend fun longText(weiboEntity: WeiboEntity, bid: String): String {
+        val response = client.get("https://weibo.com/ajax/statuses/longtext?id=$bid") {
+            headers {
+                cookieString(weiboEntity.cookie)
+            }
+        }
+        if (response.status == HttpStatusCode.Found) error("登陆已失效，请重新登陆")
+        val jsonNode = response.body<JsonNode>()
+        if (jsonNode["ok"].asInt() == 0) error(jsonNode["message"].asText())
+        return jsonNode["data"]?.get("longTextContent")?.asText() ?: ""
+    }
+
     suspend fun myWeibo(weiboEntity: WeiboEntity): CommonResult<List<WeiboPojo>> {
         val jsonNode = OkHttpKtUtils.getJson("https://m.weibo.cn/profile/info",
             OkUtils.cookie(weiboEntity.cookie))
@@ -249,12 +361,9 @@ object WeiboLogic {
 
 }
 
-data class HotSearch(
-    var count: Int = 0,
-    var content: String = "",
-    var heat: Long = 0,
-    var tag: String = "",
-    var url: String = ""
+data class WeiboGroup(
+    var title: String = "",
+    var gid: Int = 0
 )
 
 data class WeiboPojo(
@@ -265,17 +374,22 @@ data class WeiboPojo(
     var text: String = "",
     var bid: String = "",
     var ipFrom: String = "",
+    var url: String = "",
+    var longText: Boolean = false,
     var imageUrl: MutableList<String> = mutableListOf(),
     var videoUrl: String = "",
     var isForward: Boolean = false,
     var forwardId: String = "",
     var forwardTime: String = "",
     var forwardName: String = "",
+    var forwardUserid: Long = 0,
     var forwardText: String = "",
     var forwardBid: String = "",
     var forwardIpFrom: String = "",
+    var forwardLongText: Boolean = false,
     var forwardImageUrl: MutableList<String> = mutableListOf(),
-    var forwardVideoUrl: String = ""
+    var forwardVideoUrl: String = "",
+    var forwardUrl: String = ""
 )
 
 data class WeiboToken(

@@ -1,13 +1,19 @@
 package me.kuku.telegram.scheduled
 
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.DouYuFish
 import me.kuku.telegram.logic.DouYuLogic
 import me.kuku.utils.JobManager
+import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
+import org.telegram.telegrambots.meta.api.objects.InputFile
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -40,14 +46,18 @@ class DouYuScheduled(
                     if (map[id] != b) {
                         map[id] = b
                         val msg = if (b) "直播啦！！" else "下播啦"
-                        telegramBot.silent().send("""
-                            #斗鱼开播提醒
-                            #${room.nickName} $msg
-                            标题：${room.name}
-                            分类：${room.gameName}
-                            在线：${room.online}
-                            链接：${room.url}
-                        """.trimIndent(), tgId)
+                        val text = "#斗鱼开播提醒\n#${room.nickName} $msg\n标题：${room.name}\n分类：${room.gameName}\n在线：${room.online}\n链接：${room.url}"
+                        val imageUrl = room.imageUrl
+                        if (imageUrl.isNotEmpty()) {
+                            client.get(imageUrl).body<InputStream>().use {
+                                val sendPhoto = SendPhoto()
+                                sendPhoto.chatId = tgId.toString()
+                                sendPhoto.caption = text
+                                sendPhoto.photo = InputFile(it, "douYuRoom.jpg")
+                                telegramBot.execute(sendPhoto)
+                            }
+                        }
+                        else telegramBot.silent().send(text, tgId)
                     }
                 } else map[id] = b
             }
@@ -89,7 +99,7 @@ class DouYuScheduled(
                 for (douYuFish in newList) {
                     val text = "#斗鱼鱼吧动态推送\n#${douYuFish.nickname}\n标题：${douYuFish.title}\n内容：${douYuFish.content}\n链接：${douYuFish.url}"
                     if (douYuFish.image.isNotEmpty()) {
-                        JobManager.delay(1000 * 30) {
+                        JobManager.delay(1000 * 60) {
                             telegramBot.sendPic(tgId, text, douYuFish.image)
                         }
                     } else {
