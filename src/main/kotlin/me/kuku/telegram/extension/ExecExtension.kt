@@ -48,7 +48,7 @@ class ExecExtension(
         val weiboButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboExec" }
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinExec" }
         val douYuButton = InlineKeyboardButton("斗鱼").also { it.callbackData = "douYuExec" }
-        val smZdmButton = InlineKeyboardButton("斗鱼").also { it.callbackData = "smZdmExec" }
+        val smZdmButton = InlineKeyboardButton("什么值得买").also { it.callbackData = "smZdmExec" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(hostLocButton, kuGouButton),

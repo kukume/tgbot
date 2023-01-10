@@ -55,32 +55,88 @@ object SmZdmLogic {
 
     suspend fun wechatQrcode1(): SmZdmWechatQrcode {
         val jsonNode =
-            client.post("https://zhiyou.smzdm.com/user/login/jsonp_weixin_qrcode_token").bodyAsText().toJsonNode()
+            client.post("https://zhiyou.smzdm.com/user/login/jsonp_weixin_qrcode_token") {
+                headers {
+                    referer("https://zhiyou.smzdm.com/user/login/window/")
+                }
+            }.bodyAsText().toJsonNode()
         val data = jsonNode["data"]
         val url = data["QrCodeUrl"].asText()
         val sceneStr = data["sceneStr"].asText()
         return SmZdmWechatQrcode(url, sceneStr)
     }
 
-    suspend fun wechatQrcode2(smZdmWechatQrcode: SmZdmWechatQrcode): SmZdmEntity {
+    @Suppress("DuplicatedCode")
+    suspend fun wechatQrcode2(smZdmWechatQrcode: SmZdmWechatQrcode): CommonResult<SmZdmEntity> {
         val response = client.post("https://zhiyou.smzdm.com/user/login/jsonp_weixin_qrcode_check") {
             setFormDataContent {
                 append("scene_str", smZdmWechatQrcode.sceneStr)
             }
-        }
-        val cookie = response.cookie()
-        val sess = OkUtils.cookie(cookie, "sess")
-        return if (sess == null) error("未获取到cookie")
-        else {
-            client.get("https://www.smzdm.com/") {
-                headers {
-                    cookieString(cookie)
-                    userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
-                }
+            headers {
+                referer("https://zhiyou.smzdm.com/user/login/window/")
             }
-            SmZdmEntity().also { it.cookie = cookie }
+        }
+        val jsonNode = response.bodyAsText().toJsonNode()
+        if (jsonNode["error_code"].asInt() != 0) error(jsonNode["error_msg"].asText())
+        return when (jsonNode["data"]["status"].asInt()) {
+            1 -> CommonResult.fail("未扫码", code = 0)
+            2 -> CommonResult.fail("已扫码", code = 0)
+            3 -> {
+                val cookie = response.cookie()
+                client.get("https://www.smzdm.com/") {
+                    headers {
+                        cookieString(cookie)
+                        userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
+                    }
+                }
+                CommonResult.success(SmZdmEntity().also { it.cookie = cookie })
+            }
+            else -> error("未知错误")
         }
     }
+
+    suspend fun appQrcode1(): SmZdmAppQrcode {
+        val jsonNode = client.post("https://zhiyou.smzdm.com/user/login/jsonp_qrcode_token") {
+            headers {
+                referer("https://zhiyou.smzdm.com/user/login/window/")
+            }
+        }.bodyAsText().toJsonNode()
+        val data = jsonNode["data"]
+        val token = data["qrcode_token"].asText()
+        val url = data["url"].asText()
+        return SmZdmAppQrcode(url, token)
+    }
+
+    @Suppress("DuplicatedCode")
+    suspend fun appQrcode2(smZdmAppQrcode: SmZdmAppQrcode): CommonResult<SmZdmEntity> {
+        // {"error_code":0,"error_msg":"","data":{"status":"1","redirect_to":""}}
+        val response = client.post("https://zhiyou.smzdm.com/user/login/jsonp_qrcode_check") {
+            setFormDataContent {
+                append("qrcode_token", smZdmAppQrcode.token)
+            }
+            headers {
+                referer("https://zhiyou.smzdm.com/user/login/window/")
+            }
+        }
+        val jsonNode = response.bodyAsText().toJsonNode()
+        if (jsonNode["error_code"].asInt() != 0) error(jsonNode["error_msg"].asText())
+        return when (jsonNode["data"]["status"].asInt()) {
+            1 -> CommonResult.fail("未扫码", code = 0)
+            2 -> CommonResult.fail("已扫码", code = 0)
+            3 -> {
+                val cookie = response.cookie()
+                client.get("https://www.smzdm.com/") {
+                    headers {
+                        cookieString(cookie)
+                        userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
+                    }
+                }
+                CommonResult.success(SmZdmEntity().also { it.cookie = cookie })
+            }
+            else -> error("未知错误")
+        }
+    }
+
 
     suspend fun webSign(smZdmEntity: SmZdmEntity) {
         val jsonNode = client.get("https://zhiyou.smzdm.com/user/getgeetest/geetest_captcha_init").bodyAsText().toJsonNode()
@@ -124,7 +180,7 @@ object SmZdmLogic {
     suspend fun appSign(smZdmEntity: SmZdmEntity) {
         val t = System.currentTimeMillis()
         val sess = OkUtils.cookie(smZdmEntity.cookie, "sess")!!
-        val text = client.post("https://user-api.smzdm.com/checkin") {
+        val jsonNode = client.post("https://user-api.smzdm.com/checkin") {
             setFormDataContent {
                 append("touchstone_event", "")
                 append("v", "10.0")
@@ -139,8 +195,8 @@ object SmZdmLogic {
             headers {
                 cookieString(smZdmEntity.cookie)
             }
-        }.bodyAsText()
-        println(text)
+        }.bodyAsText().toJsonNode()
+        if (jsonNode["error_code"].asInt() != 0) error(jsonNode["error_msg"].asText())
     }
 
     private data class GeeTestResult(val challenge: String, val validate: String, val secCode: String = "$validate|jordan")
@@ -148,3 +204,5 @@ object SmZdmLogic {
 }
 
 data class SmZdmWechatQrcode(val url: String, val sceneStr: String)
+
+data class SmZdmAppQrcode(val url: String, val token: String)

@@ -251,28 +251,30 @@ object WeiboLogic {
             val forwardCreatedAt = retweeted["created_at"].asText()
             val forwardBlogId = retweeted["mblogid"].asText()
             val forwardUser = retweeted["user"]
-            val forwardUserid = forwardUser["id"].asLong()
-            val forwardUsername = forwardUser["screen_name"].asText()
-            val forwardIpFrom = retweeted["region_name"]?.asText() ?: ""
-            val forwardText = retweeted["text_raw"].asText()
-            val forwardPic = retweeted["pic_infos"]
-            val picId = retweeted["pic_ids"]
-            for (picNode in picId) {
-                val pic = picNode.asText()
-                val url = forwardPic[pic]["original"]["url"].asText()
-                weiboPojo.forwardImageUrl.add(url)
+            if (forwardUser != null) {
+                val forwardUserid = forwardUser["id"].asLong()
+                val forwardUsername = forwardUser["screen_name"].asText()
+                val forwardIpFrom = retweeted["region_name"]?.asText() ?: ""
+                val forwardText = retweeted["text_raw"].asText()
+                val forwardPic = retweeted["pic_infos"]
+                val picId = retweeted["pic_ids"]
+                for (picNode in picId) {
+                    val pic = picNode.asText()
+                    val url = forwardPic[pic]["original"]["url"].asText()
+                    weiboPojo.forwardImageUrl.add(url)
+                }
+                val forwardVideoUrl = retweeted["page_info"]?.get("media_info")?.get("stream_url_hd")?.asText() ?: ""
+                weiboPojo.forwardName = forwardUsername
+                weiboPojo.forwardUserid = forwardUserid
+                weiboPojo.forwardText = forwardText
+                weiboPojo.forwardIpFrom = forwardIpFrom
+                weiboPojo.forwardVideoUrl = forwardVideoUrl
+                weiboPojo.forwardUrl = "https://weibo.com/$forwardUserid/$forwardBlogId"
             }
-            val forwardVideoUrl = retweeted["page_info"]?.get("media_info")?.get("stream_url_hd")?.asText() ?: ""
             weiboPojo.isForward = true
             weiboPojo.forwardId = forwardId.toString()
-            weiboPojo.forwardName = forwardUsername
-            weiboPojo.forwardUserid = forwardUserid
             weiboPojo.forwardTime = forwardCreatedAt
-            weiboPojo.forwardText = forwardText
             weiboPojo.forwardBid = forwardBlogId
-            weiboPojo.forwardIpFrom = forwardIpFrom
-            weiboPojo.forwardUrl = "https://weibo.com/$forwardUserid/$forwardBlogId"
-            weiboPojo.forwardVideoUrl = forwardVideoUrl
             weiboPojo.forwardLongText = retweeted["isLongText"]?.asBoolean() == true
         }
         return weiboPojo

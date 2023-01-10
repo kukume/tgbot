@@ -577,10 +577,12 @@ class LoginExtension(
         "smZdmLogin" {
             val loginButton = inlineKeyboardButton("使用手机验证码登陆", "smZdmLoginByPhoneCode")
             val wechatQrcodeButton = inlineKeyboardButton("使用微信扫码登陆", "smZdmWechatLoginByPhoneCode")
+            val appQrcodeButton = inlineKeyboardButton("使用App扫码登陆", "smZdmAppQrcodeLoginByPhoneCode")
             val cookieButton = inlineKeyboardButton("cookie登录", "smZdmLoginByCookie")
             val markup = InlineKeyboardMarkup(listOf(
                 listOf(loginButton),
                 listOf(wechatQrcodeButton),
+                listOf(appQrcodeButton),
                 listOf(cookieButton),
                 returnButton()
             ))
@@ -626,21 +628,55 @@ class LoginExtension(
                 bot.execute(sendPhoto)
             }
             var i = 0
+            var fail = true
             while (true) {
                 if (++i >= 20) break
                 try {
                     delay(3000)
-                    val newEntity = SmZdmLogic.wechatQrcode2(wechatQrcode)
-                    val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
-                    smZdmEntity.cookie = newEntity.cookie
-                    smZdmService.save(smZdmEntity)
-                    bot.execute(SendMessage.builder().text("绑定什么值得买成功").chatId(chatId).build())
-                    break
+                    val result = SmZdmLogic.wechatQrcode2(wechatQrcode)
+                    if (result.code == 200) {
+                        val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
+                        smZdmEntity.cookie = result.data().cookie
+                        smZdmService.save(smZdmEntity)
+                        bot.execute(SendMessage.builder().text("绑定什么值得买成功").chatId(chatId).build())
+                        fail = false
+                        break
+                    }
                 } catch (ignore: Exception) {
                 }
             }
             photoMessage.delete()
-            bot.execute(SendMessage.builder().text("什么值得买二维码已过期").chatId(chatId).build())
+            if (fail)
+                bot.execute(SendMessage.builder().text("什么值得买二维码已过期").chatId(chatId).build())
+        }
+        "smZdmAppQrcodeLoginByPhoneCode" {
+            val appQrcode = SmZdmLogic.appQrcode1()
+            val url = appQrcode.url
+            val photoMessage = client.get("https://api.kukuqaq.com/qrcode?text=${url.toUrlEncode()}").body<InputStream>().use {
+                val sendPhoto = SendPhoto(chatId.toString(), InputFile(it, "smzdmApp.jpg")).also { sp ->
+                    sp.caption = "请使用什么值得买App扫码登陆"
+                }
+                bot.execute(sendPhoto)
+            }
+            var i = 0
+            var fail = true
+            while (true) {
+                if (++i >= 20) break
+                delay(3000)
+                val result = SmZdmLogic.appQrcode2(appQrcode)
+                if (result.code == 200) {
+                    val newEntity = result.data()
+                    val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
+                    smZdmEntity.cookie = newEntity.cookie
+                    smZdmService.save(smZdmEntity)
+                    bot.execute(SendMessage.builder().text("绑定什么值得买成功").chatId(chatId).build())
+                    fail = false
+                    break
+                }
+            }
+            photoMessage.delete()
+            if (fail)
+                bot.execute(SendMessage.builder().text("什么值得买二维码已过期").chatId(chatId).build())
         }
     }
 

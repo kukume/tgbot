@@ -103,7 +103,7 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
             }
         }
         val abilitySubscriber = AbilitySubscriber()
-        val callBackQ = CallBackQ()
+        val callBackQList= mutableListOf<CallBackQ>()
         for (clazz in clazzList) {
             val methods = clazz.declaredMethods
             var any: Any? = null
@@ -134,15 +134,18 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
                     val obj = applicationContext.getBean(clazz)
                     function.call(obj, abilitySubscriber)
                 } else if (jvmName == "me.kuku.telegram.utils.CallBackQ") {
+                    val callBackQ = CallBackQ()
                     val obj = applicationContext.getBean(clazz)
                     function.call(obj, callBackQ)
+                    callBackQList.add(callBackQ)
                 }
             }
         }
         @Suppress("UNCHECKED_CAST")
         map.putAll(abilitySubscriber::class.java.getDeclaredField("abilityMap").also { it.isAccessible = true }.get(abilitySubscriber) as Map<out String, Ability>)
         @Suppress("UNCHECKED_CAST")
-        list.add(callBackQ::class.java.getDeclaredMethod("toReply").also { it.isAccessible = true }.invoke(callBackQ) as Reply)
+        callBackQList.forEach { callBackQ ->
+            list.add(callBackQ::class.java.getDeclaredMethod("toReply").also { it.isAccessible = true }.invoke(callBackQ) as Reply) }
         abilitiesField.set(this, map)
         val repliesField = baseAbilityBotClazz.getDeclaredField("replies")
         repliesField.isAccessible = true
