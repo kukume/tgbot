@@ -7,6 +7,7 @@ import me.kuku.telegram.config.TelegramCallbackExceptionEvent
 import me.kuku.utils.JobManager
 import org.telegram.abilitybots.api.bot.BaseAbilityBot
 import org.telegram.abilitybots.api.objects.Reply
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
 import org.telegram.telegrambots.meta.api.objects.Message
 
@@ -33,6 +34,12 @@ class CallBackQ {
     fun set(key: String, value: Any) {
         val cacheMap = threadLocal.get()
         cacheMap[key] = value
+    }
+
+    fun set(value: Any) {
+        val name = value::class.java.simpleName
+        val key = name.substring(0, 1).lowercase() + name.substring(1)
+        set(key, value)
     }
 
     inline fun <reified T: Any> get(key: String): T? {
@@ -98,6 +105,7 @@ class CallBackQ {
                         if (data.startsWith(k)) invokeCallback(bot, callbackQuery, v)
                     }
                     afterList.forEach { invokeCallback(bot, callbackQuery, it) }
+                    threadLocal.remove()
                 }
             }
         }, pre@{ upd ->
@@ -148,4 +156,14 @@ class TelegramCallbackContext(val bot: BaseAbilityBot, val query: CallbackQuery)
     val message: Message = query.message
     val tgId = query.from.id
     val chatId: Long = message.chatId
+
+    fun Message.delete(timeout: Long = 0) {
+        if (timeout > 0) {
+            JobManager.delay(timeout) {
+                bot.execute(DeleteMessage.builder().chatId(chatId).messageId(this@delete.messageId).build())
+            }
+        } else {
+            bot.execute(DeleteMessage.builder().chatId(chatId).messageId(this.messageId).build())
+        }
+    }
 }

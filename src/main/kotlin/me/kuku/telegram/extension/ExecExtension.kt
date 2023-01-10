@@ -31,7 +31,8 @@ class ExecExtension(
     private val weiboService: WeiboService,
     private val douYinService: DouYinService,
     private val douYuService: DouYuService,
-    private val douYuLogic: DouYuLogic
+    private val douYuLogic: DouYuLogic,
+    private val smZdmService: SmZdmService
 ): AbilityExtension {
 
     private val recommendCache = mutableMapOf<Long, List<DouYinWork>>()
@@ -47,12 +48,14 @@ class ExecExtension(
         val weiboButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboExec" }
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinExec" }
         val douYuButton = InlineKeyboardButton("斗鱼").also { it.callbackData = "douYuExec" }
+        val smZdmButton = InlineKeyboardButton("斗鱼").also { it.callbackData = "smZdmExec" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(hostLocButton, kuGouButton),
             listOf(miHoYoButton, netEaseButton),
             listOf(stepButton, weiboButton),
-            listOf(douYinButton, douYuButton)
+            listOf(douYinButton, douYuButton),
+            listOf(smZdmButton)
         ))
     }
 
@@ -422,6 +425,26 @@ class ExecExtension(
             bot.execute(SendMessage.builder().chatId(chatId).text("斗鱼鱼吧签到成功").build())
         }
 
+    }
+
+    fun CallbackSubscriber.smZdm() {
+        before {
+            val smZdmEntity = smZdmService.findByTgId(tgId) ?: error("未绑定什么值得买账号")
+            set("smZdmEntity", smZdmEntity)
+        }
+        "smZdmExec" {
+            val signButton = inlineKeyboardButton("签到", "smZdmSign")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(signButton), returnButton()))
+            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(message.messageId).text("什么值得买")
+                .replyMarkup(inlineKeyboardMarkup).build()
+            bot.execute(editMessageText)
+        }
+        "smZdmSign" {
+            val smZdmEntity = firstArg<SmZdmEntity>()
+            SmZdmLogic.webSign(smZdmEntity)
+            SmZdmLogic.appSign(smZdmEntity)
+            bot.execute(SendMessage.builder().chatId(chatId).text("什么值得买app与网页签到成功").build())
+        }
     }
 
 

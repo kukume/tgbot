@@ -27,7 +27,8 @@ class ManagerExtension(
     private val weiboService: WeiboService,
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
-    private val douYinService: DouYinService
+    private val douYinService: DouYinService,
+    private val smZdmService: SmZdmService
 ): AbilityExtension {
 
     private fun returnButton(): InlineKeyboardButton {
@@ -48,6 +49,7 @@ class ManagerExtension(
         val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterManager" }
         val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivManager" }
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinManager" }
+        val smZdmButton = InlineKeyboardButton("什么值得买").also { it.callbackData = "smZdmManager" }
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -55,7 +57,7 @@ class ManagerExtension(
             listOf(miHoYoButton, netEaseButton),
             listOf(xiaomiStepButton, weiboButton),
             listOf(twitterButton, pixivButton),
-            listOf(douYinButton)
+            listOf(douYinButton, smZdmButton)
         ))
     }
 
@@ -660,6 +662,41 @@ class ManagerExtension(
             douYinEntity.push = Status.OFF
             douYinService.save(douYinEntity)
             editMessage(bot, message, douYinEntity)
+        }
+    }
+
+    private fun editMessage(bot: BaseAbilityBot, message: Message, smZdmEntity: SmZdmEntity) {
+        val signOpenButton = inlineKeyboardButton("自动签到（开）", "smZdmSignOpen")
+        val signCloseButton = inlineKeyboardButton("自动签到（关）", "smZdmSignClose")
+        val editMessageText = EditMessageText.builder().chatId(message.chatId).messageId(message.messageId)
+            .text("""
+                什么值得买管理，当前状态：
+                签到：${smZdmEntity.sign.str()}
+            """.trimIndent()).replyMarkup(InlineKeyboardMarkup(listOf(listOf(signOpenButton, signCloseButton), listOf(returnButton()))))
+            .build()
+        bot.execute(editMessageText)
+    }
+
+    fun CallbackSubscriber.smZdm() {
+        before {
+            val smZdmEntity = smZdmService.findByTgId(tgId) ?: error("未绑定什么值得买账号")
+            set(smZdmEntity)
+        }
+        "smZdmManager" {
+            val smZdmEntity = firstArg<SmZdmEntity>()
+            editMessage(bot, message, smZdmEntity)
+        }
+        "smZdmSignOpen" {
+            val smZdmEntity = firstArg<SmZdmEntity>()
+            smZdmEntity.sign = Status.ON
+            smZdmService.save(smZdmEntity)
+            editMessage(bot, message, smZdmEntity)
+        }
+        "smZdmSignClose" {
+            val smZdmEntity = firstArg<SmZdmEntity>()
+            smZdmEntity.sign = Status.OFF
+            smZdmService.save(smZdmEntity)
+            editMessage(bot, message, smZdmEntity)
         }
     }
 

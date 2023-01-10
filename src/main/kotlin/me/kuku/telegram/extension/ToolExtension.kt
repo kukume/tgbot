@@ -1,11 +1,6 @@
 package me.kuku.telegram.extension
 
-import com.fasterxml.jackson.databind.JsonNode
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.logic.ToolLogic
@@ -22,7 +17,6 @@ import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.InputFile
-import org.telegram.telegrambots.meta.api.objects.PhotoSize
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
@@ -77,11 +71,10 @@ class ToolExtension(
         val ttsButton = InlineKeyboardButton("tts").also { it.callbackData = "ttsTool" }
         val baiKeButton = InlineKeyboardButton("百科").also { it.callbackData = "baiKeTool" }
         val saucenaoButton = InlineKeyboardButton("saucenao识图").also { it.callbackData = "saucenaoTool" }
-        val dCloudButton = InlineKeyboardButton("dcloud上传").also { it.callbackData = "dCloudTool" }
         return InlineKeyboardMarkup(listOf(
             listOf(loLiConButton, fishermanCalendarButton),
             listOf(ttsButton, baiKeButton),
-            listOf(saucenaoButton, dCloudButton)
+            listOf(saucenaoButton)
         ))
     }
 
@@ -236,37 +229,6 @@ class ToolExtension(
         bot.execute(SendMessage(chatId.toString(), res))
     }
 
-    fun dCloudTool() = callback("dCloudTool") {
-        val chatId = query.message.chatId
-        bot.execute(SendMessage.builder().text("请发送图片").chatId(chatId).build())
-        val message = query.waitNextMessage()
-        val photoList = message.photo
-        if (photoList.isEmpty()) error("您发送的不为图片")
-        val uploadPhotoMap = mutableMapOf<Int, PhotoSize>()
-        var i = 1
-        var size = 0
-        for (photoSize in photoList) {
-            if (photoSize.fileSize > size) {
-                size = photoSize.fileSize
-                uploadPhotoMap[i] = photoSize
-            } else {
-                size = photoSize.fileSize
-                uploadPhotoMap[++i] = photoSize
-            }
-        }
-        val sb = StringBuilder()
-        uploadPhotoMap.values.forEach { fileSzie ->
-            val getFile = GetFile(fileSzie.fileId)
-            val file = bot.execute(getFile)
-            val url = "https://api.telegram.org/file/bot${telegramBot.botToken}/${file.filePath}"
-            val newUrl = toolLogic.dCloudUpload(url)
-            sb.appendLine(newUrl)
-        }
-        val deleteMessage = DeleteMessage(chatId.toString(), message.messageId)
-        bot.execute(deleteMessage)
-        bot.execute(SendMessage(chatId.toString(), sb.removeSuffix("\n").toString()))
-    }
-
     fun saucenaoTool() = callback("saucenaoTool") {
         val chatId = query.message.chatId
         bot.execute(SendMessage.builder().text("请发送需要识别的图片").chatId(chatId).build())
@@ -292,14 +254,5 @@ class ToolExtension(
         """.trimIndent())
         bot.execute(sendMessage)
     }
-
-    fun chat() = ability("chat", "ChatGPT", 1) {
-        val text = firstArg()
-        val jsonNode = client.get("https://api.kukuqaq.com/chat?text=${text.toUrlEncode()}").body<JsonNode>()
-        val result = jsonNode["choices"][0]["text"].asText()
-        execute(SendMessage.builder().text(result).chatId(chatId()).build())
-    }
-
-
 
 }

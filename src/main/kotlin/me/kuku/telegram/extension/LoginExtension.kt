@@ -5,6 +5,7 @@ package me.kuku.telegram.extension
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
@@ -39,7 +40,8 @@ class LoginExtension(
     private val douYinService: DouYinService,
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
-    private val buffService: BuffService
+    private val buffService: BuffService,
+    private val smZdmService: SmZdmService
 ): AbilityExtension {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -58,6 +60,7 @@ class LoginExtension(
         val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterLogin" }
         val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivLogin" }
         val buffButton = InlineKeyboardButton("网易Buff").also { it.callbackData = "buffLogin" }
+        val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmLogin")
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -66,7 +69,7 @@ class LoginExtension(
             listOf(xiaomiStepButton, leXinStepButton),
             listOf(weiboStepButton, douYinButton),
             listOf(twitterButton, pixivButton),
-            listOf(buffButton)
+            listOf(buffButton, smZdmButton)
         ))
     }
 
@@ -567,6 +570,77 @@ class LoginExtension(
             val deleteMessage = DeleteMessage(chatId.toString(), nextMessage.messageId)
             bot.execute(deleteMessage)
             bot.execute(SendMessage(chatId.toString(), "绑定pixiv成功"))
+        }
+    }
+
+    fun CallbackSubscriber.smZdm() {
+        "smZdmLogin" {
+            val loginButton = inlineKeyboardButton("使用手机验证码登陆", "smZdmLoginByPhoneCode")
+            val wechatQrcodeButton = inlineKeyboardButton("使用微信扫码登陆", "smZdmWechatLoginByPhoneCode")
+            val cookieButton = inlineKeyboardButton("cookie登录", "smZdmLoginByCookie")
+            val markup = InlineKeyboardMarkup(listOf(
+                listOf(loginButton),
+                listOf(wechatQrcodeButton),
+                listOf(cookieButton),
+                returnButton()
+            ))
+            val editMessageText = EditMessageText.builder().text("请选择什么值得买登录方式").chatId(chatId)
+                .messageId(message.messageId).replyMarkup(markup).build()
+            bot.execute(editMessageText)
+        }
+        "smZdmLoginByPhoneCode" {
+            val sendPhoneMessage = bot.execute(SendMessage.builder().text("请发送手机号码").chatId(chatId).build())
+            val phoneMessage = query.waitNextMessage()
+            val phone = phoneMessage.text
+            SmZdmLogic.login1(phone)
+            val captchaMessage = bot.execute(SendMessage.builder().text("请发送验证码").chatId(chatId).build())
+            val codeMessage = query.waitNextMessage()
+            val newEntity = SmZdmLogic.login2(phone, codeMessage.text)
+            val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
+            smZdmEntity.cookie = newEntity.cookie
+            smZdmService.save(smZdmEntity)
+            sendPhoneMessage.delete()
+            phoneMessage.delete()
+            captchaMessage.delete()
+            codeMessage.delete()
+            bot.execute(SendMessage.builder().text("绑定什么值得买成功").chatId(chatId).build())
+        }
+        "smZdmLoginByCookie" {
+            val sendCookieMessage = bot.execute(SendMessage.builder().text("请发送cookie").chatId(chatId).build())
+            val cookieMessage = query.waitNextMessage()
+            val text = cookieMessage.text
+            SmZdmLogic.appSign(SmZdmEntity().also { it.cookie = text })
+            val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
+            smZdmEntity.cookie = text
+            smZdmService.save(smZdmEntity)
+            sendCookieMessage.delete()
+            cookieMessage.delete()
+            bot.execute(SendMessage.builder().text("绑定什么值得买成功").chatId(chatId).build())
+        }
+        "smZdmWechatLoginByPhoneCode" {
+            val wechatQrcode = SmZdmLogic.wechatQrcode1()
+            val photoMessage = client.get(wechatQrcode.url).body<InputStream>().use {
+                val sendPhoto = SendPhoto(chatId.toString(), InputFile(it, "smzdmWechat.jpg")).also { sp ->
+                        sp.caption = "请先在网页成功使用微信扫码成功登录一次，使用微信扫码登录，如未关注公众号，扫码关注公众号后再扫一次"
+                }
+                bot.execute(sendPhoto)
+            }
+            var i = 0
+            while (true) {
+                if (++i >= 20) break
+                try {
+                    delay(3000)
+                    val newEntity = SmZdmLogic.wechatQrcode2(wechatQrcode)
+                    val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
+                    smZdmEntity.cookie = newEntity.cookie
+                    smZdmService.save(smZdmEntity)
+                    bot.execute(SendMessage.builder().text("绑定什么值得买成功").chatId(chatId).build())
+                    break
+                } catch (ignore: Exception) {
+                }
+            }
+            photoMessage.delete()
+            bot.execute(SendMessage.builder().text("什么值得买二维码已过期").chatId(chatId).build())
         }
     }
 

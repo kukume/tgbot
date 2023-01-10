@@ -94,7 +94,7 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
         val abilitiesField = baseAbilityBotClazz.getDeclaredField("abilities")
         abilitiesField.isAccessible = true
         val names = applicationContext.beanDefinitionNames
-        val clazzList = mutableListOf<Class<*>>()
+        val clazzList = mutableListOf<Class<*>>(DefaultAbilities::class.java)
         val map = mutableMapOf<String, Ability>()
         val list = mutableListOf<Reply>()
         for (name in names) {
@@ -102,7 +102,6 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
                 clazzList.add(it)
             }
         }
-        clazzList.add(DefaultAbilities::class.java)
         val abilitySubscriber = AbilitySubscriber()
         val callBackQ = CallBackQ()
         for (clazz in clazzList) {

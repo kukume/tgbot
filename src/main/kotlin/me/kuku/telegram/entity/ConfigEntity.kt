@@ -16,6 +16,7 @@ class ConfigEntity {
     var tgId: Long = 0
     // 正能量推送
     var positiveEnergy: Status = Status.OFF
+    var rrOcrKey: String = ""
 }
 
 interface ConfigRepository: ReactiveMongoRepository<ConfigEntity, String> {
