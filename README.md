@@ -8,6 +8,10 @@ Demo：https://t.me/kukume_bot
 
 JDK17 + Mongodb
 
+## Docker
+
+https://hub.docker.com/r/kukume/tgbot
+
 ## Config
 
 ```yaml
