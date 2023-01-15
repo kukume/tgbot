@@ -88,7 +88,7 @@ object TwitterLogic {
         val userLegacy = userResult["legacy"]
         val username = userLegacy["name"].asText()
         val screenName = userLegacy["screen_name"].asText()
-        val source = Jsoup.parse(legacy["source"].asText()).text()
+        val source = Jsoup.parse(legacy["source"]?.asText() ?: "").text()
         val id = legacy["id_str"].asLong()
         val pojo = TwitterPojo(id, createdAt, text, userid, username, screenName, source)
         legacy["extended_entities"]?.get("media")?.let {
@@ -115,7 +115,7 @@ object TwitterLogic {
             val quotedLegacy = quotedResult["legacy"]
             val forwardText = quotedLegacy["full_text"].asText()
             val forwardCreatedAt = quotedLegacy["created_at"].asText()
-            val forwardSource = Jsoup.parse(quotedLegacy["source"].asText()).text()
+            val forwardSource = Jsoup.parse(quotedLegacy["source"]?.asText() ?: "").text()
             pojo.forwardId = forwardId
             pojo.forwardCreatedAt = forwardCreatedAt
             pojo.forwardText = forwardText

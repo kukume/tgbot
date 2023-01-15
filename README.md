@@ -12,6 +12,10 @@ JDK17 + Mongodb
 
 https://hub.docker.com/r/kukume/tgbot
 
+## Jar
+
+https://pan.kuku.me/tgbot
+
 ## Config
 
 ```yaml

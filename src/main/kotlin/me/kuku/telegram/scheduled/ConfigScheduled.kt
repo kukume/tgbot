@@ -18,7 +18,8 @@ class ConfigScheduled(
     private val telegramBot: TelegramBot
 ) {
 
-    @Scheduled(cron = "0 0 20 * * ?")
+//    @Scheduled(cron = "0 0 20 * * ?")
+    @Scheduled(fixedDelay = 1000)
     suspend fun positiveEnergyPush() {
         val entityList = configService.findByPositiveEnergy(Status.ON)
         if (entityList.isEmpty()) return

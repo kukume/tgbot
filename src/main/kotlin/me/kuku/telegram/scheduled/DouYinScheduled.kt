@@ -2,6 +2,7 @@ package me.kuku.telegram.scheduled
 
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.DouYinService
 import me.kuku.telegram.entity.Status
@@ -28,6 +29,7 @@ class DouYinScheduled(
     suspend fun push() {
         val douYinList = douYinService.findByPush(Status.ON)
         for (douYinEntity in douYinList) {
+            delay(5000)
             val list = try {
                 DouYinLogic.followWork(douYinEntity)
             } catch (e: Exception) {

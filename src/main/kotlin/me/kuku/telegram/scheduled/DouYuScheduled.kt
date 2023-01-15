@@ -88,7 +88,9 @@ class DouYuScheduled(
         val entityList = douYuService.findByPush(Status.ON)
         for (douYuEntity in entityList) {
             val tgId = douYuEntity.tgId
-            val list = douYuLogic.focusFishGroup(douYuEntity)
+            val list = try {
+                douYuLogic.focusFishGroup(douYuEntity)
+            } catch (e: Exception) {continue}
             val newList = mutableListOf<DouYuFish>()
             if (douYuPushMap.containsKey(tgId)) {
                 val oldId = douYuPushMap[tgId]!!
