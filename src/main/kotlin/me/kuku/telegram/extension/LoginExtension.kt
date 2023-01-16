@@ -5,7 +5,6 @@ package me.kuku.telegram.extension
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
@@ -293,45 +292,70 @@ class LoginExtension(
         bot.execute(SendMessage(chatId.toString(), "绑定米哈游成功"))
     }
 
-    fun netEaseLogin() = callback("netEaseLogin") {
-        val chatId = query.message.chatId
-        val userid = query.from.id
-        val key = NetEaseLogic.qrcode()
-        val url = "http://music.163.com/login?codekey=$key"
-        val newUrl =
-            "https://api.kukuqaq.com/qrcode?text=${url.toUrlEncode()}"
-        OkHttpKtUtils.getByteStream(newUrl).use { iis ->
-            val photo = SendPhoto(query.message.chatId.toString(), InputFile(iis,
-                "网易云音乐登录二维码.jpg")).apply { caption = "请使用网易云音乐App扫码登录" }
-            bot.execute(photo)
+
+
+    fun CallbackSubscriber.netEase() {
+        "netEaseLogin" {
+            val qrcodeButton = inlineKeyboardButton("扫码登录", "netEaseQrcodeLogin")
+            val passwordButton = inlineKeyboardButton("手机密码登录", "netEasePasswordLogin")
+            val weiboButton = inlineKeyboardButton("使用微博快速登录", "netEaseWeiboLogin")
+            val sendMessage = SendMessage.builder().text("网易云登录").chatId(chatId)
+                .replyMarkup(InlineKeyboardMarkup(listOf(listOf(qrcodeButton), listOf(passwordButton), listOf(weiboButton), returnButton())))
+                .build()
+            bot.execute(sendMessage)
         }
-        var scan = true
-        while (true) {
-            delay(3000)
-            val result = NetEaseLogic.checkQrcode(key)
-            when (result.code) {
-                200 -> {
-                    val netEaseEntity = result.data()
-                    val newEntity = netEaseService.findByTgId(userid) ?: NetEaseEntity().apply {
-                        tgId = userid
+        "netEaseQrcodeLogin" {
+            val chatId = query.message.chatId
+            val userid = query.from.id
+            val key = NetEaseLogic.qrcode()
+            val url = "http://music.163.com/login?codekey=$key"
+            val newUrl =
+                "https://api.kukuqaq.com/qrcode?text=${url.toUrlEncode()}"
+            OkHttpKtUtils.getByteStream(newUrl).use { iis ->
+                val photo = SendPhoto(query.message.chatId.toString(), InputFile(iis,
+                    "网易云音乐登录二维码.jpg")).apply { caption = "请使用网易云音乐App扫码登录" }
+                bot.execute(photo)
+            }
+            var scan = true
+            while (true) {
+                delay(3000)
+                val result = NetEaseLogic.checkQrcode(key)
+                when (result.code) {
+                    200 -> {
+                        val netEaseEntity = result.data()
+                        val newEntity = netEaseService.findByTgId(userid) ?: NetEaseEntity().apply {
+                            tgId = userid
+                        }
+                        newEntity.csrf = netEaseEntity.csrf
+                        newEntity.musicU = netEaseEntity.musicU
+                        netEaseService.save(newEntity)
+                        bot.execute(SendMessage(chatId.toString(), "绑定网易云音乐成功"))
+                        break
                     }
-                    newEntity.csrf = netEaseEntity.csrf
-                    newEntity.musicU = netEaseEntity.musicU
-                    netEaseService.save(newEntity)
-                    bot.execute(SendMessage(chatId.toString(), "绑定网易云音乐成功"))
-                    break
-                }
-                500 -> {
-                    bot.execute(SendMessage(chatId.toString(), result.message))
-                    break
-                }
-                1 -> {
-                    if (scan) {
+                    500 -> {
                         bot.execute(SendMessage(chatId.toString(), result.message))
-                        scan = false
+                        break
+                    }
+                    1 -> {
+                        if (scan) {
+                            bot.execute(SendMessage(chatId.toString(), result.message))
+                            scan = false
+                        }
                     }
                 }
             }
+        }
+        "netEasePasswordLogin" {
+            bot.execute(SendMessage.builder().text("请发送手机号").chatId(chatId).build())
+            val phoneMessage = query.waitNextMessage()
+            val phone = phoneMessage.text
+            if (phone.length != 11) error("手机号码格式不正确")
+            bot.execute(SendMessage.builder().text("请发送密码").chatId(chatId).build())
+            val passwordMessage = query.waitNextMessage()
+            val password = passwordMessage.text
+        }
+        "netEaseWeiboLogin" {
+            error("没写")
         }
     }
 

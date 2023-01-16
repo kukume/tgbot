@@ -53,9 +53,9 @@ object NetEaseLogic {
 
     suspend fun login(phone: String, password: String): CommonResult<NetEaseEntity> {
         val map = mapOf("countrycode" to "86", "password" to if (password.length == 32) password else password.md5(), "phone" to phone,
-            "rememberLogin" to "true")
+            "rememberLogin" to "true", "captcha" to "undefined")
         val response = OkHttpKtUtils.post("$domain/weapi/login/cellphone", prepare(map),
-            mapOf("crypto" to "weapi",
+            mapOf("crypto" to "weapi", "os" to "pc",
                 "Referer" to "https://music.163.com", "User-Agent" to "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"))
         val jsonNode = OkUtils.json(response)
         return if (jsonNode.getInteger("code") == 200) {

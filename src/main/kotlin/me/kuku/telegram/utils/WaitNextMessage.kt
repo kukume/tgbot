@@ -34,8 +34,7 @@ private fun waitNextMessageCommon(code: String, maxTime: Long): Message {
     }
 }
 
-context(MessageContext)
-fun waitNextMessage(maxTime: Long = 30000): Message {
+fun MessageContext.waitNextMessage(maxTime: Long = 30000): Message {
     return waitNextMessageCommon(user().id.toString(), maxTime)
 }
 
