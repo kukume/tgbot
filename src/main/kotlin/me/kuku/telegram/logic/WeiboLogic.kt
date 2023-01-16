@@ -281,7 +281,11 @@ object WeiboLogic {
     }
 
     suspend fun followWeibo(weiboEntity: WeiboEntity): List<WeiboPojo> {
-        val gid = group(weiboEntity).find { it.title == "最新微博" }?.gid ?: error("未找到最新微博的id")
+        val gid = try {
+            group(weiboEntity).find { it.title == "最新微博" }?.gid ?: error("未找到最新微博的id")
+        } catch (e: Exception) {
+            "110003308815491".toInt()
+        }
         val jsonNode = client.get("https://weibo.com/ajax/feed/friendstimeline?list_id=$gid&refresh=4&since_id=0&count=25&fid=$gid") {
             headers {
                 cookieString(weiboEntity.cookie)

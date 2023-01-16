@@ -105,7 +105,7 @@ class ToolLogic {
         val list = mutableListOf<File>()
         for (i in urlList.indices) {
             client.get(urlList[i]).bodyAsChannel().toInputStream().use { iis ->
-                val file = IOUtils.writeTmpFile("$date-$i.mp4", iis, false)
+                val file = IOUtils.writeTmpFile("$date-$i.mp4", iis)
                 list.add(file)
             }
         }

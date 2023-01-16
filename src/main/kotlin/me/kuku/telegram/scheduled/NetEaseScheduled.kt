@@ -55,16 +55,15 @@ class NetEaseScheduled(
                     if (result.failure()) {
                         logEntity.text = "失败"
                         logEntity.sendFailMessage(telegramBot)
-                        break
                     } else {
                         delay(3000)
                         NetEaseLogic.publish(netEaseEntity)
                         delay(3000)
                         NetEaseLogic.publishMLog(netEaseEntity)
                         delay(1000 * 60)
+                        logEntity.text = "成功"
                     }
                 }
-                logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.sendFailMessage(telegramBot)

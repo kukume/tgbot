@@ -298,9 +298,8 @@ class LoginExtension(
         "netEaseLogin" {
             val qrcodeButton = inlineKeyboardButton("扫码登录", "netEaseQrcodeLogin")
             val passwordButton = inlineKeyboardButton("手机密码登录", "netEasePasswordLogin")
-            val weiboButton = inlineKeyboardButton("使用微博快速登录", "netEaseWeiboLogin")
-            val sendMessage = SendMessage.builder().text("网易云登录").chatId(chatId)
-                .replyMarkup(InlineKeyboardMarkup(listOf(listOf(qrcodeButton), listOf(passwordButton), listOf(weiboButton), returnButton())))
+            val sendMessage = EditMessageText.builder().text("网易云登录").chatId(chatId).messageId(message.messageId)
+                .replyMarkup(InlineKeyboardMarkup(listOf(listOf(qrcodeButton), listOf(passwordButton), returnButton())))
                 .build()
             bot.execute(sendMessage)
         }
@@ -346,16 +345,26 @@ class LoginExtension(
             }
         }
         "netEasePasswordLogin" {
-            bot.execute(SendMessage.builder().text("请发送手机号").chatId(chatId).build())
+            val sendPhoneMessaeg = bot.execute(SendMessage.builder().text("请发送手机号").chatId(chatId).build())
             val phoneMessage = query.waitNextMessage()
             val phone = phoneMessage.text
             if (phone.length != 11) error("手机号码格式不正确")
-            bot.execute(SendMessage.builder().text("请发送密码").chatId(chatId).build())
+            val sendPasswordMessage = bot.execute(SendMessage.builder().text("请发送密码").chatId(chatId).build())
             val passwordMessage = query.waitNextMessage()
             val password = passwordMessage.text
-        }
-        "netEaseWeiboLogin" {
-            error("没写")
+            val result = NetEaseLogic.login(phone, password)
+            sendPhoneMessaeg.delete()
+            phoneMessage.delete()
+            sendPasswordMessage.delete()
+            passwordMessage.delete()
+            if (result.success()) {
+                val newEntity = result.data()
+                val entity = netEaseService.findByTgId(tgId) ?: NetEaseEntity().also { it.tgId = tgId }
+                entity.csrf = newEntity.csrf
+                entity.musicU = newEntity.musicU
+                netEaseService.save(entity)
+                bot.execute(SendMessage.builder().chatId(chatId).text("绑定网易云音乐成功").build())
+            } else bot.execute(SendMessage.builder().chatId(chatId).text(result.message).build())
         }
     }
 

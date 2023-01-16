@@ -53,18 +53,18 @@ object NetEaseLogic {
 
     suspend fun login(phone: String, password: String): CommonResult<NetEaseEntity> {
         val map = mapOf("countrycode" to "86", "password" to if (password.length == 32) password else password.md5(), "phone" to phone,
-            "rememberLogin" to "true", "captcha" to "undefined")
+            "rememberLogin" to "true")
         val response = OkHttpKtUtils.post("$domain/weapi/login/cellphone", prepare(map),
-            mapOf("crypto" to "weapi", "os" to "pc",
-                "Referer" to "https://music.163.com", "User-Agent" to "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36"))
+            mapOf("Referer" to "https://music.163.com", "User-Agent" to "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.30 Safari/537.36",
+                "cookie" to "os=ios; appver=8.7.01; __remember_me=true; "))
         val jsonNode = OkUtils.json(response)
-        return if (jsonNode.getInteger("code") == 200) {
+        return if (jsonNode["code"].asInt() == 200) {
             val cookie = OkUtils.cookie(response)
-            val csrf = OkUtils.cookie(cookie, "__csrf")
-            val musicU = OkUtils.cookie(cookie, "MUSIC_U")
+            val csrf = OkUtils.cookie(cookie, "__csrf")!!
+            val musicU = OkUtils.cookie(cookie, "MUSIC_U")!!
             CommonResult.success(NetEaseEntity().also {
-                it.csrf = csrf!!
-                it.musicU = musicU!!
+                it.csrf = csrf
+                it.musicU = musicU
             })
         } else CommonResult.failure(jsonNode.getString("message"))
     }
