@@ -223,7 +223,7 @@ object WeiboLogic {
         val blogId = jsonNode["mblogid"].asText()
         val id = jsonNode["id"].asLong()
         val text = jsonNode["text_raw"].asText()
-        val ipFrom = jsonNode["region_name"].asText()
+        val ipFrom = jsonNode["region_name"]?.asText() ?: ""
         val user = jsonNode["user"]
         val userid = user["id"].asLong()
         val username = user["screen_name"].asText()
