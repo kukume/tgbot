@@ -1,5 +1,3 @@
-@file:Suppress("VulnerableLibrariesLocal")
-
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
