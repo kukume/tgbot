@@ -3,6 +3,8 @@ package me.kuku.telegram.logic
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.utils.io.jvm.javaio.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import me.kuku.pojo.CommonResult
 import me.kuku.telegram.utils.ffmpeg
 import me.kuku.utils.*
@@ -10,6 +12,7 @@ import okhttp3.MultipartBody
 import org.jsoup.Jsoup
 import org.springframework.stereotype.Service
 import java.io.File
+import java.io.FileOutputStream
 import java.nio.charset.Charset
 
 @Service
@@ -109,18 +112,21 @@ class ToolLogic {
                 list.add(file)
             }
         }
-        val tsFileList = mutableListOf<File>()
+        val sb = StringBuilder()
         for (file in list) {
-            val path = file.absolutePath
-            val newPath = path.replace(".mp4", ".ts")
-            ffmpeg("ffmpeg -i $path -vcodec copy -acodec copy -vbsf h264_mp4toannexb $newPath")
-            tsFileList.add(File(newPath))
+            sb.appendLine("file ${file.absolutePath.replace("\\", "/")}")
         }
-        val str = tsFileList.joinToString("|") { it.absolutePath }
-        val newPath = tsFileList[0].absolutePath.replace("$date-0.ts", "$date-output.mp4")
-        ffmpeg("ffmpeg -i \"concat:$str\" -acodec copy -vcodec copy -absf aac_adtstoasc $newPath")
+        sb.removeSuffix("\n")
+        val txtFile = File("$date.txt")
+        println(txtFile.absoluteFile)
+        val txtFos = withContext(Dispatchers.IO) {
+            FileOutputStream(txtFile)
+        }
+        IOUtils.write(sb.toString().byteInputStream(), txtFos)
+        val newPath = list[0].absolutePath.replace("$date-0.mp4", "$date-output.mp4")
+        ffmpeg("ffmpeg -f concat -safe 0 -i $date.txt -c copy $newPath")
         list.forEach { it.delete() }
-        tsFileList.forEach { it.delete() }
+        txtFile.delete()
         return File(newPath)
     }
 
