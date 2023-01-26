@@ -110,7 +110,7 @@ class DouYuLogic(
                 for (singleJsonNode in list) {
                     val douYuRoom = DouYuRoom(singleJsonNode.getString("room_name"), singleJsonNode.getString("nickname"),
                         "https://www.douyu.com${singleJsonNode.getString("url")}", singleJsonNode.getString("game_name"), singleJsonNode.getInteger("show_status") == 1 && singleJsonNode.getInteger("videoLoop") == 0 ,
-                        singleJsonNode.getString("online"), singleJsonNode.getLong("room_id"), singleJsonNode["room_src"].asText())
+                        singleJsonNode.getString("online"), singleJsonNode.getLong("room_id"), singleJsonNode["room_src"].asText().replace("/dy1", ""))
                     resultList.add(douYuRoom)
                 }
             } else return CommonResult.failure(jsonNode.getString("msg"))
