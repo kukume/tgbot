@@ -413,7 +413,8 @@ class ExecExtension(
         query("douYuExec") {
             douYuService.findByTgId(tgId) ?: error("未绑定斗鱼账号")
             val fishGroupSignButton = inlineKeyboardButton("鱼吧签到", "fishGroupSign")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(fishGroupSignButton), returnButton()))
+            val appSignButton = inlineKeyboardButton("app签到", "douYuAppSign")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(fishGroupSignButton), listOf(appSignButton), returnButton()))
             val editMessageText = EditMessageText.builder().chatId(message.chatId).messageId(message.messageId).text("斗鱼")
                 .replyMarkup(inlineKeyboardMarkup).build()
             bot.execute(editMessageText)
@@ -421,8 +422,16 @@ class ExecExtension(
 
         "fishGroupSign" {
             val douYuEntity = douYuService.findByTgId(tgId)!!
+            if (douYuEntity.cookie.isEmpty()) error("未扫码登录斗鱼，无法执行鱼吧签到")
             douYuLogic.fishGroup(douYuEntity)
             bot.execute(SendMessage.builder().chatId(chatId).text("斗鱼鱼吧签到成功").build())
+        }
+
+        "douYuAppSign" {
+            val douYuEntity = douYuService.findByTgId(tgId)!!
+            if (douYuEntity.appCookie.isEmpty()) error("未使用cookie登录斗鱼，无法执行app签到")
+            douYuLogic.appSign(douYuEntity)
+            bot.execute(SendMessage.builder().chatId(chatId).text("斗鱼app签到成功").build())
         }
 
     }

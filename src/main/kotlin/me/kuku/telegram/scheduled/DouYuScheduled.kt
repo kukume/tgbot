@@ -73,7 +73,10 @@ class DouYuScheduled(
                 it.type = LogType.DouYu
             }
             kotlin.runCatching {
-                douYuLogic.fishGroup(douYuEntity)
+                val cookie = douYuEntity.cookie
+                if (cookie.isNotEmpty()) douYuLogic.fishGroup(douYuEntity)
+                val appCookie = douYuEntity.appCookie
+                if (appCookie.isNotEmpty()) douYuLogic.appSign(douYuEntity)
                 logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"
