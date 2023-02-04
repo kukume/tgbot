@@ -28,7 +28,8 @@ class ManagerExtension(
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
     private val douYinService: DouYinService,
-    private val smZdmService: SmZdmService
+    private val smZdmService: SmZdmService,
+    private val aliDriverService: AliDriverService
 ): AbilityExtension {
 
     private fun returnButton(): InlineKeyboardButton {
@@ -50,6 +51,7 @@ class ManagerExtension(
         val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivManager" }
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinManager" }
         val smZdmButton = InlineKeyboardButton("什么值得买").also { it.callbackData = "smZdmManager" }
+        val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverManager")
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -57,7 +59,8 @@ class ManagerExtension(
             listOf(miHoYoButton, netEaseButton),
             listOf(xiaomiStepButton, weiboButton),
             listOf(twitterButton, pixivButton),
-            listOf(douYinButton, smZdmButton)
+            listOf(douYinButton, smZdmButton),
+            listOf(aliDriver)
         ))
     }
 
@@ -697,6 +700,37 @@ class ManagerExtension(
             smZdmEntity.sign = Status.OFF
             smZdmService.save(smZdmEntity)
             editMessage(bot, message, smZdmEntity)
+        }
+    }
+
+    private fun editMessage(bot: BaseAbilityBot, message: Message, aliDriverEntity: AliDriverEntity) {
+        val signOpenButton = inlineKeyboardButton("自动签到（开）", "aliDriverSignOpen")
+        val signCloseButton = inlineKeyboardButton("自动签到（关）", "aliDriverSignClose")
+        val editMessageText = EditMessageText.builder().chatId(message.chatId).messageId(message.messageId)
+            .text("""
+                阿里云盘，当前状态：
+                签到：${aliDriverEntity.sign.str()}
+            """.trimIndent()).replyMarkup(InlineKeyboardMarkup(listOf(listOf(signOpenButton, signCloseButton), listOf(returnButton()))))
+            .build()
+        bot.execute(editMessageText)
+    }
+
+    fun CallbackSubscriber.aliDriver() {
+        before {
+            val aliDriverEntity = aliDriverService.findByTgId(tgId) ?: error("未绑定什么值得买账号")
+            set(aliDriverEntity)
+        }
+        "aliDriverManager" {}
+        "aliDriverSignOpen" {
+            firstArg<AliDriverEntity>().sign = Status.ON
+        }
+        "aliDriverSignClose" {
+            firstArg<AliDriverEntity>().sign = Status.OFF
+        }
+        after {
+            val entity: AliDriverEntity = firstArg()
+            aliDriverService.save(entity)
+            editMessage(bot, message, entity)
         }
     }
 

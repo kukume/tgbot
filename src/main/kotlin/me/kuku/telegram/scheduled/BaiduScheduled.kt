@@ -24,7 +24,6 @@ class BaiduScheduled(
                 type = LogType.Baidu
             }
             kotlin.runCatching {
-                baiduLogic.tieBaSign(baiduEntity)
                 for (i in 0 until 12) {
                     delay(1000 * 15)
                     baiduLogic.ybbWatchAd(baiduEntity)
@@ -34,6 +33,7 @@ class BaiduScheduled(
                     baiduLogic.ybbWatchAd(baiduEntity, "v3")
                 }
                 baiduLogic.ybbSign(baiduEntity)
+                baiduLogic.tieBaSign(baiduEntity)
                 logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"

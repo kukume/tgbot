@@ -25,7 +25,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.telegram:telegrambots:6.4.0")
     implementation("org.telegram:telegrambots-abilities:6.4.0")
-    implementation("me.kuku:utils:2.2.2.1")
+    implementation("me.kuku:utils:2.2.3.0")
     implementation("org.jsoup:jsoup:1.15.3")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
@@ -39,6 +39,6 @@ tasks.withType<KotlinCompile> {
     }
 }
 
-tasks.withType<Test> {
+tasks.test {
     useJUnitPlatform()
 }

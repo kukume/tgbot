@@ -16,7 +16,7 @@ class LogEntity: BaseEntity() {
     @Indexed(name = "tgId")
     var tgId: Long = 0
     var type: LogType = LogType.None
-    var text: String = ""
+    var text: String = "成功"
 
     fun sendFailMessage(telegramBot: TelegramBot) {
         val sendMessage = SendMessage()
@@ -39,7 +39,8 @@ enum class LogType(val value: String) {
     Step("修改步数"),
     Weibo("微博"),
     DouYu("斗鱼"),
-    SmZdm("什么值得买")
+    SmZdm("什么值得买"),
+    AliDriver("阿里云盘")
 }
 
 interface LogRepository: ReactiveMongoRepository<LogEntity, Int> {

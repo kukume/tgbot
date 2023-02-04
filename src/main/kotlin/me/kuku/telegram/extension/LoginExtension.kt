@@ -40,7 +40,8 @@ class LoginExtension(
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
     private val buffService: BuffService,
-    private val smZdmService: SmZdmService
+    private val smZdmService: SmZdmService,
+    private val aliDriverService: AliDriverService
 ): AbilityExtension {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -60,6 +61,7 @@ class LoginExtension(
         val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivLogin" }
         val buffButton = InlineKeyboardButton("网易Buff").also { it.callbackData = "buffLogin" }
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmLogin")
+        val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriverLogin")
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -68,7 +70,8 @@ class LoginExtension(
             listOf(xiaomiStepButton, leXinStepButton),
             listOf(weiboStepButton, douYinButton),
             listOf(twitterButton, pixivButton),
-            listOf(buffButton, smZdmButton)
+            listOf(buffButton, smZdmButton),
+            listOf(aliDriverButton)
         ))
     }
 
@@ -710,6 +713,33 @@ class LoginExtension(
             photoMessage.delete()
             if (fail)
                 bot.execute(SendMessage.builder().text("什么值得买二维码已过期").chatId(chatId).build())
+        }
+    }
+
+    fun CallbackSubscriber.aliDriver() {
+        "aliDriverLogin" {
+            val qrcode = AliDriverLogic.login1()
+            client.get("https://api.kukuqaq.com/qrcode?text=${qrcode.qrcodeUrl.toUrlEncode()}").body<InputStream>().use {
+                val sendPhoto = SendPhoto.builder().chatId(chatId)
+                    .photo(InputFile(it, "aliQrcode.png")).caption("请使用阿里云盘app扫码登陆").build()
+                bot.execute(sendPhoto)
+            }
+            var i = 0
+            while (true) {
+                if (++i > 20) error("阿里云盘登陆二维码已过期")
+                delay(3000)
+                val commonResult = AliDriverLogic.login2(qrcode)
+                if (commonResult.success()) {
+                    val data = commonResult.data()
+                    val refreshToken = data.refreshToken
+                    val aliDriverEntity = aliDriverService.findByTgId(tgId) ?: AliDriverEntity().also {
+                        it.tgId = tgId
+                    }
+                    aliDriverEntity.refreshToken = refreshToken
+                    aliDriverService.save(aliDriverEntity)
+                    error("绑定阿里云盘成功")
+                } else if (commonResult.code != 0) error(commonResult.message)
+            }
         }
     }
 

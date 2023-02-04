@@ -32,7 +32,8 @@ class ExecExtension(
     private val douYinService: DouYinService,
     private val douYuService: DouYuService,
     private val douYuLogic: DouYuLogic,
-    private val smZdmService: SmZdmService
+    private val smZdmService: SmZdmService,
+    private val aliDriverService: AliDriverService
 ): AbilityExtension {
 
     private val recommendCache = mutableMapOf<Long, List<DouYinWork>>()
@@ -49,13 +50,14 @@ class ExecExtension(
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinExec" }
         val douYuButton = InlineKeyboardButton("斗鱼").also { it.callbackData = "douYuExec" }
         val smZdmButton = InlineKeyboardButton("什么值得买").also { it.callbackData = "smZdmExec" }
+        val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverExec")
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(hostLocButton, kuGouButton),
             listOf(miHoYoButton, netEaseButton),
             listOf(stepButton, weiboButton),
             listOf(douYinButton, douYuButton),
-            listOf(smZdmButton)
+            listOf(smZdmButton, aliDriver)
         ))
     }
 
@@ -444,6 +446,25 @@ class ExecExtension(
             SmZdmLogic.webSign(smZdmEntity)
             SmZdmLogic.appSign(smZdmEntity)
             bot.execute(SendMessage.builder().chatId(chatId).text("什么值得买app与网页签到成功").build())
+        }
+    }
+
+    fun CallbackSubscriber.aliDriver() {
+        before {
+            val aliDriverEntity = aliDriverService.findByTgId(tgId) ?: error("未绑定阿里云盘账号")
+            set(aliDriverEntity)
+        }
+        "aliDriverExec" {
+            val signButton = inlineKeyboardButton("签到", "aliDriverSign")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(signButton), returnButton()))
+            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(message.messageId).text("阿里云盘")
+                .replyMarkup(inlineKeyboardMarkup).build()
+            bot.execute(editMessageText)
+        }
+        "aliDriverSign" {
+            val entity: AliDriverEntity = firstArg()
+            val res = AliDriverLogic.sign(entity)
+            bot.execute(SendMessage.builder().chatId(chatId).text(res).build())
         }
     }
 
