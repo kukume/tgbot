@@ -169,36 +169,68 @@ class LoginExtension(
         }
     }
 
-    fun douYuLogin() = callback("douYuLogin") {
-        val qrcode = douYuLogic.getQrcode()
-        val imageUrl = qrcode.url
-        client.get("https://api.kukuqaq.com/qrcode?text=${imageUrl.toUrlEncode()}").body<InputStream>().use { iim ->
-            val photo = SendPhoto(query.message.chatId.toString(), InputFile(iim,
-                "斗鱼登录二维码.jpg")).apply { caption = "请使用斗鱼app扫码登录" }
-            bot.execute(photo)
+    fun CallbackSubscriber.douYu() {
+        "douYuLogin" {
+            val qrLogin = inlineKeyboardButton("扫码登录", "douYuQr")
+            val douYuAppCookie = inlineKeyboardButton("斗鱼app的cookie", "douYuAppCookie")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
+                listOf(qrLogin),
+                listOf(douYuAppCookie),
+                returnButton()
+            ))
+            val editMessageText = EditMessageText.builder().text("斗鱼登录").chatId(chatId).messageId(message.messageId)
+                .replyMarkup(inlineKeyboardMarkup).build()
+            bot.execute(editMessageText)
         }
-        while (true) {
-            delay(3000)
-            val result = douYuLogic.checkQrcode(qrcode)
-            when (result.code) {
-                0 -> continue
-                200 -> {
-                    val newEntity = result.data()
-                    val douYuEntity = douYuService.findByTgId(query.from.id) ?: DouYuEntity().apply {
-                        tgId = query.from.id
+        "douYuQr" {
+            val qrcode = douYuLogic.getQrcode()
+            val imageUrl = qrcode.url
+            client.get("https://api.kukuqaq.com/qrcode?text=${imageUrl.toUrlEncode()}").body<InputStream>().use { iim ->
+                val photo = SendPhoto(query.message.chatId.toString(), InputFile(iim,
+                    "斗鱼登录二维码.jpg")).apply { caption = "请使用斗鱼app扫码登录" }
+                bot.execute(photo)
+            }
+            while (true) {
+                delay(3000)
+                val result = douYuLogic.checkQrcode(qrcode)
+                when (result.code) {
+                    0 -> continue
+                    200 -> {
+                        val newEntity = result.data()
+                        val douYuEntity = douYuService.findByTgId(query.from.id) ?: DouYuEntity().apply {
+                            tgId = query.from.id
+                        }
+                        douYuEntity.cookie = newEntity.cookie
+                        douYuService.save(douYuEntity)
+                        val sendMessage = SendMessage(query.message.chatId.toString(), "绑定斗鱼成功")
+                        bot.execute(sendMessage)
+                        break
                     }
-                    douYuEntity.cookie = newEntity.cookie
-                    douYuService.save(douYuEntity)
-                    val sendMessage = SendMessage(query.message.chatId.toString(), "绑定斗鱼成功")
-                    bot.execute(sendMessage)
-                    break
-                }
-                else -> {
-                    val sendMessage = SendMessage(query.message.chatId.toString(), result.message)
-                    bot.execute(sendMessage)
-                    break
+                    else -> {
+                        val sendMessage = SendMessage(query.message.chatId.toString(), result.message)
+                        bot.execute(sendMessage)
+                        break
+                    }
                 }
             }
+        }
+        "douYuAppCookie" {
+            val sendMessage = bot.execute(SendMessage.builder().chatId(chatId).text("请发送抓包获取的斗鱼app的cookie\n打开抓包软件，签到，然后搜索url为https://apiv2.douyucdn.cn/h5nc/sign/sendSign的请求，复制其cookie").build())
+            val cookieMessage = query.waitNextMessage()
+            val cookie = cookieMessage.text
+            kotlin.runCatching {
+                douYuLogic.appSign(DouYuEntity().also { it.appCookie = cookie })
+                val douYuEntity = douYuService.findByTgId(query.from.id) ?: DouYuEntity().apply {
+                    tgId = query.from.id
+                }
+                douYuEntity.appCookie = cookie
+                douYuService.save(douYuEntity)
+                bot.execute(SendMessage.builder().text("绑定斗鱼成功").chatId(chatId).build())
+            }.onFailure {
+                bot.execute(SendMessage.builder().text("绑定失败，cookie无效").chatId(chatId).build())
+            }
+            cookieMessage.delete()
+            sendMessage.delete()
         }
     }
 

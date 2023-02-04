@@ -14,6 +14,7 @@ import me.kuku.telegram.entity.DouYuEntity
 import me.kuku.telegram.entity.DouYuService
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
+import java.nio.charset.Charset
 
 @Service
 class DouYuLogic(
@@ -219,6 +220,54 @@ class DouYuLogic(
             list.add(douYuFish)
         }
         return list
+    }
+
+    private fun String.token(): String {
+        return this.substring(this.indexOf('.') + 1, this.lastIndexOf('.')).base64Decode()
+            .toString(Charset.defaultCharset()).toJsonNode()["token"].asText()
+    }
+
+    suspend fun appSign(douYuEntity: DouYuEntity) {
+        val appCookie = douYuEntity.appCookie
+        val did = OkUtils.cookie(appCookie, "acf_did") ?: error("cookie格式不正确")
+        val auth = OkUtils.cookie(appCookie, "acf_auth") ?: error("cookie格式不正确")
+        val token = auth.token()
+        val response = client.post("https://apiv2.douyucdn.cn/h5nc/sign/sendSign") {
+            setFormDataContent {
+                append("client_sys", "android1")
+                append("did", did)
+                append("token", token)
+            }
+            headers {
+                append("cookie", appCookie)
+            }
+        }
+        if (response.contentType() == ContentType.Text.Html) error("cookie已失效")
+    }
+
+    private suspend fun joinOrClock(douYuEntity: DouYuEntity, url: String) {
+        val appCookie = douYuEntity.appCookie
+        val dyToken = OkUtils.cookie(appCookie, "dy_token") ?: error("cookie格式不正确")
+        val auth = OkUtils.cookie(appCookie, "acf_auth") ?: error("cookie格式不正确")
+        val token = auth.token()
+        val response = client.post(url) {
+            setFormDataContent {
+                append("token", token)
+                append("dy_token", dyToken)
+            }
+            headers {
+                append("cookie", appCookie)
+            }
+        }
+        if (response.contentType() == ContentType.Text.Html) error("cookie已失效")
+    }
+
+    suspend fun joinSign(douYuEntity: DouYuEntity) {
+        joinOrClock(douYuEntity, "https://apiv2.douyucdn.cn/h5nc/userSignActivity/joinSignActivity")
+    }
+
+    suspend fun clockSign(douYuEntity: DouYuEntity) {
+        joinOrClock(douYuEntity, "https://apiv2.douyucdn.cn/h5nc/userSignActivity/clockSignActivity")
     }
 
 }

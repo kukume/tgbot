@@ -194,10 +194,13 @@ class ManagerExtension(
         val fishCloseButton = InlineKeyboardButton("鱼吧签到（关）").apply { callbackData = "douYuFishClose" }
         val fishPushOpenButton = InlineKeyboardButton("鱼吧推送（开）").apply { callbackData = "douYuFishPushOpen" }
         val fishPushCloseButton = InlineKeyboardButton("鱼吧推送（关）").apply { callbackData = "douYuFishPushClose" }
+        val appSignOpenButton = inlineKeyboardButton("app签到（开）", "douYuAppSignOpen")
+        val appSignCloseButton = inlineKeyboardButton("app签到（关）", "appSignCloseButton")
         val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
             listOf(liveOpenButton, liveCloseButton),
             listOf(fishOpenButton, fishCloseButton),
             listOf(fishPushOpenButton, fishPushCloseButton),
+            listOf(appSignOpenButton, appSignCloseButton),
             listOf(returnButton())
         ))
         val editMessageText = EditMessageText.builder()
@@ -206,48 +209,49 @@ class ManagerExtension(
                 开播提醒：${douYuEntity.live.str()}
                 鱼吧签到：${douYuEntity.fishGroup.str()}
                 鱼吧推送：${douYuEntity.push.str()}
+                app签到：${douYuEntity.appSign.str()}
             """.trimIndent()).replyMarkup(inlineKeyboardMarkup).chatId(message.chatId).messageId(message.messageId).build()
         bot.execute(editMessageText)
     }
 
-    fun douYuManager() = callback{
-        query("douYuManager") {
-            val douYuEntity = douYuService.findByTgId(query.from.id) ?: error("未绑定斗鱼账号")
-            editDouYuMessage(bot, query.message, douYuEntity)
+    fun CallbackSubscriber.douYuManager() {
+        before {
+            val douYuEntity = douYuService.findByTgId(tgId) ?: error("未绑定斗鱼账号")
+            set(douYuEntity)
         }
-        query("douYuLiveOpen") {
-            val douYuEntity = douYuService.findByTgId(query.from.id)!!
+        "douYuManager" {}
+        "douYuLiveOpen" {
+            val douYuEntity = firstArg<DouYuEntity>()
             douYuEntity.live = Status.ON
-            douYuService.save(douYuEntity)
-            editDouYuMessage(bot, query.message, douYuEntity)
         }
-        query("douYuLiveClose") {
-            val douYuEntity = douYuService.findByTgId(query.from.id)!!
+        "douYuLiveClose" {
+            val douYuEntity = firstArg<DouYuEntity>()
             douYuEntity.live = Status.OFF
-            douYuService.save(douYuEntity)
-            editDouYuMessage(bot, query.message, douYuEntity)
         }
         "douYuFishOpen" {
-            val douYuEntity = douYuService.findByTgId(tgId)!!
+            val douYuEntity = firstArg<DouYuEntity>()
             douYuEntity.fishGroup = Status.ON
-            douYuService.save(douYuEntity)
-            editDouYuMessage(bot, message, douYuEntity)
         }
         "douYuFishClose" {
-            val douYuEntity = douYuService.findByTgId(tgId)!!
+            val douYuEntity = firstArg<DouYuEntity>()
             douYuEntity.fishGroup = Status.OFF
-            douYuService.save(douYuEntity)
-            editDouYuMessage(bot, message, douYuEntity)
         }
         "douYuFishPushOpen" {
-            val douYuEntity = douYuService.findByTgId(tgId)!!
+            val douYuEntity = firstArg<DouYuEntity>()
             douYuEntity.push = Status.ON
-            douYuService.save(douYuEntity)
-            editDouYuMessage(bot, message, douYuEntity)
         }
         "douYuFishPushClose" {
-            val douYuEntity = douYuService.findByTgId(tgId)!!
+            val douYuEntity = firstArg<DouYuEntity>()
             douYuEntity.push = Status.OFF
+        }
+        "douYuAppSignOpen" {
+            firstArg<DouYuEntity>().appSign = Status.ON
+        }
+        "douYuAppSignClose" {
+            firstArg<DouYuEntity>().appSign = Status.OFF
+        }
+        after {
+            val douYuEntity = firstArg<DouYuEntity>()
             douYuService.save(douYuEntity)
             editDouYuMessage(bot, message, douYuEntity)
         }
