@@ -7,6 +7,7 @@ import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 import org.springframework.stereotype.Service
 
+@Suppress("DuplicatedCode")
 @Service
 class YgoLogic {
 
@@ -18,8 +19,8 @@ class YgoLogic {
             val spans = element.select("span")
             val chineseName = spans[0].text()
             val japaneseName = spans[1].text()
-            val englishName = spans[2].text()
-            val cardPassword = spans[3].text()
+            val englishName = if (spans.size == 6) spans[2].text() else ""
+            val cardPassword = if (spans.size == 6) spans[3].text() else spans[2].text()
             val a = element.select(".cardimg a").first()!!
             val href = a.attr("href")
             val url = "https://ygocdb.com$href"
@@ -40,8 +41,8 @@ class YgoLogic {
         val spans = document.select(".detail .names span").filter { it -> it.attr("class") != "text-muted" }
         val chineseName = spans[0].text()
         val japaneseName = spans[1].text()
-        val englishName = spans[2].text()
-        val cardPassword = spans[3].text()
+        val englishName = if (spans.size == 6) spans[2].text() else ""
+        val cardPassword = if (spans.size == 6) spans[3].text() else spans[2].text()
         val desc = document.select(".desc").first()!!
         val childNodes = desc.childNodes()
         val sb = StringBuilder()
