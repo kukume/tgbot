@@ -9,7 +9,6 @@ plugins {
 
 group = "me.kuku"
 version = "1.0-SNAPSHOT"
-java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
 //    mavenLocal()
@@ -33,8 +32,11 @@ dependencies {
 tasks.compileKotlin {
     kotlinOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict", "-Xcontext-receivers")
-        jvmTarget = "17"
     }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 tasks.test {
