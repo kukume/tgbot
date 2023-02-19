@@ -2,8 +2,10 @@ package me.kuku.telegram.config
 
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import kotlinx.coroutines.runBlocking
 import me.kuku.telegram.utils.AbilitySubscriber
-import me.kuku.telegram.utils.CallBackQ
+import me.kuku.telegram.utils.CallbackQ
+import me.kuku.telegram.utils.TelegramSubscribe
 import me.kuku.telegram.utils.context
 import me.kuku.utils.client
 import org.mapdb.DBMaker
@@ -21,7 +23,6 @@ import org.telegram.abilitybots.api.db.MapDBContext
 import org.telegram.abilitybots.api.objects.Ability
 import org.telegram.abilitybots.api.objects.MessageContext
 import org.telegram.abilitybots.api.objects.Reply
-import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.DefaultBotOptions.ProxyType
 import org.telegram.telegrambots.meta.TelegramBotsApi
@@ -36,6 +37,8 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
 import java.io.File
 import java.io.InputStream
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.declaredMemberExtensionFunctions
 import kotlin.reflect.full.extensionReceiverParameter
 import kotlin.reflect.jvm.jvmName
@@ -57,7 +60,6 @@ class TelegramBean(
         context = applicationContext
         return TelegramBot(telegramConfig.token, telegramConfig.username, telegramConfig.creatorId, botOptions, applicationContext)
     }
-
 }
 
 @Component
@@ -83,9 +85,13 @@ private fun createDbContext(botUsername: String): MapDBContext {
         .make())
 }
 
-class TelegramBot(botToken: String, botUsername: String, private val creatorId: Long, botOptions: DefaultBotOptions,
+class TelegramBot(val token: String, botUsername: String, private val creatorId: Long, botOptions: DefaultBotOptions,
                   private val applicationContext: ApplicationContext):
-    AbilityBot(botToken, botUsername, createDbContext(botUsername), botOptions) {
+    AbilityBot(token, botUsername, createDbContext(botUsername), botOptions) {
+
+    private val telegramSubscribeList = mutableListOf<TelegramSubscribe>()
+    private val updateFunction = mutableListOf<UpdateFunction>()
+    private data class UpdateFunction(val function: KFunction<*>, val any: Any)
 
     override fun creatorId() = creatorId
 
@@ -96,14 +102,14 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
         val names = applicationContext.beanDefinitionNames
         val clazzList = mutableListOf<Class<*>>(DefaultAbilities::class.java)
         val map = mutableMapOf<String, Ability>()
-        val list = mutableListOf<Reply>()
         for (name in names) {
             applicationContext.getType(name)?.let {
                 clazzList.add(it)
             }
         }
+        val list = mutableListOf<Reply>()
         val abilitySubscriber = AbilitySubscriber()
-        val callBackQList= mutableListOf<CallBackQ>()
+        val callBackQList= mutableListOf<CallbackQ>()
         for (clazz in clazzList) {
             val methods = clazz.declaredMethods
             var any: Any? = null
@@ -129,15 +135,26 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
             for (function in functions) {
                 val type = function.extensionReceiverParameter?.type
                 val kClass = type?.classifier as? KClass<*>
-                val jvmName = kClass?.jvmName
-                if (jvmName == "me.kuku.telegram.utils.AbilitySubscriber") {
-                    val obj = applicationContext.getBean(clazz)
-                    function.call(obj, abilitySubscriber)
-                } else if (jvmName == "me.kuku.telegram.utils.CallBackQ") {
-                    val callBackQ = CallBackQ()
-                    val obj = applicationContext.getBean(clazz)
-                    function.call(obj, callBackQ)
-                    callBackQList.add(callBackQ)
+                when (kClass?.jvmName) {
+                    "me.kuku.telegram.utils.AbilitySubscriber" -> {
+                        val obj = applicationContext.getBean(clazz)
+                        function.call(obj, abilitySubscriber)
+                    }
+                    "me.kuku.telegram.utils.CallbackQ" -> {
+                        val callBackQ = CallbackQ()
+                        val obj = applicationContext.getBean(clazz)
+                        function.call(obj, callBackQ)
+                        callBackQList.add(callBackQ)
+                    }
+                    "me.kuku.telegram.utils.TelegramSubscribe" -> {
+                        val telegramSubscribe = TelegramSubscribe()
+                        val obj = applicationContext.getBean(clazz)
+                        function.call(obj, telegramSubscribe)
+                        telegramSubscribeList.add(telegramSubscribe)
+                    }
+                    "org.telegram.telegrambots.meta.api.objects.Update" -> {
+                        updateFunction.add(UpdateFunction(function, applicationContext.getBean(clazz)))
+                    }
                 }
             }
         }
@@ -155,13 +172,19 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
         initStatsMethod.invoke(this)
     }
 
-    public override fun addExtension(extension: AbilityExtension) {
-        super.addExtension(extension)
-    }
-
     override fun onUpdateReceived(update: Update) {
         super.onUpdateReceived(update)
         applicationContext.publishEvent(TelegramUpdateEvent(update))
+        for (function in updateFunction) {
+            runBlocking {
+                function.function.callSuspend(function.any, update)
+            }
+        }
+        for (telegramSubscribe in telegramSubscribeList) {
+            runBlocking {
+                telegramSubscribe.invoke(this@TelegramBot, update)
+            }
+        }
     }
 
     override fun blacklist(): MutableSet<Long> {
@@ -171,7 +194,7 @@ class TelegramBot(botToken: String, botUsername: String, private val creatorId: 
     override fun getBaseUrl(): String {
         val telegramConfig = applicationContext.getBean(TelegramConfig::class.java)
         return if (telegramConfig.url.isEmpty()) super.getBaseUrl()
-        else "${telegramConfig.url}/bot${botToken}/"
+        else "${telegramConfig.url}/bot$token/"
     }
 
     override fun admins(): MutableSet<Long> {

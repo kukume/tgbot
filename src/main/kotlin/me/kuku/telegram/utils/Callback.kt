@@ -7,9 +7,7 @@ import me.kuku.telegram.config.TelegramCallbackExceptionEvent
 import me.kuku.utils.JobManager
 import org.telegram.abilitybots.api.bot.BaseAbilityBot
 import org.telegram.abilitybots.api.objects.Reply
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
-import org.telegram.telegrambots.meta.api.objects.Message
 
 private suspend fun invokeCallback(bot: BaseAbilityBot, query: CallbackQuery, block: suspend TelegramCallbackContext.() -> Unit) {
     runCatching {
@@ -19,7 +17,7 @@ private suspend fun invokeCallback(bot: BaseAbilityBot, query: CallbackQuery, bl
     }
 }
 
-class CallBackQ {
+class CallbackQ {
 
     val threadLocal = ThreadLocal<MutableMap<String, Any>>()
 
@@ -66,27 +64,27 @@ class CallBackQ {
         return cacheMap.values.toList()[2] as T
     }
 
-    fun query(name: String, block: suspend TelegramCallbackContext.() -> Unit): CallBackQ {
+    fun query(name: String, block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
         map[name] = block
         return this
     }
 
-    operator fun String.invoke(block: suspend TelegramCallbackContext.() -> Unit): CallBackQ {
+    operator fun String.invoke(block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
         map[this] = block
-        return this@CallBackQ
+        return this@CallbackQ
     }
 
-    fun queryStartWith(name: String, block: suspend TelegramCallbackContext.() -> Unit): CallBackQ {
+    fun queryStartWith(name: String, block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
         startWithMap[name] = block
         return this
     }
 
-    fun before(block: suspend TelegramCallbackContext.() -> Unit): CallBackQ {
+    fun before(block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
         beforeList.add(block)
         return this
     }
 
-    fun after(block: suspend TelegramCallbackContext.() -> Unit): CallBackQ {
+    fun after(block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
         afterList.add(block)
         return this
     }
@@ -127,8 +125,8 @@ class CallBackQ {
 
 }
 
-fun callback(body: CallBackQ.() -> Unit): Reply {
-    val q = CallBackQ().apply { body() }
+fun callback(body: CallbackQ.() -> Unit): Reply {
+    val q = CallbackQ().apply { body() }
     return q.toReply()
 }
 
@@ -150,20 +148,4 @@ fun callbackStartWith(data: String, block: suspend TelegramCallbackContext.() ->
         val resData = query.data
         resData.startsWith(data)
     })
-}
-
-class TelegramCallbackContext(val bot: BaseAbilityBot, val query: CallbackQuery) {
-    val message: Message = query.message
-    val tgId = query.from.id
-    val chatId: Long = message.chatId
-
-    fun Message.delete(timeout: Long = 0) {
-        if (timeout > 0) {
-            JobManager.delay(timeout) {
-                bot.execute(DeleteMessage.builder().chatId(chatId).messageId(this@delete.messageId).build())
-            }
-        } else {
-            bot.execute(DeleteMessage.builder().chatId(chatId).messageId(this.messageId).build())
-        }
-    }
 }

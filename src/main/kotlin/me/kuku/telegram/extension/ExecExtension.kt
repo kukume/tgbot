@@ -438,7 +438,7 @@ class ExecExtension(
 
     }
 
-    fun CallbackSubscriber.smZdm() {
+    fun CallbackQ.smZdm() {
         before {
             val smZdmEntity = smZdmService.findByTgId(tgId) ?: error("未绑定什么值得买账号")
             set("smZdmEntity", smZdmEntity)
@@ -458,7 +458,7 @@ class ExecExtension(
         }
     }
 
-    fun CallbackSubscriber.aliDriver() {
+    fun CallbackQ.aliDriver() {
         before {
             val aliDriverEntity = aliDriverService.findByTgId(tgId) ?: error("未绑定阿里云盘账号")
             set(aliDriverEntity)

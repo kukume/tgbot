@@ -96,30 +96,34 @@ class LoginExtension(
         execute(sendMessage)
     }
 
-    fun baiduLogin() = callback("baiduLogin") {
-        val qrcode = baiduLogic.getQrcode()
-        OkHttpKtUtils.getByteStream(qrcode.image).use { iis ->
-            val photo = SendPhoto(query.message.chatId.toString(), InputFile(iis, "百度登录二维码.jpg"))
-                .apply { caption = "请使用百度app扫码登陆，百度网盘等均可" }
-            bot.execute(photo)
-        }
-        val baiduEntity = baiduService.findByTgId(query.from.id) ?: BaiduEntity().apply {
-            tgId = query.from.id
-        }
-        var i = 0
-        while (true) {
-            if (++i > 10) error("百度二维码已超时")
-            delay(3000)
-            try {
-                val result = baiduLogic.checkQrcode(qrcode)
-                if (result.success()) {
-                    val newEntity = result.data()
-                    baiduEntity.cookie = newEntity.cookie
-                    baiduService.save(baiduEntity)
-                    val sendMessage = SendMessage(query.message.chatId.toString(), "绑定百度成功")
-                    bot.execute(sendMessage)
+    fun TelegramSubscribe.baiduLogin() {
+        callback("baiduLogin") {
+            val qrcode = baiduLogic.getQrcode()
+            OkHttpKtUtils.getByteStream(qrcode.image).use { iis ->
+                val photo = SendPhoto(query.message.chatId.toString(), InputFile(iis, "百度登录二维码.jpg"))
+                val phoneMessage = bot.execute(photo)
+                editMessageText("请使用百度app扫描以下二维码登陆，百度网盘等均可") {
+                    phoneMessage.delete()
                 }
-            } catch (ignore: Exception) {}
+            }
+            val baiduEntity = baiduService.findByTgId(query.from.id) ?: BaiduEntity().apply {
+                tgId = query.from.id
+            }
+            var i = 0
+            while (true) {
+                if (++i > 10) error("百度二维码已超时")
+                delay(3000)
+                try {
+                    val result = baiduLogic.checkQrcode(qrcode)
+                    if (result.success()) {
+                        val newEntity = result.data()
+                        baiduEntity.cookie = newEntity.cookie
+                        baiduService.save(baiduEntity)
+                        val sendMessage = SendMessage(query.message.chatId.toString(), "绑定百度成功")
+                        bot.execute(sendMessage)
+                    }
+                } catch (ignore: Exception) {}
+            }
         }
     }
 
@@ -169,7 +173,7 @@ class LoginExtension(
         }
     }
 
-    fun CallbackSubscriber.douYu() {
+    fun CallbackQ.douYu() {
         "douYuLogin" {
             val qrLogin = inlineKeyboardButton("扫码登录", "douYuQr")
             val douYuAppCookie = inlineKeyboardButton("斗鱼app的cookie", "douYuAppCookie")
@@ -329,7 +333,7 @@ class LoginExtension(
 
 
 
-    fun CallbackSubscriber.netEase() {
+    fun CallbackQ.netEase() {
         "netEaseLogin" {
             val qrcodeButton = inlineKeyboardButton("扫码登录", "netEaseQrcodeLogin")
             val passwordButton = inlineKeyboardButton("手机密码登录", "netEasePasswordLogin")
@@ -641,7 +645,7 @@ class LoginExtension(
         }
     }
 
-    fun CallbackSubscriber.smZdm() {
+    fun CallbackQ.smZdm() {
         "smZdmLogin" {
             val loginButton = inlineKeyboardButton("使用手机验证码登陆", "smZdmLoginByPhoneCode")
             val wechatQrcodeButton = inlineKeyboardButton("使用微信扫码登陆", "smZdmWechatLoginByPhoneCode")
@@ -748,7 +752,7 @@ class LoginExtension(
         }
     }
 
-    fun CallbackSubscriber.aliDriver() {
+    fun CallbackQ.aliDriver() {
         "aliDriverLogin" {
             val qrcode = AliDriverLogic.login1()
             client.get("https://api.kukuqaq.com/qrcode?text=${qrcode.qrcodeUrl.toUrlEncode()}").body<InputStream>().use {

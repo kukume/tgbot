@@ -46,11 +46,3 @@ fun MessageContext.send(message: String): Optional<Message> {
 fun <T: Serializable, Method: BotApiMethod<T>> MessageContext.execute(method: Method): Optional<T> {
     return bot().silent().execute(method)
 }
-
-class AbilityContext(val messageContext: MessageContext) {
-
-    val bot: BaseAbilityBot = messageContext.bot()
-
-    val silent: SilentSender = bot.silent()
-
-}

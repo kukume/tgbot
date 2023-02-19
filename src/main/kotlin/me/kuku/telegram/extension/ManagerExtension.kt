@@ -214,7 +214,7 @@ class ManagerExtension(
         bot.execute(editMessageText)
     }
 
-    fun CallbackSubscriber.douYuManager() {
+    fun CallbackQ.douYuManager() {
         before {
             val douYuEntity = douYuService.findByTgId(tgId) ?: error("未绑定斗鱼账号")
             set(douYuEntity)
@@ -684,7 +684,7 @@ class ManagerExtension(
         bot.execute(editMessageText)
     }
 
-    fun CallbackSubscriber.smZdm() {
+    fun CallbackQ.smZdm() {
         before {
             val smZdmEntity = smZdmService.findByTgId(tgId) ?: error("未绑定什么值得买账号")
             set(smZdmEntity)
@@ -719,7 +719,7 @@ class ManagerExtension(
         bot.execute(editMessageText)
     }
 
-    fun CallbackSubscriber.aliDriver() {
+    fun CallbackQ.aliDriver() {
         before {
             val aliDriverEntity = aliDriverService.findByTgId(tgId) ?: error("未绑定什么值得买账号")
             set(aliDriverEntity)

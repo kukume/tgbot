@@ -72,7 +72,7 @@ class ConfigExtension(
         }
     }
 
-    fun CallbackSubscriber.settingRrOcr() {
+    fun CallbackQ.settingRrOcr() {
         "settingRrOcr" {
             val message1 = bot.execute(SendMessage.builder().text("请发送rrocr的key").chatId(chatId).build())
             val keyMessage = query.waitNextMessage()
