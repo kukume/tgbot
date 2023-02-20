@@ -16,6 +16,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.InputFile
+import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.io.InputStream
@@ -119,8 +120,7 @@ class LoginExtension(
                         val newEntity = result.data()
                         baiduEntity.cookie = newEntity.cookie
                         baiduService.save(baiduEntity)
-                        val sendMessage = SendMessage(query.message.chatId.toString(), "绑定百度成功")
-                        bot.execute(sendMessage)
+                        editMessageText("绑定百度成功", returnButton = false)
                     }
                 } catch (ignore: Exception) {}
             }

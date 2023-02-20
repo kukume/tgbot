@@ -4,11 +4,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.withContext
 import me.kuku.telegram.config.TelegramAbilityExceptionEvent
+import me.kuku.telegram.config.telegramExceptionHandler
 import me.kuku.utils.JobManager
 import org.telegram.abilitybots.api.bot.BaseAbilityBot
 import org.telegram.abilitybots.api.objects.*
 import org.telegram.telegrambots.meta.api.objects.Update
-import kotlin.reflect.KClass
 
 class AbilitySubscriber {
 
@@ -35,16 +35,14 @@ class AbilitySubscriber {
     }
 
     private suspend fun invokeAbility(abilityContext: AbilityContext, block: suspend AbilityContext.() -> Unit) {
-        runCatching {
+        telegramExceptionHandler.invokeHandler(abilityContext) {
             block.invoke(abilityContext)
-        }.onFailure {
-            context.publishEvent(TelegramAbilityExceptionEvent(abilityContext.messageContext, it))
         }
     }
 
 }
 
-private typealias CallbackBody = suspend TelegramCallbackContext.() -> Unit
+private typealias CallbackBody = suspend TelegramContext.() -> Unit
 private typealias UpdateBody = Update.() -> Boolean
 
 
@@ -96,8 +94,8 @@ class TelegramSubscribe {
         return cacheMap.values.toList()[2] as T
     }
 
-    fun before(block: suspend TelegramCallbackContext.() -> Unit) = before.add(block)
-    fun after(block: suspend TelegramCallbackContext.() -> Unit) = after.add(block)
+    fun before(block: suspend TelegramContext.() -> Unit) = before.add(block)
+    fun after(block: suspend TelegramContext.() -> Unit) = after.add(block)
 
     fun callback(text: String, block: CallbackBody) =
         block.filterBuild{ callbackQuery?.data == text }
@@ -119,11 +117,11 @@ class TelegramSubscribe {
     }
 
     suspend fun invoke(bot: BaseAbilityBot, update: Update) {
-        val callbackQuery = update.callbackQuery ?: return
+        update.callbackQuery ?: return
         withContext(Dispatchers.Default + threadLocal.asContextElement(mutableMapOf())) {
             for (filter in filters) {
                 if (filter.filter.invoke(update)) {
-                    val context = TelegramCallbackContext(bot, callbackQuery)
+                    val context = TelegramContext(bot, update)
                     for (function in before) {
                         function.invoke(context)
                     }
@@ -135,16 +133,5 @@ class TelegramSubscribe {
             }
         }
     }
-
-}
-
-
-class Test {
-
-    fun TelegramSubscribe.ss() {
-
-
-    }
-
 
 }

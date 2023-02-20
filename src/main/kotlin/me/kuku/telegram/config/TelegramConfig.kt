@@ -3,18 +3,15 @@ package me.kuku.telegram.config
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.runBlocking
-import me.kuku.telegram.utils.AbilitySubscriber
-import me.kuku.telegram.utils.CallbackQ
-import me.kuku.telegram.utils.TelegramSubscribe
-import me.kuku.telegram.utils.context
+import me.kuku.telegram.utils.*
 import me.kuku.utils.client
 import org.mapdb.DBMaker
-import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationEvent
 import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
+import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.stereotype.Component
 import org.telegram.abilitybots.api.bot.AbilityBot
 import org.telegram.abilitybots.api.bot.BaseAbilityBot
@@ -47,7 +44,13 @@ import kotlin.reflect.jvm.jvmName
 class TelegramBean(
     private val telegramConfig: TelegramConfig,
     private val applicationContext: ApplicationContext
-) {
+): ApplicationListener<ContextRefreshedEvent> {
+
+    override fun onApplicationEvent(event: ContextRefreshedEvent) {
+        val telegramBot = event.applicationContext.getBean(TelegramBot::class.java)
+        val botsApi = TelegramBotsApi(DefaultBotSession::class.java)
+        botsApi.registerBot(telegramBot)
+    }
 
     @Bean
     fun telegramBot(): TelegramBot {
@@ -57,19 +60,7 @@ class TelegramBean(
             botOptions.proxyPort = telegramConfig.proxyPort
             botOptions.proxyType = telegramConfig.proxyType
         }
-        context = applicationContext
         return TelegramBot(telegramConfig.token, telegramConfig.username, telegramConfig.creatorId, botOptions, applicationContext)
-    }
-}
-
-@Component
-class ApplicationStart(
-    private val telegramBot: TelegramBot
-): ApplicationListener<ApplicationReadyEvent> {
-
-    override fun onApplicationEvent(event: ApplicationReadyEvent) {
-        val botsApi = TelegramBotsApi(DefaultBotSession::class.java)
-        botsApi.registerBot(telegramBot)
     }
 }
 
@@ -84,6 +75,8 @@ private fun createDbContext(botUsername: String): MapDBContext {
         .transactionEnable()
         .make())
 }
+
+val telegramExceptionHandler = TelegramExceptionHandler()
 
 class TelegramBot(val token: String, botUsername: String, private val creatorId: Long, botOptions: DefaultBotOptions,
                   private val applicationContext: ApplicationContext):
@@ -154,6 +147,10 @@ class TelegramBot(val token: String, botUsername: String, private val creatorId:
                     }
                     "org.telegram.telegrambots.meta.api.objects.Update" -> {
                         updateFunction.add(UpdateFunction(function, applicationContext.getBean(clazz)))
+                    }
+                    "me.kuku.telegram.utils.TelegramExceptionHandler" -> {
+                        val obj = applicationContext.getBean(clazz)
+                        function.call(obj, telegramExceptionHandler)
                     }
                 }
             }

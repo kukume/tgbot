@@ -1,28 +1,21 @@
 package me.kuku.telegram.utils
 
-import me.kuku.telegram.config.TelegramAbilityExceptionEvent
+import me.kuku.telegram.config.telegramExceptionHandler
 import me.kuku.utils.JobManager
-import org.springframework.context.ApplicationContext
-import org.telegram.abilitybots.api.bot.BaseAbilityBot
 import org.telegram.abilitybots.api.objects.Ability
 import org.telegram.abilitybots.api.objects.Locality
 import org.telegram.abilitybots.api.objects.MessageContext
 import org.telegram.abilitybots.api.objects.Privacy
 import org.telegram.abilitybots.api.objects.Reply
-import org.telegram.abilitybots.api.sender.SilentSender
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod
 import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.io.Serializable
 import java.util.*
 
-internal lateinit var context: ApplicationContext
-
 private suspend fun invokeAbility(messageContext: MessageContext, block: suspend MessageContext.() -> Unit) {
-    runCatching {
+    telegramExceptionHandler.invokeHandler(AbilityContext(messageContext)) {
         block.invoke(messageContext)
-    }.onFailure {
-        context.publishEvent(TelegramAbilityExceptionEvent(messageContext, it))
     }
 }
 

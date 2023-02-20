@@ -30,17 +30,22 @@ class AbilityContext(val messageContext: MessageContext) {
 
 private val returnMessageCache = mutableListOf<ReturnMessageCache>()
 
-typealias ReturnMessageAfter = TelegramCallbackContext.() -> Unit
+typealias ReturnMessageAfter = TelegramContext.() -> Unit
 private data class ReturnMessageCache(val query: String, val messageId: Int, val chatId: Long, val method: BotApiMethodSerializable,
-                                      val context: TelegramCallbackContext, val after: ReturnMessageAfter,
+                                      val context: TelegramContext, val after: ReturnMessageAfter,
                                       var expire: Long = System.currentTimeMillis() + 1000 * 120) {
     fun expire() = System.currentTimeMillis() > expire
 }
 
-class TelegramCallbackContext(val bot: BaseAbilityBot, val query: CallbackQuery) {
-    val message: Message = query.message
-    val tgId = query.from.id
+class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
+    lateinit var query: CallbackQuery
+    val message: Message = if (this::query.isInitialized) query.message else update.message
+    val tgId = if (this::query.isInitialized) query.from.id else update.chatMember.from.id
     val chatId: Long = message.chatId
+
+    init {
+        update.callbackQuery?.let { query = it }
+    }
 
     fun Message.delete(timeout: Long = 0) {
         if (timeout > 0) {
@@ -59,28 +64,39 @@ class TelegramCallbackContext(val bot: BaseAbilityBot, val query: CallbackQuery)
         bot.execute(sendMessage)
     }
 
-    fun editMessageText(text: String = "", replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(mutableListOf()),
-                        after: ReturnMessageAfter = {}) {
+    private fun addReturnButton(replyMarkup: InlineKeyboardMarkup, after: ReturnMessageAfter) {
         val uuid = UUID.randomUUID().toString()
         val key = "return_$uuid"
         replyMarkup.keyboard.add(listOf(inlineKeyboardButton("返回", key)))
+        returnMessageCache.add(ReturnMessageCache(key, message.messageId, chatId, EditMessageText.builder().text(message.text)
+            .messageId(message.messageId).chatId(chatId)
+            .replyMarkup(message.replyMarkup).build(), this, after))
+    }
+
+    fun editMessageText(text: String = "", replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(mutableListOf()),
+                        returnButton: Boolean = true,
+                        after: ReturnMessageAfter = {}) {
         val messageId = message.messageId
+        if (returnButton) {
+            addReturnButton(replyMarkup, after)
+        }
         val editMessageText = EditMessageText.builder().text(text)
             .messageId(messageId).chatId(chatId)
             .replyMarkup(replyMarkup).build()
-        returnMessageCache.add(ReturnMessageCache(key, messageId, chatId, EditMessageText.builder().text(message.text).messageId(messageId).chatId(chatId)
-            .replyMarkup(message.replyMarkup).build(), this, after))
         bot.execute(editMessageText)
     }
 
-    fun editMessageMedia(media: InputMedia,replyMarkup: InlineKeyboardMarkup) {
-        val uuid = UUID.randomUUID().toString()
-        val key = "return_$uuid"
-        replyMarkup.keyboard.add(listOf(inlineKeyboardButton("返回", key)))
+    fun editMessageMedia(media: InputMedia,replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(mutableListOf()),
+                         returnButton: Boolean = true,
+                         after: ReturnMessageAfter = {}) {
+        if (returnButton) {
+            addReturnButton(replyMarkup, after)
+        }
         val messageId = message.messageId
         val editMessageMedia = EditMessageMedia.builder().media(media)
             .messageId(messageId).chatId(chatId)
             .replyMarkup(replyMarkup).build()
+        bot.execute(editMessageMedia)
     }
 }
 

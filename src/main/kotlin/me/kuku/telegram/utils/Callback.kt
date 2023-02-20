@@ -3,17 +3,16 @@ package me.kuku.telegram.utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.launch
-import me.kuku.telegram.config.TelegramCallbackExceptionEvent
+import me.kuku.telegram.config.telegramExceptionHandler
 import me.kuku.utils.JobManager
 import org.telegram.abilitybots.api.bot.BaseAbilityBot
 import org.telegram.abilitybots.api.objects.Reply
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery
+import org.telegram.telegrambots.meta.api.objects.Update
 
-private suspend fun invokeCallback(bot: BaseAbilityBot, query: CallbackQuery, block: suspend TelegramCallbackContext.() -> Unit) {
-    runCatching {
-        block.invoke(TelegramCallbackContext(bot, query))
-    }.onFailure {
-        context.publishEvent(TelegramCallbackExceptionEvent(bot, query, it))
+private suspend fun invokeCallback(bot: BaseAbilityBot, update: Update, block: suspend TelegramContext.() -> Unit) {
+    val context = TelegramContext(bot, update)
+    telegramExceptionHandler.invokeHandler(context) {
+        block.invoke(context)
     }
 }
 
@@ -21,13 +20,13 @@ class CallbackQ {
 
     val threadLocal = ThreadLocal<MutableMap<String, Any>>()
 
-    val map = mutableMapOf<String, suspend TelegramCallbackContext.() -> Unit>()
+    val map = mutableMapOf<String, suspend TelegramContext.() -> Unit>()
 
-    private val startWithMap = mutableMapOf<String, suspend TelegramCallbackContext.() -> Unit>()
+    private val startWithMap = mutableMapOf<String, suspend TelegramContext.() -> Unit>()
 
-    private val beforeList = mutableListOf<suspend TelegramCallbackContext.() -> Unit>()
+    private val beforeList = mutableListOf<suspend TelegramContext.() -> Unit>()
 
-    private val afterList = mutableListOf<suspend TelegramCallbackContext.() -> Unit>()
+    private val afterList = mutableListOf<suspend TelegramContext.() -> Unit>()
 
     fun set(key: String, value: Any) {
         val cacheMap = threadLocal.get()
@@ -64,27 +63,27 @@ class CallbackQ {
         return cacheMap.values.toList()[2] as T
     }
 
-    fun query(name: String, block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
+    fun query(name: String, block: suspend TelegramContext.() -> Unit): CallbackQ {
         map[name] = block
         return this
     }
 
-    operator fun String.invoke(block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
+    operator fun String.invoke(block: suspend TelegramContext.() -> Unit): CallbackQ {
         map[this] = block
         return this@CallbackQ
     }
 
-    fun queryStartWith(name: String, block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
+    fun queryStartWith(name: String, block: suspend TelegramContext.() -> Unit): CallbackQ {
         startWithMap[name] = block
         return this
     }
 
-    fun before(block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
+    fun before(block: suspend TelegramContext.() -> Unit): CallbackQ {
         beforeList.add(block)
         return this
     }
 
-    fun after(block: suspend TelegramCallbackContext.() -> Unit): CallbackQ {
+    fun after(block: suspend TelegramContext.() -> Unit): CallbackQ {
         afterList.add(block)
         return this
     }
@@ -95,14 +94,14 @@ class CallbackQ {
             val data = callbackQuery.data
             JobManager.now {
                 launch(Dispatchers.Default + threadLocal.asContextElement(mutableMapOf())) {
-                    beforeList.forEach { invokeCallback(bot, callbackQuery, it) }
+                    beforeList.forEach { invokeCallback(bot, upd, it) }
                     map[data]?.let {
-                        invokeCallback(bot, callbackQuery, it)
+                        invokeCallback(bot, upd, it)
                     }
                     startWithMap.forEach { (k, v) ->
-                        if (data.startsWith(k)) invokeCallback(bot, callbackQuery, v)
+                        if (data.startsWith(k)) invokeCallback(bot, upd, v)
                     }
-                    afterList.forEach { invokeCallback(bot, callbackQuery, it) }
+                    afterList.forEach { invokeCallback(bot, upd, it) }
                     threadLocal.remove()
                 }
             }
@@ -130,9 +129,9 @@ fun callback(body: CallbackQ.() -> Unit): Reply {
     return q.toReply()
 }
 
-fun callback(data: String, block: suspend TelegramCallbackContext.() -> Unit): Reply {
+fun callback(data: String, block: suspend TelegramContext.() -> Unit): Reply {
     return Reply.of({ bot, upd ->
-        JobManager.now { invokeCallback(bot, upd.callbackQuery, block) }
+        JobManager.now { invokeCallback(bot, upd, block) }
     }, pre@{ upd ->
         val query = upd.callbackQuery ?: return@pre false
         val resData = query.data
@@ -140,9 +139,9 @@ fun callback(data: String, block: suspend TelegramCallbackContext.() -> Unit): R
     })
 }
 
-fun callbackStartWith(data: String, block: suspend TelegramCallbackContext.() -> Unit): Reply {
+fun callbackStartWith(data: String, block: suspend TelegramContext.() -> Unit): Reply {
     return Reply.of({ bot, upd ->
-        JobManager.now { invokeCallback(bot, upd.callbackQuery, block) }
+        JobManager.now { invokeCallback(bot, upd, block) }
     }, pre@{ upd ->
         val query = upd.callbackQuery ?: return@pre false
         val resData = query.data
