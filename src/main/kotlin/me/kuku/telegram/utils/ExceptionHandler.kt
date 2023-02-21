@@ -3,6 +3,7 @@
 package me.kuku.telegram.utils
 
 import kotlin.reflect.KClass
+import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.superclasses
 
 private val superClassCache: MutableMap<KClass<*>, Set<KClass<*>>> = mutableMapOf()
@@ -47,15 +48,19 @@ suspend fun TelegramExceptionHandler.invokeHandler(telegramContext: TelegramCont
         val nowThrowableClass = it::class
         val exceptions = this.telegramExceptions
         val context = TelegramExceptionContext(it, telegramContext)
-        for (entry in exceptions) {
-            val throwableClass = entry.key
-            val throwableClassSet = superClassCache[nowThrowableClass] ?: superclasses(nowThrowableClass).also { set -> superClassCache[nowThrowableClass] = set }
-            if (throwableClassSet.contains(throwableClass)) {
-                for (func in entry.value) {
-                    func.invoke(context)
-                }
+        val throwableClassSet = superClassCache[nowThrowableClass] ?: superclasses(nowThrowableClass).also { set -> superClassCache[nowThrowableClass] = set }
+        val newMap = exceptions.filterKeys(throwableClassSet::contains).toSortedMap { o1, o2 ->
+            if (o1.isSubclassOf(o2)) -1
+            else if (o2.isSubclassOf(o1)) 1
+            else 0
+        }
+        if (newMap.isNotEmpty()) {
+            val value = newMap[newMap.firstKey()]!!
+            for (func in value) {
+                func.invoke(context)
             }
         }
+        throw it
     }
 }
 
