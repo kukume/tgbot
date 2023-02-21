@@ -3,7 +3,6 @@ package me.kuku.telegram.utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.withContext
-import me.kuku.telegram.config.TelegramAbilityExceptionEvent
 import me.kuku.telegram.config.telegramExceptionHandler
 import me.kuku.utils.JobManager
 import org.telegram.abilitybots.api.bot.BaseAbilityBot

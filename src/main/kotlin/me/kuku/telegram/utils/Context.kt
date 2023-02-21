@@ -39,9 +39,15 @@ private data class ReturnMessageCache(val query: String, val messageId: Int, val
 
 class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
     lateinit var query: CallbackQuery
-    val message: Message = if (this::query.isInitialized) query.message else update.message
-    val tgId = if (this::query.isInitialized) query.from.id else update.chatMember.from.id
-    val chatId: Long = message.chatId
+    val message: Message by lazy {
+        if (this::query.isInitialized) query.message else update.message
+    }
+    val tgId: Long by lazy {
+        if (this::query.isInitialized) query.from.id else update.chatMember.from.id
+    }
+    val chatId: Long by lazy {
+        message.chatId
+    }
 
     init {
         update.callbackQuery?.let { query = it }
@@ -73,7 +79,7 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
             .replyMarkup(message.replyMarkup).build(), this, after))
     }
 
-    fun editMessageText(text: String = "", replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(mutableListOf()),
+    fun editMessageText(text: String, replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(mutableListOf()),
                         returnButton: Boolean = true,
                         after: ReturnMessageAfter = {}) {
         val messageId = message.messageId

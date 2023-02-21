@@ -174,12 +174,16 @@ class TelegramBot(val token: String, botUsername: String, private val creatorId:
         applicationContext.publishEvent(TelegramUpdateEvent(update))
         for (function in updateFunction) {
             runBlocking {
-                function.function.callSuspend(function.any, update)
+                telegramExceptionHandler.invokeHandler(TelegramContext(this@TelegramBot, update)) {
+                    function.function.callSuspend(function.any, update)
+                }
             }
         }
         for (telegramSubscribe in telegramSubscribeList) {
             runBlocking {
-                telegramSubscribe.invoke(this@TelegramBot, update)
+                telegramExceptionHandler.invokeHandler(TelegramContext(this@TelegramBot, update)) {
+                    telegramSubscribe.invoke(this@TelegramBot, update)
+                }
             }
         }
     }
@@ -231,10 +235,6 @@ class TelegramBot(val token: String, botUsername: String, private val creatorId:
 }
 
 class TelegramUpdateEvent(val update: Update): ApplicationEvent(update)
-
-class TelegramAbilityExceptionEvent(val messageContext: MessageContext, val ex: Throwable): ApplicationEvent(messageContext)
-
-class TelegramCallbackExceptionEvent(val bot: BaseAbilityBot, val query: CallbackQuery, val ex: Throwable): ApplicationEvent(query)
 
 @Component
 @ConfigurationProperties(prefix = "kuku.telegram")

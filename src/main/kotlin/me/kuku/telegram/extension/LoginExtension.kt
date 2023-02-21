@@ -127,47 +127,39 @@ class LoginExtension(
         }
     }
 
-    fun biliBiliLogin() = callback("biliBiliLogin") {
-        val qrCodeUrl = BiliBiliLogic.loginByQr1()
-        val photoMessage = OkHttpKtUtils.getByteStream("https://api.kukuqaq.com/qrcode?text=${qrCodeUrl.toUrlEncode()}").use { iim ->
-            val photo = SendPhoto(query.message.chatId.toString(), InputFile(iim, "哔哩哔哩登录二维码.jpg"))
-                .apply { caption = "请使用哔哩哔哩app扫码登陆" }
-            bot.execute(photo)
-        }
-        while (true) {
-            delay(3000)
-            val result = BiliBiliLogic.loginByQr2(qrCodeUrl)
-            when (result.code) {
-                0 -> continue
-                200 -> {
-                    val newEntity = result.data()
-                    val biliBiliEntity = biliBiliService.findByTgId(query.from.id) ?: BiliBiliEntity().also { entity ->
-                        entity.tgId = query.from.id
-                    }
-                    biliBiliEntity.cookie = newEntity.cookie
-                    biliBiliEntity.userid = newEntity.userid
-                    biliBiliEntity.token = newEntity.token
-                    biliBiliService.save(biliBiliEntity)
-                    val message = SendMessage().also { age ->
-                        age.chatId = query.message.chatId.toString()
-                        age.text = "绑定哔哩哔哩成功"
-                    }
-                    val titleMessage = bot.execute(message)
-                    delay(1000 * 10)
-                    bot.execute(DeleteMessage(query.message.chatId.toString(), photoMessage.messageId))
-                    bot.execute(DeleteMessage(query.message.chatId.toString(), titleMessage.messageId))
-                    break
+    fun TelegramSubscribe.biliBiliLogin() {
+        callback("biliBiliLogin") {
+            val qrCodeUrl = BiliBiliLogic.loginByQr1()
+            OkHttpKtUtils.getByteStream("https://api.kukuqaq.com/qrcode?text=${qrCodeUrl.toUrlEncode()}").use { iim ->
+                val photo = SendPhoto(query.message.chatId.toString(), InputFile(iim, "哔哩哔哩登录二维码.jpg"))
+                val phoneMessage = bot.execute(photo)
+                editMessageText("请使用哔哩哔哩app扫描以下二维码登陆") {
+                    phoneMessage.delete()
                 }
-                else -> {
-                    val message = SendMessage().also { age ->
-                        age.chatId = query.message.chatId.toString()
-                        age.text = result.message
+            }
+            var i = 0
+            while (true) {
+                if (++i > 10) error("哔哩哔哩二维码已超时")
+                delay(3000)
+                val result = BiliBiliLogic.loginByQr2(qrCodeUrl)
+                when (result.code) {
+                    0 -> continue
+                    200 -> {
+                        val newEntity = result.data()
+                        val biliBiliEntity = biliBiliService.findByTgId(query.from.id) ?: BiliBiliEntity().also { entity ->
+                            entity.tgId = query.from.id
+                        }
+                        biliBiliEntity.cookie = newEntity.cookie
+                        biliBiliEntity.userid = newEntity.userid
+                        biliBiliEntity.token = newEntity.token
+                        biliBiliService.save(biliBiliEntity)
+                        editMessageText("绑定哔哩哔哩成功", returnButton = false)
+                        break
                     }
-                    val titleMessage = bot.execute(message)
-                    delay(1000 * 10)
-                    bot.execute(DeleteMessage(query.message.chatId.toString(), photoMessage.messageId))
-                    bot.execute(DeleteMessage(query.message.chatId.toString(), titleMessage.messageId))
-                    break
+                    else -> {
+                        editMessageText("哔哩哔哩登陆失败，${result.message}", returnButton = false)
+                        break
+                    }
                 }
             }
         }
