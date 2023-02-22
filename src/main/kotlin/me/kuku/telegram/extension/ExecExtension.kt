@@ -4,16 +4,9 @@ import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
-import me.kuku.utils.MyUtils
-import me.kuku.utils.OkHttpKtUtils
 import org.springframework.stereotype.Service
 import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.send.SendVideo
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMedia
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
-import org.telegram.telegrambots.meta.api.objects.InputFile
-import org.telegram.telegrambots.meta.api.objects.media.InputMediaVideo
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
@@ -29,14 +22,11 @@ class ExecExtension(
     private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
-    private val douYinService: DouYinService,
     private val douYuService: DouYuService,
     private val douYuLogic: DouYuLogic,
     private val smZdmService: SmZdmService,
     private val aliDriverService: AliDriverService
 ): AbilityExtension {
-
-    private val recommendCache = mutableMapOf<Long, List<DouYinWork>>()
 
     private fun execKeyboardMarkup(): InlineKeyboardMarkup {
         val baiduButton = InlineKeyboardButton("百度").also { it.callbackData = "baiduExec" }
@@ -47,7 +37,6 @@ class ExecExtension(
         val netEaseButton = InlineKeyboardButton("网易云音乐").also { it.callbackData = "netEaseExec" }
         val stepButton = InlineKeyboardButton("刷步数").also { it.callbackData = "stepExec" }
         val weiboButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboExec" }
-        val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinExec" }
         val douYuButton = InlineKeyboardButton("斗鱼").also { it.callbackData = "douYuExec" }
         val smZdmButton = InlineKeyboardButton("什么值得买").also { it.callbackData = "smZdmExec" }
         val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverExec")
@@ -56,23 +45,9 @@ class ExecExtension(
             listOf(hostLocButton, kuGouButton),
             listOf(miHoYoButton, netEaseButton),
             listOf(stepButton, weiboButton),
-            listOf(douYinButton, douYuButton),
-            listOf(smZdmButton, aliDriver)
+            listOf(douYuButton, smZdmButton),
+            listOf(aliDriver)
         ))
-    }
-
-    private fun returnButton(): List<InlineKeyboardButton> {
-        return listOf(InlineKeyboardButton("返回").apply { callbackData = "returnExec" })
-    }
-
-    fun returnMarkup() = callback("returnExec") {
-        val messageId = query.message.messageId
-        val editMessageText = EditMessageText()
-        editMessageText.chatId = query.message.chatId.toString()
-        editMessageText.replyMarkup = execKeyboardMarkup()
-        editMessageText.messageId = messageId
-        editMessageText.text = "请选择手动执行选项"
-        bot.execute(editMessageText)
     }
 
     fun exec() = ability("exec", "手动执行") {
@@ -84,152 +59,101 @@ class ExecExtension(
         execute(sendMessage)
     }
 
-    fun baiduExec() = callback {
-        query("baiduExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            baiduService.findByTgId(tgId) ?: error("未绑定百度账号")
+    fun TelegramSubscribe.baiduExec() {
+        before { set(baiduService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定百度账号")) }
+        callback("baiduExec") {
             val tieBaSignButton = InlineKeyboardButton("贴吧签到").apply { callbackData = "tieBaSign" }
             val ybbSignButton = InlineKeyboardButton("游帮帮加速器签到").apply { callbackData = "ybbSign" }
             val ybbWatchAdButton = InlineKeyboardButton("游帮帮加速器看广告").apply { callbackData = "ybbWatchAd" }
-            val markup = InlineKeyboardMarkup(listOf(listOf(tieBaSignButton), listOf(ybbSignButton), listOf(ybbWatchAdButton), returnButton()))
-            val editMessage = EditMessageText.builder().chatId(chatId).messageId(query.message.messageId).text("百度").replyMarkup(markup).build()
-            bot.execute(editMessage)
+            val markup = InlineKeyboardMarkup(listOf(listOf(tieBaSignButton), listOf(ybbSignButton), listOf(ybbWatchAdButton)))
+            editMessageText("百度", markup)
         }
-        query("tieBaSign") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val baiduEntity = baiduService.findByTgId(tgId)!!
-            baiduLogic.tieBaSign(baiduEntity)
-            val sendMessage = SendMessage.builder().text("贴吧签到成功").chatId(chatId).build()
-            bot.execute(sendMessage)
+        callback("tieBaSign") {
+            baiduLogic.tieBaSign(firstArg())
+            editMessageText("贴吧签到成功")
         }
-        query("ybbSign") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val baiduEntity = baiduService.findByTgId(tgId)!!
-            baiduLogic.ybbSign(baiduEntity)
-            val sendMessage = SendMessage.builder().text("游帮帮签到成功").chatId(chatId).build()
-            bot.execute(sendMessage)
+        callback("ybbSign") {
+            baiduLogic.ybbSign(firstArg())
+            editMessageText("游帮帮签到成功")
         }
-        query("ybbWatchAd") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val baiduEntity = baiduService.findByTgId(tgId)!!
-            baiduLogic.ybbWatchAd(baiduEntity, "v3")
-            val sendMessage = SendMessage.builder().text("游帮帮观看广告成功").chatId(chatId).build()
-            bot.execute(sendMessage)
+        callback("ybbWatchAd") {
+            baiduLogic.ybbWatchAd(firstArg(), "v3")
+            editMessageText("游帮帮观看广告成功")
         }
     }
 
-    fun biliBiliExec() = callback {
-        query("biliBiliExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            biliBiliService.findByTgId(tgId) ?: error("未绑定哔哩哔哩账号")
+    fun TelegramSubscribe.biliBiliExec() {
+        before { set(biliBiliService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定哔哩哔哩账号")) }
+        callback("biliBiliExec") {
             val biliBiliSignButton = InlineKeyboardButton("签到").apply { callbackData = "biliBiliSign" }
-            val markup = InlineKeyboardMarkup(listOf(listOf(biliBiliSignButton), returnButton()))
-            val editMessage = EditMessageText.builder().chatId(chatId).messageId(query.message.messageId).text("哔哩哔哩").replyMarkup(markup).build()
-            bot.execute(editMessage)
+            val markup = InlineKeyboardMarkup(listOf(listOf(biliBiliSignButton)))
+            editMessageText("哔哩哔哩", markup)
         }
-        query("biliBiliSign") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val biliBiliEntity = biliBiliService.findByTgId(tgId)!!
+        callback("biliBiliSign") {
+            val biliBiliEntity = firstArg<BiliBiliEntity>()
             val firstRank = BiliBiliLogic.ranking()[0]
             BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
-            val sendMessage = SendMessage().also { message -> message.chatId = chatId.toString() }
             BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
             BiliBiliLogic.liveSign(biliBiliEntity)
-            sendMessage.text = "哔哩哔哩签到成功"
-            bot.execute(sendMessage)
+            editMessageText("哔哩哔哩签到成功")
         }
     }
 
-    fun hostLocExec() = callback {
-        query("hostLocExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            hostLocService.findByTgId(tgId) ?: error("未绑定HostLoc账号")
+    fun TelegramSubscribe.hostLocExec()  {
+        before { set(hostLocService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定HostLoc账号")) }
+        callback("hostLocExec") {
             val hostLocSignButton = InlineKeyboardButton("签到").apply { callbackData = "hostLocSign" }
-            val markup = InlineKeyboardMarkup(listOf(listOf(hostLocSignButton), returnButton()))
-            val editMessage = EditMessageText.builder().chatId(chatId).messageId(query.message.messageId).text("HostLoc").replyMarkup(markup).build()
-            bot.execute(editMessage)
+            val markup = InlineKeyboardMarkup(listOf(listOf(hostLocSignButton)))
+            editMessageText("HostLoc", markup)
         }
-        query("hostLocSign") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val hostLocEntity = hostLocService.findByTgId(tgId)!!
-            val sendMessage = SendMessage.builder().chatId(chatId).text("HostLoc签到后台进行中").build()
-            bot.execute(sendMessage)
+        callback("hostLocSign") {
+            val hostLocEntity = firstArg<HostLocEntity>()
+            editMessageText("HostLoc签到后台进行中")
             HostLocLogic.sign(hostLocEntity.cookie)
         }
     }
 
-    fun kuGouExec() = callback {
-        query("kuGouExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            kuGouService.findByTgId(tgId) ?: error("未绑定酷狗账号")
+    fun TelegramSubscribe.kuGouExec() {
+        before { set(kuGouService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定酷狗账号")) }
+        callback("kuGouExec") {
             val kuGouMusicianSignButton = InlineKeyboardButton("音乐人").apply { callbackData = "kuGouMusicianSign" }
             val kuGouListenButton = InlineKeyboardButton("概念版听歌得vip").apply { callbackData = "kuGouListen" }
-            val markup = InlineKeyboardMarkup(listOf(listOf(kuGouMusicianSignButton), listOf(kuGouListenButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(query.message.messageId).text("酷狗").replyMarkup(markup).build()
-            bot.execute(editMessageText)
+            val markup = InlineKeyboardMarkup(listOf(listOf(kuGouMusicianSignButton), listOf(kuGouListenButton)))
+            editMessageText("酷狗", markup)
         }
-        query("kuGouMusicianSign") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val kuGouEntity = kuGouService.findByTgId(tgId)!!
-            kuGouLogic.musicianSign(kuGouEntity)
-            val sendMessage = SendMessage.builder().chatId(chatId).text("酷狗音乐人签到成功").build()
-            bot.execute(sendMessage)
+        callback("kuGouMusicianSign") {
+            kuGouLogic.musicianSign(firstArg())
+            editMessageText("酷狗音乐人签到成功")
         }
-        query("kuGouListen") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val kuGouEntity = kuGouService.findByTgId(tgId)!!
-            kuGouLogic.listenMusic(kuGouEntity)
-            val sendMessage = SendMessage.builder().chatId(chatId).text("酷狗听歌得vip成功").build()
-            bot.execute(sendMessage)
+        callback("kuGouListen") {
+            kuGouLogic.listenMusic(firstArg())
+            editMessageText("酷狗听歌得vip成功")
         }
     }
 
-    fun miHoYoExec() = callback {
+    fun TelegramSubscribe.miHoYoExec() = callback {
+        before { set(miHoYoService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定米哈游账号")) }
         query("miHoYoExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            miHoYoService.findByTgId(tgId) ?: error("未绑定米哈游账号")
             val genShinSignButton = InlineKeyboardButton("原神签到").apply { callbackData = "genShinSign" }
-            val markup = InlineKeyboardMarkup(listOf(listOf(genShinSignButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(query.message.messageId).text("米哈游").replyMarkup(markup).build()
-            bot.execute(editMessageText)
+            val markup = InlineKeyboardMarkup(listOf(listOf(genShinSignButton)))
+            editMessageText("米哈游", markup)
         }
         query("genShinSign") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val miHoYoEntity = miHoYoService.findByTgId(tgId)!!
-            MiHoYoLogic.sign(miHoYoEntity)
-            val sendMessage = SendMessage.builder().chatId(chatId).text("原神签到成功").build()
-            bot.execute(sendMessage)
+            MiHoYoLogic.sign(firstArg())
+            editMessageText("原神签到成功")
         }
     }
 
-    fun netEaseExec() = callback {
-        query("netEaseExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            netEaseService.findByTgId(tgId) ?: error("未绑定网易云音乐账号")
+    fun TelegramSubscribe.netEaseExec() {
+        before { set(netEaseService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定网易云音乐账号")) }
+        callback("netEaseExec") {
             val netEaseSignButton = InlineKeyboardButton("签到").apply { callbackData = "netEaseSign" }
             val netEaseMusicianSignButton = InlineKeyboardButton("音乐人签到").apply { callbackData = "netEaseMusicianSign" }
-            val markup = InlineKeyboardMarkup(listOf(listOf(netEaseSignButton), listOf(netEaseMusicianSignButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(query.message.messageId).text("网易云音乐").replyMarkup(markup).build()
-            bot.execute(editMessageText)
+            val markup = InlineKeyboardMarkup(listOf(listOf(netEaseSignButton), listOf(netEaseMusicianSignButton)))
+            editMessageText("网易云音乐", markup)
         }
-        query("netEaseSign") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val netEaseEntity = netEaseService.findByTgId(tgId)!!
+        callback("netEaseSign") {
+            val netEaseEntity = firstArg<NetEaseEntity>()
             val result = NetEaseLogic.sign(netEaseEntity)
             val message = if (result.failure()) {
                 result.message
@@ -238,13 +162,10 @@ class ExecExtension(
                 NetEaseLogic.listenMusic(netEaseEntity)
                 "网易云音乐签到成功"
             }
-            val sendMessage = SendMessage.builder().chatId(chatId).text(message).build()
-            bot.execute(sendMessage)
+            editMessageText(message)
         }
-        query("netEaseMusicianSign") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val netEaseEntity = netEaseService.findByTgId(tgId)!!
+        callback("netEaseMusicianSign") {
+            val netEaseEntity = firstArg<NetEaseEntity>()
             val result = NetEaseLogic.musicianSign(netEaseEntity)
             val message = if (result.failure()) {
                 result.message
@@ -255,16 +176,14 @@ class ExecExtension(
                 NetEaseLogic.publishMLog(netEaseEntity)
                 "网易云音乐人签到成功"
             }
-            val sendMessage = SendMessage.builder().chatId(chatId).text(message).build()
-            bot.execute(sendMessage)
+            editMessageText(message)
         }
     }
 
-    fun stepExec() = callback {
-        query("stepExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val stepEntity = stepService.findByTgId(tgId) ?: error("未绑定任何刷步数账号")
+    fun TelegramSubscribe.stepExec() {
+        before { set(stepService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定任何刷步数账号")) }
+        callback("stepExec") {
+            val stepEntity = firstArg<StepEntity>()
             val list = mutableListOf<List<InlineKeyboardButton>>()
             if (stepEntity.leXinCookie.isNotEmpty()) {
                 list.add(listOf(InlineKeyboardButton("乐心运动刷步数").apply { callbackData = "leXinStepExec" }))
@@ -272,208 +191,85 @@ class ExecExtension(
             if (stepEntity.miLoginToken.isNotEmpty()) {
                 list.add(listOf(InlineKeyboardButton("小米运动刷步数").apply { callbackData = "xiaomiStepExec" }))
             }
-            list.add(returnButton())
             val markup = InlineKeyboardMarkup(list)
-            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(query.message.messageId).text("刷步数").replyMarkup(markup).build()
-            bot.execute(editMessageText)
+            editMessageText("刷步数", markup)
         }
-        query("leXinStepExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            bot.execute(SendMessage.builder().chatId(chatId).text("请发送需要刷的步数").build())
-            val step = query.waitNextMessage().text.toIntOrNull() ?: error("步数不为数字")
-            val stepEntity = stepService.findByTgId(tgId)!!
-            val res = LeXinStepLogic.modifyStepCount(stepEntity, step)
-            bot.execute(SendMessage.builder().chatId(chatId).text(res.message).build())
+        callback("leXinStepExec") {
+            editMessageText("请发送乐心运动下需要刷的步数")
+            val step = nextMessage().text.toIntOrNull() ?: error("步数不为数字")
+            val res = LeXinStepLogic.modifyStepCount(firstArg(), step)
+            editMessageText(res.message)
         }
-        query("xiaomiStepExec") {
-            val chatId = query.message.chatId
-            bot.execute(SendMessage.builder().chatId(chatId).text("请发送需要刷的步数").build())
-            val step = query.waitNextMessage().text.toIntOrNull() ?: error("步数不为数字")
-            val stepEntity = stepService.findByTgId(query.from.id)!!
-            val res = XiaomiStepLogic.modifyStepCount(stepEntity, step)
-            bot.execute(SendMessage.builder().chatId(chatId).text(res.message).build())
+        callback("xiaomiStepExec") {
+            editMessageText("请发送小米运动下需要刷的步数")
+            val step = nextMessage().text.toIntOrNull() ?: error("步数不为数字")
+            val res = XiaomiStepLogic.modifyStepCount(firstArg(), step)
+            editMessageText(res.message)
         }
     }
 
-    fun weiboExec() = callback {
-        query("weiboExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            weiboService.findByTgId(tgId) ?: error("未绑定微博账号")
+    fun TelegramSubscribe.weiboExec() {
+        before { set(weiboService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定微博账号")) }
+        callback("weiboExec") {
             val superTalkSignButton = InlineKeyboardButton("超话签到").apply { callbackData = "superTalkSign" }
-            val markup = InlineKeyboardMarkup(listOf(listOf(superTalkSignButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(chatId).text("微博").messageId(query.message.messageId).replyMarkup(markup).build()
-            bot.execute(editMessageText)
+            val markup = InlineKeyboardMarkup(listOf(listOf(superTalkSignButton)))
+            editMessageText("微博", markup)
         }
-        query("superTalkSign") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val weiboEntity = weiboService.findByTgId(tgId)!!
-            val result = WeiboLogic.superTalkSign(weiboEntity)
-            val sendMessage = SendMessage.builder().chatId(chatId).text(result.message).build()
-            bot.execute(sendMessage)
+        callback("superTalkSign") {
+            val result = WeiboLogic.superTalkSign(firstArg())
+            editMessageText(result.message)
         }
     }
 
-    fun douYinExec() = callback {
-        query("douYinExec") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            douYinService.findByTgId(tgId) ?: error("未绑定抖音账号")
-            val followButton = inlineKeyboardButton("关注列表", "follow")
-            val recommendButton = inlineKeyboardButton("推荐", "recommend")
-            val markup = InlineKeyboardMarkup(listOf(listOf(followButton), listOf(recommendButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(chatId).text("抖音").messageId(query.message.messageId).replyMarkup(markup).build()
-            bot.execute(editMessageText)
-        }
-        query("follow") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val douYinEntity = douYinService.findByTgId(tgId)!!
-            val follow = DouYinLogic.follow(douYinEntity)
-            val list = mutableListOf<List<InlineKeyboardButton>>()
-            for (douYinUser in follow) {
-                val key = "${douYinUser.name}|${douYinUser.uid}|${douYinUser.secUid}"
-                list.add(listOf(inlineKeyboardButton(key, "douYinFlow${douYinUser.uid}")))
-            }
-            val sendMessage = SendMessage(chatId.toString(), "请选择您的关注列表")
-            sendMessage.replyMarkup = InlineKeyboardMarkup(list)
-            bot.execute(sendMessage)
-        }
-        queryStartWith("douYinFlow") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            var douYinUser: DouYinUser? = null
-            val id = query.data.substring(10).toLong()
-            val keyboard = query.message.replyMarkup.keyboard
-            for (buttons in keyboard) {
-                val button = buttons[0]
-                val arr = button.text.split("|")
-                val old = DouYinUser(arr[1].toLong(), arr[2], arr[0])
-                if (old.uid == id) {
-                    douYinUser = old
-                    break
-                }
-            }
-            val douYinEntity = douYinService.findByTgId(tgId)!!
-            val list = DouYinLogic.work(douYinEntity, douYinUser ?: error("没有找到这个用户"))
-            val douYinWork = list[0]
-            val url = douYinWork.videoUrlList.last()
-            OkHttpKtUtils.getByteStream(url).use { iis ->
-                val sendVideo = SendVideo(chatId.toString(), InputFile(iis, "${MyUtils.randomLetter(6)}.mp4"))
-                sendVideo.caption = douYinWork.desc
-                bot.execute(sendVideo)
-            }
-        }
-
-        query("recommend") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val douYinEntity = douYinService.findByTgId(tgId)!!
-            val list = DouYinLogic.recommend(douYinEntity)
-            recommendCache[tgId] = list
-            val douYinWork = list[0]
-            val url = douYinWork.videoUrlList[0]
-            OkHttpKtUtils.getByteStream(url).use { iis ->
-                val sendVideo = SendVideo(chatId.toString(), InputFile(iis, "${MyUtils.randomLetter(6)}.mp4"))
-                sendVideo.caption = douYinWork.desc
-                val beforeButton = inlineKeyboardButton("前", "recommendChange-1")
-                val afterButton = inlineKeyboardButton("后", "recommendChange1")
-                sendVideo.replyMarkup = InlineKeyboardMarkup(listOf(listOf(beforeButton, afterButton)))
-                bot.execute(sendVideo)
-            }
-        }
-
-        queryStartWith("recommendChange") {
-            val chatId = query.message.chatId
-            val tgId = query.from.id
-            val index = query.data.substring(15).toInt()
-            if (index < 0) error("前面没有视频了")
-            val list = recommendCache[tgId] ?: error("缓存不存在，请重新点击推荐")
-            if (index >= list.size) error("后面没有视频了")
-            val douYinWork = list[index]
-            val url = douYinWork.videoUrlList[0]
-            val name = MyUtils.randomLetter(6) + ".mp4"
-            OkHttpKtUtils.getByteStream(url).use { iis ->
-                val editMessageMedia = EditMessageMedia(InputMediaVideo.builder()
-                    .newMediaStream(iis).media("attach://$name").mediaName(name).isNewMedia(true).build()
-                    .also { video -> video.caption = douYinWork.desc })
-                editMessageMedia.chatId = chatId.toString()
-                editMessageMedia.messageId = query.message.messageId
-                val beforeButton = inlineKeyboardButton("前", "recommendChange${index - 1}")
-                val afterButton = inlineKeyboardButton("后", "recommendChange${index + 1}")
-                editMessageMedia.replyMarkup = InlineKeyboardMarkup(listOf(listOf(beforeButton, afterButton)))
-                bot.execute(editMessageMedia)
-            }
-        }
-
-    }
-
-    fun douYuExec() = callback {
-
-        query("douYuExec") {
-            douYuService.findByTgId(tgId) ?: error("未绑定斗鱼账号")
+    fun TelegramSubscribe.douYuExec() {
+        before { set(douYuService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定斗鱼账号")) }
+        callback("douYuExec") {
             val fishGroupSignButton = inlineKeyboardButton("鱼吧签到", "fishGroupSign")
             val appSignButton = inlineKeyboardButton("app签到", "douYuAppSign")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(fishGroupSignButton), listOf(appSignButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(message.chatId).messageId(message.messageId).text("斗鱼")
-                .replyMarkup(inlineKeyboardMarkup).build()
-            bot.execute(editMessageText)
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(fishGroupSignButton), listOf(appSignButton)))
+            editMessageText("斗鱼", inlineKeyboardMarkup)
         }
-
-        "fishGroupSign" {
-            val douYuEntity = douYuService.findByTgId(tgId)!!
+        callback("fishGroupSign") {
+            val douYuEntity = firstArg<DouYuEntity>()
             if (douYuEntity.cookie.isEmpty()) error("未扫码登录斗鱼，无法执行鱼吧签到")
             douYuLogic.fishGroup(douYuEntity)
-            bot.execute(SendMessage.builder().chatId(chatId).text("斗鱼鱼吧签到成功").build())
+            editMessageText("斗鱼鱼吧签到成功")
         }
-
-        "douYuAppSign" {
-            val douYuEntity = douYuService.findByTgId(tgId)!!
+        callback("douYuAppSign") {
+            val douYuEntity = firstArg<DouYuEntity>()
             if (douYuEntity.appCookie.isEmpty()) error("未使用cookie登录斗鱼，无法执行app签到")
             douYuLogic.appSign(douYuEntity)
-            bot.execute(SendMessage.builder().chatId(chatId).text("斗鱼app签到成功").build())
+            editMessageText("斗鱼app签到成功")
         }
 
     }
 
-    fun CallbackQ.smZdm() {
-        before {
-            val smZdmEntity = smZdmService.findByTgId(tgId) ?: error("未绑定什么值得买账号")
-            set("smZdmEntity", smZdmEntity)
-        }
-        "smZdmExec" {
+    fun TelegramSubscribe.smZdm() {
+        before { set(smZdmService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定什么值得买账号")) }
+        callback("smZdmExec") {
             val signButton = inlineKeyboardButton("签到", "smZdmSign")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(signButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(message.messageId).text("什么值得买")
-                .replyMarkup(inlineKeyboardMarkup).build()
-            bot.execute(editMessageText)
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(signButton)))
+            editMessageText("什么值得买", inlineKeyboardMarkup)
         }
-        "smZdmSign" {
+        callback("smZdmSign") {
             val smZdmEntity = firstArg<SmZdmEntity>()
             SmZdmLogic.webSign(smZdmEntity)
             SmZdmLogic.appSign(smZdmEntity)
-            bot.execute(SendMessage.builder().chatId(chatId).text("什么值得买app与网页签到成功").build())
+            editMessageText("什么值得买app与网页签到成功")
         }
     }
 
-    fun CallbackQ.aliDriver() {
-        before {
-            val aliDriverEntity = aliDriverService.findByTgId(tgId) ?: error("未绑定阿里云盘账号")
-            set(aliDriverEntity)
-        }
-        "aliDriverExec" {
+    fun TelegramSubscribe.aliDriver() {
+        before { set(aliDriverService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定阿里云盘账号")) }
+        callback("aliDriverExec") {
             val signButton = inlineKeyboardButton("签到", "aliDriverSign")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(signButton), returnButton()))
-            val editMessageText = EditMessageText.builder().chatId(chatId).messageId(message.messageId).text("阿里云盘")
-                .replyMarkup(inlineKeyboardMarkup).build()
-            bot.execute(editMessageText)
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(signButton)))
+            editMessageText("阿里云盘", inlineKeyboardMarkup)
         }
-        "aliDriverSign" {
+        callback("aliDriverSign") {
             val entity: AliDriverEntity = firstArg()
             val res = AliDriverLogic.sign(entity)
-            bot.execute(SendMessage.builder().chatId(chatId).text(res).build())
+            editMessageText(res)
         }
     }
 

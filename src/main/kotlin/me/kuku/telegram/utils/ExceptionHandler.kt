@@ -55,7 +55,7 @@ suspend fun TelegramExceptionHandler.invokeHandler(telegramContext: TelegramCont
             else 0
         }
         if (newMap.isNotEmpty()) {
-            val value = newMap[newMap.firstKey()]!!
+            val value = newMap.iterator().next().value
             for (func in value) {
                 func.invoke(context)
             }

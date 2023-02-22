@@ -1,5 +1,6 @@
 package me.kuku.telegram.extension
 
+import me.kuku.telegram.utils.AnswerCallbackQueryException
 import me.kuku.telegram.utils.TelegramExceptionHandler
 import org.springframework.stereotype.Component
 import java.lang.IllegalStateException
@@ -10,7 +11,11 @@ class ErrorHandler {
     fun TelegramExceptionHandler.re() {
 
         handler<IllegalStateException> {
-            telegramContext.editMessageText(throwable.toString(), returnButton = false)
+            telegramContext.editMessageText(throwable.toString())
+        }
+
+        handler<AnswerCallbackQueryException> {
+            telegramContext.answerCallbackQuery(throwable.message?: "未知错误消息")
         }
 
     }
