@@ -131,14 +131,14 @@ class ExecExtension(
         }
     }
 
-    fun TelegramSubscribe.miHoYoExec() = callback {
+    fun TelegramSubscribe.miHoYoExec() {
         before { set(miHoYoService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定米哈游账号")) }
-        query("miHoYoExec") {
+        callback("miHoYoExec") {
             val genShinSignButton = InlineKeyboardButton("原神签到").apply { callbackData = "genShinSign" }
             val markup = InlineKeyboardMarkup(listOf(listOf(genShinSignButton)))
             editMessageText("米哈游", markup)
         }
-        query("genShinSign") {
+        callback("genShinSign") {
             MiHoYoLogic.sign(firstArg())
             editMessageText("原神签到成功")
         }

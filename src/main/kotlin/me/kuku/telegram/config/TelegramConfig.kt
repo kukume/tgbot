@@ -4,6 +4,7 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.runBlocking
 import me.kuku.telegram.utils.*
+import me.kuku.utils.JobManager
 import me.kuku.utils.client
 import org.mapdb.DBMaker
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -172,15 +173,13 @@ class TelegramBot(val token: String, botUsername: String, private val creatorId:
     override fun onUpdateReceived(update: Update) {
         super.onUpdateReceived(update)
         applicationContext.publishEvent(TelegramUpdateEvent(update))
-        for (function in updateFunction) {
-            runBlocking {
+        JobManager.now {
+            for (function in updateFunction) {
                 telegramExceptionHandler.invokeHandler(TelegramContext(this@TelegramBot, update)) {
                     function.function.callSuspend(function.any, update)
                 }
             }
-        }
-        for (telegramSubscribe in telegramSubscribeList) {
-            runBlocking {
+            for (telegramSubscribe in telegramSubscribeList) {
                 telegramExceptionHandler.invokeHandler(TelegramContext(this@TelegramBot, update)) {
                     telegramSubscribe.invoke(this@TelegramBot, update)
                 }

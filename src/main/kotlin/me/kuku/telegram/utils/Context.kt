@@ -156,6 +156,7 @@ class MonitorReturn(
 ) {
 
     fun Update.re() {
+        val mes = message?.messageId ?: callbackQuery?.message?.messageId ?: return
         val data = callbackQuery?.data ?: return
         for (cache in returnMessageCache) {
             if (data == cache.query) {
@@ -165,21 +166,21 @@ class MonitorReturn(
                 val tgId = callbackQuery.from.id
                 contextSessionCacheMap.remove(tgId.toString())
             }
-            if (Objects.equals(cache.messageId, message.messageId)) {
+            if (Objects.equals(cache.messageId, mes)) {
                 cache.expire = System.currentTimeMillis() + 1000 * 120
             }
         }
     }
 
-    fun TelegramSubscribe.re() {
-        callbackStartsWith("return_") {
-            val id = query.id
-            val find = returnMessageCache.find { it.query == id }
-            if (find == null) {
-                answerCallbackQuery("该条消息已过期，返回按钮不可用")
-            }
-        }
-    }
+//    fun TelegramSubscribe.re() {
+//        callbackStartsWith("return_") {
+//            val id = query.id
+//            val find = returnMessageCache.find { it.query == id }
+//            if (find == null) {
+//                answerCallbackQuery("该条消息已过期，返回按钮不可用")
+//            }
+//        }
+//    }
 
     @Scheduled(fixedDelay = 10, timeUnit = TimeUnit.SECONDS)
     fun clear() {

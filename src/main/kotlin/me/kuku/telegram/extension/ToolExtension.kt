@@ -187,7 +187,7 @@ class ToolExtension(
             val voice = message.voice ?: error("您发送的不为语言")
             val getFile = GetFile(voice.fileId)
             val file = bot.execute(getFile)
-            val url = "https://api.telegram.org/file/bot${telegramBot.botToken}/${file.filePath}"
+            val url = "https://api.telegram.org/file/bot${telegramBot.token}/${file.filePath}"
             val bb = "data:audio/wav;base64," + OkHttpKtUtils.getBytes(url).base64Encode()
             OkHttpKtUtils.websocket("wss://spaces.huggingface.tech/innnky/soft-vits-vc/queue/join") {
                 open {
@@ -239,7 +239,7 @@ class ToolExtension(
         val photo = photoList.last()
         val getFile = GetFile(photo.fileId)
         val file = bot.execute(getFile)
-        val url = "https://api.telegram.org/file/bot${telegramBot.botToken}/${file.filePath}"
+        val url = "https://api.telegram.org/file/bot${telegramBot.token}/${file.filePath}"
         val newUrl = toolLogic.dCloudUpload(url)
         val list = toolLogic.saucenao(newUrl)
         if (list.isEmpty()) error("未找到结果")

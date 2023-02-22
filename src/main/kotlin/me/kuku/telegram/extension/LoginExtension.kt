@@ -90,9 +90,7 @@ class LoginExtension(
             OkHttpKtUtils.getByteStream(qrcode.image).use { iis ->
                 val photo = SendPhoto(query.message.chatId.toString(), InputFile(iis, "百度登录二维码.jpg"))
                 photoMessage = bot.execute(photo)
-                editMessageText("请使用百度app扫描以下二维码登陆，百度网盘等均可") {
-                    photoMessage?.delete()
-                }
+                editMessageText("请使用百度app扫描以下二维码登陆，百度网盘等均可", returnButton = false)
             }
             val baiduEntity = baiduService.findByTgId(query.from.id) ?: BaiduEntity().apply {
                 tgId = query.from.id
@@ -124,9 +122,7 @@ class LoginExtension(
             OkHttpKtUtils.getByteStream("https://api.kukuqaq.com/qrcode?text=${qrCodeUrl.toUrlEncode()}").use { iim ->
                 val photo = SendPhoto(query.message.chatId.toString(), InputFile(iim, "哔哩哔哩登录二维码.jpg"))
                 photoMessage = bot.execute(photo)
-                editMessageText("请使用哔哩哔哩app扫描以下二维码登陆") {
-                    photoMessage?.delete()
-                }
+                editMessageText("请使用哔哩哔哩app扫描以下二维码登陆", returnButton = false)
             }
             var i = 0
             while (true) {
@@ -177,9 +173,7 @@ class LoginExtension(
             client.get("https://api.kukuqaq.com/qrcode?text=${imageUrl.toUrlEncode()}").body<InputStream>().use { iim ->
                 val photo = SendPhoto(query.message.chatId.toString(), InputFile(iim, "斗鱼登录二维码.jpg"))
                 photoMessage = bot.execute(photo)
-                editMessageText("请使用斗鱼app扫码二维码登录") {
-                    photoMessage?.delete()
-                }
+                editMessageText("请使用斗鱼app扫码二维码登录", returnButton = false)
             }
             var i = 0
             while (true) {
@@ -237,9 +231,7 @@ class LoginExtension(
             OkHttpKtUtils.getByteStream(qrcode.url).use { iim ->
                 val photo = SendPhoto(query.message.chatId.toString(), InputFile(iim, "虎牙登录二维码.jpg"))
                 photoMessage = bot.execute(photo)
-                editMessageText("请使用虎牙App扫描二维码登录") {
-                    photoMessage?.delete()
-                }
+                editMessageText("请使用虎牙App扫描二维码登录", returnButton = false)
             }
             var i = 0
             while (true) {
@@ -327,9 +319,7 @@ class LoginExtension(
             OkHttpKtUtils.getByteStream(newUrl).use { iis ->
                 val photo = SendPhoto(query.message.chatId.toString(), InputFile(iis, "网易云音乐登录二维码.jpg"))
                 photoMessage = bot.execute(photo)
-                editMessageText("请使用网易云音乐App扫描下面二维码登录") {
-                    photoMessage?.delete()
-                }
+                editMessageText("请使用网易云音乐App扫描下面二维码登录", returnButton = false)
             }
             var scan = true
             var i = 0
@@ -364,6 +354,7 @@ class LoginExtension(
                     }
                 }
             }
+            photoMessage?.delete()
         }
         callback("netEasePasswordLogin") {
             editMessageText("请发送网易云音乐登录的手机号")
@@ -445,9 +436,7 @@ class LoginExtension(
             qrcode.baseImage.base64Decode().inputStream().use { iis ->
                 val photo = SendPhoto(chatId.toString(), InputFile(iis, "抖音登录二维码.jpg"))
                 photoMessage = bot.execute(photo)
-                editMessageText("请使用抖音App扫码登录") {
-                    photoMessage?.delete()
-                }
+                editMessageText("请使用抖音App扫码登录", returnButton = false)
             }
             var i = 0
             while (true) {
@@ -622,7 +611,7 @@ class LoginExtension(
             client.get(wechatQrcode.url).body<InputStream>().use {
                 val sendPhoto = SendPhoto(chatId.toString(), InputFile(it, "smzdmWechat.jpg"))
                 photoMessage = bot.execute(sendPhoto)
-                editMessageText("请先在网页成功使用微信扫码成功登录一次，使用微信扫码登录，如未关注公众号，扫码关注公众号后再扫一次")
+                editMessageText("请先在网页成功使用微信扫码成功登录一次，使用微信扫码登录，如未关注公众号，扫码关注公众号后再扫一次", returnButton = false)
             }
             var i = 0
             var fail = true
@@ -653,7 +642,7 @@ class LoginExtension(
             client.get("https://api.kukuqaq.com/qrcode?text=${url.toUrlEncode()}").body<InputStream>().use {
                 val sendPhoto = SendPhoto(chatId.toString(), InputFile(it, "smzdmApp.jpg"))
                 photoMessage = bot.execute(sendPhoto)
-                editMessageText("请使用什么值得买App扫码登陆")
+                editMessageText("请使用什么值得买App扫码登陆", returnButton = false)
             }
             var i = 0
             var fail = true
@@ -684,9 +673,7 @@ class LoginExtension(
             client.get("https://api.kukuqaq.com/qrcode?text=${qrcode.qrcodeUrl.toUrlEncode()}").body<InputStream>().use {
                 val sendPhoto = SendPhoto.builder().chatId(chatId).photo(InputFile(it, "aliQrcode.png")).build()
                 photoMessage = bot.execute(sendPhoto)
-                editMessageText("请使用阿里云盘app扫码登陆") {
-                    photoMessage?.delete()
-                }
+                editMessageText("请使用阿里云盘app扫码登陆", returnButton = false)
             }
             var i = 0
             while (true) {
