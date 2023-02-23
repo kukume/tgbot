@@ -1,15 +1,10 @@
 package me.kuku.telegram.extension
 
 import me.kuku.telegram.entity.LogService
-import me.kuku.telegram.utils.ability
-import me.kuku.telegram.utils.callbackStartWith
-import me.kuku.telegram.utils.execute
-import me.kuku.telegram.utils.inlineKeyboardButton
+import me.kuku.telegram.utils.*
 import me.kuku.utils.DateTimeFormatterUtils
 import org.springframework.stereotype.Component
 import org.telegram.abilitybots.api.util.AbilityExtension
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.time.LocalDate
@@ -39,25 +34,24 @@ class LogExtension(
     }
 
 
-    fun logShow() = ability("log", "查看自动签到日志") {
-        val sendMessage = SendMessage()
-        sendMessage.chatId = chatId().toString()
-        val before = LocalDate.now().atTime(0, 0)
-        sendMessage.replyMarkup = replyMarkup(before, before.plusDays(1), user().id)
-        sendMessage.text = "${DateTimeFormatterUtils.format(before, "yyyy-MM-dd")}的自动签到日志"
-        execute(sendMessage)
+    fun AbilitySubscriber.logShow() {
+        sub("log", "查看自动签到日志") {
+            val before = LocalDate.now().atTime(0, 0)
+            sendMessage("${DateTimeFormatterUtils.format(before, "yyyy-MM-dd")}的自动签到日志",
+                replyMarkup(before, before.plusDays(1), tgId))
+        }
     }
 
-    fun logSwitch() = callbackStartWith("log-") {
-        val data = query.data.substring(4)
-        val before = DateTimeFormatterUtils.parseToLocalDate(data, "yyyy-MM-dd")
-        val editMessageText = EditMessageText()
-        editMessageText.chatId = query.message.chatId.toString()
-        editMessageText.text = "${before}的自动签到日志"
-        editMessageText.messageId = query.message.messageId
-        val beforeTime = before.atTime(0, 0)
-        editMessageText.replyMarkup = replyMarkup(beforeTime, beforeTime.plusDays(1), query.from.id)
-        bot.execute(editMessageText)
+    fun TelegramSubscribe.logSwitch() {
+        callbackStartWith("log-") {
+            val data = query.data.substring(4)
+            val before = DateTimeFormatterUtils.parseToLocalDate(data, "yyyy-MM-dd")
+            val beforeTime = before.atTime(0, 0)
+            editMessageText("${before}的自动签到日志", replyMarkup(beforeTime, beforeTime.plusDays(1), query.from.id))
+        }
+        callback("logNone") {
+            answerCallbackQuery("这是给你看的，不是给你点的")
+        }
     }
 
 

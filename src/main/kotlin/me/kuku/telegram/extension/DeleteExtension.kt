@@ -1,12 +1,9 @@
 package me.kuku.telegram.extension
 
 import me.kuku.telegram.entity.*
-import me.kuku.telegram.utils.ability
-import me.kuku.telegram.utils.callback
-import me.kuku.telegram.utils.execute
+import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Component
 import org.telegram.abilitybots.api.util.AbilityExtension
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
@@ -25,7 +22,9 @@ class DeleteExtension(
     private val douYinService: DouYinService,
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
-    private val buffService: BuffService
+    private val buffService: BuffService,
+    private val smZdmService: SmZdmService,
+    private val aliDriverService: AliDriverService
 ): AbilityExtension {
 
     private fun markup(): InlineKeyboardMarkup {
@@ -43,6 +42,8 @@ class DeleteExtension(
         val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterDelete" }
         val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivDelete" }
         val buffButton = InlineKeyboardButton("网易buff").also { it.callbackData = "buffDelete" }
+        val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmDelete")
+        val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriveDelete")
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -50,74 +51,81 @@ class DeleteExtension(
             listOf(miHoYoButton, netEaseButton),
             listOf(stepButton, weiboStepButton),
             listOf(douYinButton, twitterButton),
-            listOf(pixivButton, buffButton)
+            listOf(pixivButton, buffButton),
+            listOf(smZdmButton, aliDriverButton)
         ))
     }
 
-    fun delete() = ability("delete", "删除登录的账号") {
-        val sendMessage = SendMessage()
-        sendMessage.text = "请点击按钮，以删除对应账号"
-        sendMessage.replyMarkup = markup()
-        sendMessage.chatId = chatId().toString()
-        execute(sendMessage)
+    fun AbilitySubscriber.delete() {
+        sub("delete", "删除登录的账号") {
+            sendMessage("请点击按钮，以删除对应账号", markup())
+        }
     }
 
-    fun deleteOperate() = callback {
-        query("baiduDelete") {
-            baiduService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除百度成功").chatId(query.from.id).build())
+    fun TelegramSubscribe.deleteOperate() {
+        callback("baiduDelete") {
+            baiduService.deleteByTgId(tgId)
+            editMessageText("删除百度成功")
         }
-        query("biliBiliDelete") {
-            biliBiliService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除哔哩哔哩成功").chatId(query.from.id).build())
+        callback("biliBiliDelete") {
+            biliBiliService.deleteByTgId(tgId)
+            editMessageText("删除哔哩哔哩成功")
         }
-        query("douYuDelete") {
-            douYuService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除斗鱼成功").chatId(query.from.id).build())
+        callback("douYuDelete") {
+            douYuService.deleteByTgId(tgId)
+            editMessageText("删除斗鱼成功")
         }
-        query("hostLocDelete") {
-            hostLocService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除HostLoc成功").chatId(query.from.id).build())
+        callback("hostLocDelete") {
+            hostLocService.deleteByTgId(tgId)
+            editMessageText("删除HostLoc成功")
         }
-        query("huYaDelete") {
-            huYaService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除虎牙成功").chatId(query.from.id).build())
+        callback("huYaDelete") {
+            huYaService.deleteByTgId(tgId)
+            editMessageText("删除虎牙成功")
         }
-        query("kuGouDelete") {
-            kuGouService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除酷狗成功").chatId(query.from.id).build())
+        callback("kuGouDelete") {
+            kuGouService.deleteByTgId(tgId)
+            editMessageText("删除酷狗成功")
         }
-        query("miHoYoDelete") {
-            miHoYoService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除米哈游成功").chatId(query.from.id).build())
+        callback("miHoYoDelete") {
+            miHoYoService.deleteByTgId(tgId)
+            editMessageText("删除米哈游成功")
         }
-        query("netEaseDelete") {
-            netEaseService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除网易云音乐成功").chatId(query.from.id).build())
+        callback("netEaseDelete") {
+            netEaseService.deleteByTgId(tgId)
+            editMessageText("删除网易云音乐成功")
         }
-        query("stepDelete") {
-            stepService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除修改步数成功").chatId(query.from.id).build())
+        callback("stepDelete") {
+            stepService.deleteByTgId(tgId)
+            editMessageText("删除修改步数成功")
         }
-        query("weiboDelete") {
-            weiboService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除微博成功").chatId(query.from.id).build())
+        callback("weiboDelete") {
+            weiboService.deleteByTgId(tgId)
+            editMessageText("删除微博成功")
         }
-        query("douYinDelete") {
-            douYinService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除抖音成功").chatId(query.from.id).build())
+        callback("douYinDelete") {
+            douYinService.deleteByTgId(tgId)
+            editMessageText("删除抖音成功")
         }
-        query("twitterDelete") {
-            twitterService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除Twitter成功").chatId(query.from.id).build())
+        callback("twitterDelete") {
+            twitterService.deleteByTgId(tgId)
+            editMessageText("删除Twitter成功")
         }
-        query("pixivDelete") {
-            pixivService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除Pixiv成功").chatId(query.from.id).build())
+        callback("pixivDelete") {
+            pixivService.deleteByTgId(tgId)
+            editMessageText("删除Pixiv成功")
         }
-        query("buffDelete") {
-            buffService.deleteByTgId(query.from.id)
-            bot.execute(SendMessage.builder().text("删除网易Buff成功").chatId(query.from.id).build())
+        callback("buffDelete") {
+            buffService.deleteByTgId(tgId)
+            editMessageText("删除网易Buff成功")
+        }
+        callback("smZdmDelete") {
+            smZdmService.deleteByTgId(tgId)
+            editMessageText("删除什么值得买成功")
+        }
+        callback("aliDriveDelete") {
+            aliDriverService.deleteByTgId(tgId)
+            editMessageText("删除阿里云盘成功")
         }
     }
 

@@ -22,6 +22,8 @@ interface SmZdmRepository: CoroutineCrudRepository<SmZdmEntity, String> {
 
     suspend fun findBySign(sign: Status): List<SmZdmEntity>
 
+    suspend fun deleteByTgId(tgId: Long)
+
 }
 
 @Service
@@ -36,5 +38,7 @@ class SmZdmService(
     suspend fun delete(smZdmEntity: SmZdmEntity) = smZdmRepository.delete(smZdmEntity)
 
     suspend fun findBySign(sign: Status) = smZdmRepository.findBySign(sign)
+
+    suspend fun deleteByTgId(tgId: Long) = smZdmRepository.deleteByTgId(tgId)
 
 }

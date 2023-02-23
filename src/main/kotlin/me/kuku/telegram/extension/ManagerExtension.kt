@@ -6,7 +6,6 @@ import me.kuku.telegram.entity.*
 import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Service
 import org.telegram.abilitybots.api.util.AbilityExtension
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
@@ -57,13 +56,11 @@ class ManagerExtension(
         ))
     }
 
-    fun manager() = ability("manager", "管理") {
-        val markup = managerKeyboardMarkup()
-        val sendMessage = SendMessage()
-        sendMessage.replyMarkup = markup
-        sendMessage.chatId = chatId().toString()
-        sendMessage.text = "请选择管理选项"
-        execute(sendMessage)
+    fun AbilitySubscriber.manager() {
+        sub("manager", "管理") {
+            val markup = managerKeyboardMarkup()
+            sendMessage("请选择管理选项", markup)
+        }
     }
 
     fun TelegramSubscribe.baiduManager() {
@@ -82,7 +79,7 @@ class ManagerExtension(
             editMessageText("""
                 百度自动签到管理，当前状态：
                 自动签到：${baiduEntity.sign.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -113,7 +110,7 @@ class ManagerExtension(
                 动态推送：${biliBiliEntity.push.str()}
                 自动签到：${biliBiliEntity.sign.str()}
                 开播提醒：${biliBiliEntity.live.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -138,7 +135,7 @@ class ManagerExtension(
             val fishPushOpenButton = InlineKeyboardButton("鱼吧推送（开）").apply { callbackData = "douYuFishPushOpen" }
             val fishPushCloseButton = InlineKeyboardButton("鱼吧推送（关）").apply { callbackData = "douYuFishPushClose" }
             val appSignOpenButton = inlineKeyboardButton("app签到（开）", "douYuAppSignOpen")
-            val appSignCloseButton = inlineKeyboardButton("app签到（关）", "appSignCloseButton")
+            val appSignCloseButton = inlineKeyboardButton("app签到（关）", "douYuAppSignClose")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
                 listOf(liveOpenButton, liveCloseButton),
                 listOf(fishOpenButton, fishCloseButton),
@@ -151,7 +148,7 @@ class ManagerExtension(
                 鱼吧签到：${douYuEntity.fishGroup.str()}
                 鱼吧推送：${douYuEntity.push.str()}
                 app签到：${douYuEntity.appSign.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -170,7 +167,7 @@ class ManagerExtension(
             editMessageText("""
                 虎牙自动签到管理，当前状态：
                 开播提醒：${huYaEntity.live.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -195,7 +192,7 @@ class ManagerExtension(
                 HostLoc自动签到管理，当前状态：
                 动态推送：${hostLocEntity.push.str()}
                 自动签到：${hostLocEntity.sign.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -215,7 +212,7 @@ class ManagerExtension(
             editMessageText("""
                 酷狗自动签到管理，当前状态：
                 自动签到：${kuGouEntity.sign.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -235,7 +232,7 @@ class ManagerExtension(
             editMessageText("""
                 米哈游（原神）签到管理，当前状态：
                 自动签到：${miHoYoEntity.sign.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -261,7 +258,7 @@ class ManagerExtension(
                 网易云签到管理，当前状态：
                 自动签到：${netEaseEntity.sign.str()}
                 音乐人自动签到：${netEaseEntity.musicianSign.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -289,7 +286,7 @@ class ManagerExtension(
                 刷步数管理，当前状态：
                 自动步数：${stepEntity.step} (小于0为关闭自动刷步数)
                 步数偏移：${stepEntity.offset.str()} （开启则会在设置的自动步数范围中随机修改）
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -315,7 +312,7 @@ class ManagerExtension(
                 微博自动签到管理，当前状态：
                 动态推送：${weiboEntity.push.str()}
                 自动签到：${weiboEntity.sign.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -335,7 +332,7 @@ class ManagerExtension(
             editMessageText("""
                 推特管理，当前状态：
                 推文推送：${twitterEntity.push.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -355,7 +352,7 @@ class ManagerExtension(
             editMessageText("""
                 pixiv管理，当前状态：
                 插画推送：${pixivEntity.push.str()}
-            """.trimIndent(), inlineKeyboardMarkup)
+            """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
 
@@ -373,7 +370,7 @@ class ManagerExtension(
             editMessageText("""
                 抖音管理，当前状态：
                 视频推送：${douYinEntity.push.str()}
-            """.trimIndent(), markup)
+            """.trimIndent(), markup, top = true)
         }
     }
 
@@ -391,7 +388,7 @@ class ManagerExtension(
             editMessageText("""
                 什么值得买管理，当前状态：
                 签到：${smZdmEntity.sign.str()}
-            """.trimIndent(), markup)
+            """.trimIndent(), markup, top = true)
         }
     }
 
@@ -409,7 +406,7 @@ class ManagerExtension(
             editMessageText("""
                 阿里云盘，当前状态：
                 签到：${aliDriverEntity.sign.str()}
-            """.trimIndent(), markup)
+            """.trimIndent(), markup, top = true)
         }
     }
 

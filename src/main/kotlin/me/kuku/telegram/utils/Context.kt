@@ -37,7 +37,7 @@ abstract class Context {
     abstract val chatId: Long
     abstract val bot: BaseAbilityBot
 
-    fun sendMessage(text: String, parseMode: String? = null, replyKeyboard: ReplyKeyboard? = null) {
+    fun sendMessage(text: String, replyKeyboard: ReplyKeyboard? = null, parseMode: String? = null) {
         val sendMessage = SendMessage.builder().text(text).chatId(chatId)
             .parseMode(parseMode).replyMarkup(replyKeyboard)
             .build()
@@ -67,7 +67,7 @@ private val returnMessageCache = mutableListOf<ReturnMessageCache>()
 typealias ReturnMessageAfter = TelegramContext.() -> Unit
 private data class ReturnMessageCache(val query: String, val messageId: Int, val chatId: Long, val method: BotApiMethodSerializable,
                                       val context: TelegramContext, val after: ReturnMessageAfter,
-                                      var expire: Long = System.currentTimeMillis() + 1000 * 120) {
+                                      var expire: Long = System.currentTimeMillis() + 1000 * 120, var top: Boolean = false) {
     fun expire() = System.currentTimeMillis() > expire
 }
 
@@ -97,39 +97,43 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
         }
     }
 
-    private fun addReturnButton(replyMarkup: InlineKeyboardMarkup, after: ReturnMessageAfter) {
+    private fun addReturnButton(replyMarkup: InlineKeyboardMarkup, after: ReturnMessageAfter, top: Boolean): InlineKeyboardMarkup {
         val uuid = UUID.randomUUID().toString()
         val key = "return_$uuid"
-        replyMarkup.keyboard.add(listOf(inlineKeyboardButton("返回", key)))
+        val list = replyMarkup.keyboard.toMutableList()
+        list.add(listOf(inlineKeyboardButton("返回", key)))
         returnMessageCache.add(ReturnMessageCache(key, message.messageId, chatId, EditMessageText.builder().text(message.text)
             .messageId(message.messageId).chatId(chatId)
-            .replyMarkup(message.replyMarkup).build(), this, after))
+            .replyMarkup(message.replyMarkup).build(), this, after, top = top))
+        return InlineKeyboardMarkup(list)
     }
 
     fun editMessageText(text: String, replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(mutableListOf()),
                         parseMode: String? = null,
                         returnButton: Boolean = true,
+                        top: Boolean = false,
                         after: ReturnMessageAfter = {}) {
         val messageId = message.messageId
-        if (returnButton) {
-            addReturnButton(replyMarkup, after)
-        }
+        val markup = if (returnButton) {
+            addReturnButton(replyMarkup, after, top)
+        } else replyMarkup
         val editMessageText = EditMessageText.builder().text(text)
             .messageId(messageId).chatId(chatId).parseMode(parseMode)
-            .replyMarkup(replyMarkup).build()
+            .replyMarkup(markup).build()
         bot.execute(editMessageText)
     }
 
     fun editMessageMedia(media: InputMedia,replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(mutableListOf()),
                          returnButton: Boolean = true,
+                         top: Boolean = false,
                          after: ReturnMessageAfter = {}) {
-        if (returnButton) {
-            addReturnButton(replyMarkup, after)
-        }
+        val markup = if (returnButton) {
+            addReturnButton(replyMarkup, after, top)
+        } else replyMarkup
         val messageId = message.messageId
         val editMessageMedia = EditMessageMedia.builder().media(media)
             .messageId(messageId).chatId(chatId)
-            .replyMarkup(replyMarkup).build()
+            .replyMarkup(markup).build()
         bot.execute(editMessageMedia)
     }
 
@@ -158,18 +162,34 @@ class MonitorReturn(
     fun Update.re() {
         val mes = message?.messageId ?: callbackQuery?.message?.messageId ?: return
         val data = callbackQuery?.data ?: return
+        val delList = mutableListOf<ReturnMessageCache>()
         for (cache in returnMessageCache) {
             if (data == cache.query) {
-                val editMessageText = cache.method
-                telegramBot.execute(editMessageText)
-                cache.after.invoke(cache.context)
+                val top = cache.top
                 val tgId = callbackQuery.from.id
-                contextSessionCacheMap.remove(tgId.toString())
+                if (!top) {
+                    val editMessageText = cache.method
+                    telegramBot.execute(editMessageText)
+                    cache.after.invoke(cache.context)
+                    contextSessionCacheMap.remove(tgId.toString())
+                    delList.add(cache)
+                } else {
+                    val groupCacheList = returnMessageCache.filter { it.messageId == mes }
+                    if (groupCacheList.isEmpty()) continue
+                    val topCache = groupCacheList[0]
+                    val editMessageText = topCache.method
+                    telegramBot.execute(editMessageText)
+                    topCache.after.invoke(cache.context)
+                    contextSessionCacheMap.remove(tgId.toString())
+                    delList.addAll(groupCacheList)
+                    break
+                }
             }
             if (Objects.equals(cache.messageId, mes)) {
                 cache.expire = System.currentTimeMillis() + 1000 * 120
             }
         }
+        delList.forEach { returnMessageCache.remove(it) }
     }
 
 //    fun TelegramSubscribe.re() {
@@ -192,7 +212,7 @@ class MonitorReturn(
         }
         for (cache in deleteList) {
             returnMessageCache.remove(cache)
-            val editMessageText = EditMessageText.builder().text("该条信息已过期")
+            val editMessageText = EditMessageText.builder().text("该消息已过期，请重新发送指令")
                 .chatId(cache.chatId).messageId(cache.messageId).build()
             telegramBot.execute(editMessageText)
         }

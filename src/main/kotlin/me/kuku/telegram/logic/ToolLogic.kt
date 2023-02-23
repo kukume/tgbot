@@ -85,9 +85,9 @@ class ToolLogic {
         return list
     }
 
-    suspend fun dCloudUpload(url: String): String {
+    suspend fun upload(url: String): String {
         val jsonNode = OkHttpKtUtils.postJson("https://api.kukuqaq.com/upload", MultipartBody.Builder().setType(MultipartBody.FORM)
-            .addFormDataPart("type", "3")
+            .addFormDataPart("type", "1")
             .addFormDataPart("file", "${MyUtils.randomLetter(6)}.jpg", OkUtils.streamBody(OkHttpKtUtils.getBytes(url))).build())
         return jsonNode["url"]?.asText() ?: error(jsonNode["message"].asText())
     }

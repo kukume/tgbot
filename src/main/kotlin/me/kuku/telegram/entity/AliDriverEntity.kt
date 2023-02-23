@@ -21,6 +21,7 @@ interface AliDriverRepository: CoroutineCrudRepository<AliDriverEntity, String> 
 
     suspend fun findBySign(sign: Status): List<AliDriverEntity>
 
+    suspend fun deleteByTgId(tgId: Long)
 }
 
 @Service
@@ -35,4 +36,6 @@ class AliDriverService(
     suspend fun save(aliDriverEntity: AliDriverEntity): AliDriverEntity = aliDriverRepository.save(aliDriverEntity)
 
     suspend fun delete(aliDriverEntity: AliDriverEntity) = aliDriverRepository.delete(aliDriverEntity)
+
+    suspend fun deleteByTgId(tgId: Long) = aliDriverRepository.deleteByTgId(tgId)
 }
