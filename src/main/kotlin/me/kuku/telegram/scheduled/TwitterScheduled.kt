@@ -6,6 +6,7 @@ import me.kuku.telegram.entity.Status
 import me.kuku.telegram.entity.TwitterService
 import me.kuku.telegram.logic.TwitterLogic
 import me.kuku.telegram.logic.TwitterPojo
+import me.kuku.telegram.utils.sendPic
 import me.kuku.utils.OkHttpKtUtils
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component

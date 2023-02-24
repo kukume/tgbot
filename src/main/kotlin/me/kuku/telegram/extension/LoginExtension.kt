@@ -11,7 +11,6 @@ import me.kuku.telegram.utils.*
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
 import org.telegram.abilitybots.api.util.AbilityExtension
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
@@ -74,13 +73,11 @@ class LoginExtension(
         ))
     }
 
-    fun login() = ability("login", "登录") {
-        val markup = loginKeyboardMarkup()
-        val sendMessage = SendMessage()
-        sendMessage.replyMarkup = markup
-        sendMessage.chatId = chatId().toString()
-        sendMessage.text = "请选择登录选项"
-        execute(sendMessage)
+    fun AbilitySubscriber.login() {
+        sub("login", "登录") {
+            val markup = loginKeyboardMarkup()
+            sendMessage("请选择登录选项", markup)
+        }
     }
 
     fun TelegramSubscribe.baiduLogin() {

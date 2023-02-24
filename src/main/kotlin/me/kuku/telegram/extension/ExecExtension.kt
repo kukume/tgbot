@@ -50,13 +50,11 @@ class ExecExtension(
         ))
     }
 
-    fun exec() = ability("exec", "手动执行") {
-        val markup = execKeyboardMarkup()
-        val sendMessage = SendMessage()
-        sendMessage.replyMarkup = markup
-        sendMessage.chatId = chatId().toString()
-        sendMessage.text = "请选择手动执行选项"
-        execute(sendMessage)
+    fun AbilitySubscriber.exec() {
+        sub("exec", "手动执行") {
+            val markup = execKeyboardMarkup()
+            sendMessage("请选择手动执行选项", markup)
+        }
     }
 
     fun TelegramSubscribe.baiduExec() {

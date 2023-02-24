@@ -7,6 +7,7 @@ import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.WeiboLogic
 import me.kuku.telegram.logic.WeiboPojo
+import me.kuku.telegram.utils.sendPic
 import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component

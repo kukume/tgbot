@@ -7,6 +7,7 @@ import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.DouYuFish
 import me.kuku.telegram.logic.DouYuLogic
+import me.kuku.telegram.utils.sendPic
 import me.kuku.utils.JobManager
 import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
@@ -27,6 +28,8 @@ class DouYuScheduled(
     private val douYuLiveMap = mutableMapOf<Long, MutableMap<Long, Boolean>>()
 
     private val douYuPushMap = mutableMapOf<Long, Long>()
+
+    private val douYuTitleMap = mutableMapOf<Long, MutableMap<Long, String>>()
 
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     suspend fun douYu() {
@@ -56,10 +59,39 @@ class DouYuScheduled(
                                 sendPhoto.photo = InputFile(it, "douYuRoom.jpg")
                                 telegramBot.execute(sendPhoto)
                             }
-                        }
-                        else telegramBot.silent().send(text, tgId)
+                        } else telegramBot.silent().send(text, tgId)
                     }
                 } else map[id] = b
+            }
+        }
+    }
+
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
+    suspend fun titleChange() {
+        val list = douYuService.findByTitleChange(Status.ON)
+        for (douYuEntity in list) {
+            val baseResult = douYuLogic.room(douYuEntity)
+            delay(3000)
+            if (baseResult.failure()) continue
+            val tgId = douYuEntity.tgId
+            if (!douYuTitleMap.containsKey(tgId)) douYuTitleMap[tgId] = mutableMapOf()
+            val map = douYuTitleMap[tgId]!!
+            for (room in baseResult.data()) {
+                val name = room.name
+                val roomId = room.roomId
+                val value = map[roomId]
+                if (value != null && value != name) {
+                    val text = "#斗鱼标题更新提醒\n${room.nickName}\n旧标题：${value}\n新标题：${name}"
+                    val imageUrl = room.imageUrl
+                    if (imageUrl.isNotEmpty()) {
+                        client.get(imageUrl).body<InputStream>().use {
+                            val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "douYuRoom.jpg"))
+                            sendPhoto.caption = text
+                            telegramBot.execute(sendPhoto)
+                        }
+                    } else telegramBot.silent().send(text, tgId)
+                }
+                map[roomId] = name
             }
         }
     }
