@@ -20,7 +20,11 @@ class BuffScheduled(
         for (buffEntity in buffEntityList) {
             for (monitor in buffEntity.monitors) {
                 val paintWearInterval = monitor.paintWearInterval
-                val accessoryList = BuffLogic.sell(monitor.goodsId, paintWearInterval.min, paintWearInterval.max)
+                val accessoryList = try {
+                    BuffLogic.sell(buffEntity, monitor.goodsId, paintWearInterval.min, paintWearInterval.max)
+                } catch (e: Exception) {
+                    continue
+                }
                 for (accessory in accessoryList) {
                     if (accessory.paintWear >= paintWearInterval.min && accessory.paintWear <= paintWearInterval.max &&
                             accessory.price <= monitor.maxPrice) {

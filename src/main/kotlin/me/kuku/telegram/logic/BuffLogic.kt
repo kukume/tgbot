@@ -70,9 +70,12 @@ object BuffLogic {
         return GoodsInfo(id, name, hashName, shortName, steamPrice, steamPriceCny)
     }
 
-    suspend fun sell(id: Int, min: Double? = null, max: Double? = null): List<Accessory> {
-        val jsonNode = client.get("https://buff.163.com/api/market/goods/sell_order?game=csgo&goods_id=$id&page_num=1&sort_by=default&mode=&allow_tradable_cooldown=1${if (min != null && max != null) "&min_paintwear=0.15&max_paintwear=0.18" else ""}&_=${System.currentTimeMillis()}")
-            .body<JsonNode>()
+    suspend fun sell(buffEntity: BuffEntity, id: Int, min: Double? = null, max: Double? = null): List<Accessory> {
+        val jsonNode = client.get("https://buff.163.com/api/market/goods/sell_order?game=csgo&goods_id=$id&page_num=1&sort_by=default&mode=&allow_tradable_cooldown=1${if (min != null && max != null) "&min_paintwear=$min&max_paintwear=$max" else ""}&_=${System.currentTimeMillis()}") {
+            headers {
+                cookieString(buffEntity.cookie)
+            }
+        }.body<JsonNode>()
         if (jsonNode["code"].asText() != "OK") error(jsonNode["error"]?.asText() ?: "未知错误")
         val data = jsonNode["data"]
         val goods = data["goods_infos"][id.toString()]
