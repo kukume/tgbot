@@ -81,7 +81,7 @@ class DouYuScheduled(
                 val roomId = room.roomId
                 val value = map[roomId]
                 if (value != null && value != name) {
-                    val text = "#斗鱼标题更新提醒\n${room.nickName}\n旧标题：${value}\n新标题：${name}"
+                    val text = "#斗鱼标题更新提醒\n${room.nickName}\n旧标题：${value}\n新标题：${name}\n链接：${room.url}"
                     val imageUrl = room.imageUrl
                     if (imageUrl.isNotEmpty()) {
                         client.get(imageUrl).body<InputStream>().use {
