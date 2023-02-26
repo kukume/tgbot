@@ -263,7 +263,7 @@ class LoginExtension(
     fun TelegramSubscribe.kuGouLogin() {
         callback("kuGouLogin") {
             editMessageText("请发送酷狗登录的手机号")
-            val phone = nextMessage()
+            val phone = nextMessage().text
             val kuGouEntity = kuGouService.findByTgId(tgId) ?: KuGouEntity().also {
                 it.mid = kuGouLogic.mid()
                 it.tgId = tgId
@@ -272,7 +272,7 @@ class LoginExtension(
             val result = kuGouLogic.sendMobileCode(phone.toString(), mid)
             val message = if (result.success()) {
                 editMessageText("请发送酷狗短信验证码")
-                val code = query.waitNextMessage(1000 * 60 * 2).text
+                val code = nextMessage(1000 * 60 * 2).text
                 val verifyResult = kuGouLogic.verifyCode(phone.toString(), code, mid)
                 if (verifyResult.success()) {
                     val newKuGouEntity = verifyResult.data()
