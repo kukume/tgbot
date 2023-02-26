@@ -2,10 +2,9 @@ package me.kuku.telegram.config
 
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import kotlinx.coroutines.runBlocking
+import jakarta.annotation.PostConstruct
 import me.kuku.telegram.utils.*
 import me.kuku.utils.JobManager
-import me.kuku.utils.client
 import org.mapdb.DBMaker
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.ApplicationContext
@@ -19,21 +18,13 @@ import org.telegram.abilitybots.api.bot.BaseAbilityBot
 import org.telegram.abilitybots.api.bot.DefaultAbilities
 import org.telegram.abilitybots.api.db.MapDBContext
 import org.telegram.abilitybots.api.objects.Ability
-import org.telegram.abilitybots.api.objects.MessageContext
 import org.telegram.abilitybots.api.objects.Reply
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.DefaultBotOptions.ProxyType
 import org.telegram.telegrambots.meta.TelegramBotsApi
-import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery
-import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Update
-import org.telegram.telegrambots.meta.api.objects.media.InputMedia
-import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
 import java.io.File
-import java.io.InputStream
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.callSuspend
@@ -214,5 +205,35 @@ class TelegramConfig {
     var proxyPort: Int = 0
     var proxyType: ProxyType = ProxyType.NO_PROXY
     var url: String = ""
+
+    @PostConstruct
+    fun dockerInit() {
+        val runtime = Runtime.getRuntime()
+        val process = try {
+            runtime.exec("/usr/bin/env")
+        } catch (e: Exception) {
+            return
+        }
+        val text = process.inputStream.use {
+            it.readAllBytes().toString(charset("utf-8"))
+        }
+        val line = text.split("\n")
+        for (env in line) {
+            val arr = env.split("=")
+            if (arr.size == 2) {
+                val key = arr[0].trim()
+                val value = arr[1].trim()
+                when (key.uppercase()) {
+                    "KUKU_TELEGRAM_TOKEN" -> token = value
+                    "KUKU_TELEGRAM_USERNAME" -> username = value
+                    "KUKU_TELEGRAM_CREATOR_ID" -> creatorId = value.toLong()
+                    "KUKU_TELEGRAM_PROXY_HOST" -> proxyHost = value
+                    "KUKU_TELEGRAM_PROXY_PORT" -> proxyPort = value.toInt()
+                    "KUKU_TELEGRAM_PROXY_TYPE" -> proxyType = ProxyType.valueOf(value.uppercase())
+                    "KUKU_TELEGRAM_URL" -> url = value
+                }
+            }
+        }
+    }
 }
 
