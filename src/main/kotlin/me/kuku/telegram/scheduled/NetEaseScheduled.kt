@@ -50,19 +50,23 @@ class NetEaseScheduled(
                 it.tgId = netEaseEntity.tgId
             }
             kotlin.runCatching {
+                var b = false
                 for (i in 0..1) {
                     val result = NetEaseLogic.musicianSign(netEaseEntity)
-                    if (result.failure()) {
-                        logEntity.text = "失败"
-                        logEntity.sendFailMessage(telegramBot)
-                    } else {
+                    if (result.success()) {
+                        b = true
                         delay(3000)
                         NetEaseLogic.publish(netEaseEntity)
                         delay(3000)
                         NetEaseLogic.publishMLog(netEaseEntity)
                         delay(1000 * 60)
-                        logEntity.text = "成功"
                     }
+                }
+                if (b) {
+                    logEntity.text = "成功"
+                } else {
+                    logEntity.text = "失败"
+                    logEntity.sendFailMessage(telegramBot)
                 }
             }.onFailure {
                 logEntity.text = "失败"

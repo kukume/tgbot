@@ -31,7 +31,7 @@ object AliDriverLogic {
             val jsonNode = client.post("https://auth.aliyundrive.com/v2/account/token") {
                 setJsonBody("""{"refresh_token": "${aliDriverEntity.refreshToken}", "grant_type": "refresh_token"}"}""")
             }.body<JsonNode>()
-            if (jsonNode.has("code")) error(jsonNode["messsage"].asText())
+            if (jsonNode.has("code")) error(jsonNode["message"].asText())
             val token = "${jsonNode["token_type"].asText()} ${jsonNode["access_token"].asText()}"
             cache[aliDriverEntity.refreshToken] = AliDriverAccessToken(token, System.currentTimeMillis() + jsonNode["expires_in"].asLong() * 1000 * 60)
             token
