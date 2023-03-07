@@ -8,7 +8,6 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import me.kuku.pojo.CommonResult
-import me.kuku.pojo.ResultStatus
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.WeiboEntity
 import me.kuku.utils.*
@@ -340,7 +339,7 @@ object WeiboLogic {
         val response = OkHttpKtUtils.get("https://m.weibo.cn/api/container/getIndex?containerid=100803_-_followsuper&luicode=10000011&lfid=231093_-_chaohua",
             mapOf("cookie" to weiboToken.cookie, "x-xsrf-token" to weiboToken.token)
         )
-        if (response.code != 200) return CommonResult.failure(ResultStatus.COOKIE_EXPIRED)
+        if (response.code != 200) return CommonResult.failure("cookie已失效")
         val cookie = OkUtils.cookie(response)
         val jsonNode = OkUtils.json(response)
         return if (jsonNode.getInteger("ok") == 1) {
