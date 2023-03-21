@@ -146,7 +146,9 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
     }
 
     suspend fun nextMessage(maxTime: Long = 30000, filter: FilterMessage = { true }): Message {
-        return waitNextMessageCommon(tgId.toString(), maxTime, filter)
+        val message = waitNextMessageCommon(tgId.toString(), maxTime, filter)
+        editMessageText("请稍后......")
+        return message
     }
 }
 
