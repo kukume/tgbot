@@ -25,7 +25,8 @@ class ManagerExtension(
     private val pixivService: PixivService,
     private val douYinService: DouYinService,
     private val smZdmService: SmZdmService,
-    private val aliDriverService: AliDriverService
+    private val aliDriverService: AliDriverService,
+    private val leiShenService: LeiShenService
 ): AbilityExtension {
 
     private fun managerKeyboardMarkup(): InlineKeyboardMarkup {
@@ -44,6 +45,7 @@ class ManagerExtension(
         val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinManager" }
         val smZdmButton = InlineKeyboardButton("什么值得买").also { it.callbackData = "smZdmManager" }
         val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverManager")
+        val leiShen = inlineKeyboardButton("雷神加速器", "leiShenManager")
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -52,7 +54,7 @@ class ManagerExtension(
             listOf(xiaomiStepButton, weiboButton),
             listOf(twitterButton, pixivButton),
             listOf(douYinButton, smZdmButton),
-            listOf(aliDriver)
+            listOf(aliDriver, leiShen)
         ))
     }
 
@@ -412,6 +414,24 @@ class ManagerExtension(
             editMessageText("""
                 阿里云盘，当前状态：
                 签到：${aliDriverEntity.sign.str()}
+            """.trimIndent(), markup, top = true)
+        }
+    }
+
+    fun TelegramSubscribe.leiShenManager() {
+        before { set(leiShenService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定雷神加速器账号")) }
+        callback("leiShenManager") {}
+        callback("leiShenSignOpen") { firstArg<LeiShenEntity>().status = Status.ON }
+        callback("leiShenSignClose") { firstArg<LeiShenEntity>().status = Status.OFF }
+        after {
+            val leiShenEntity: LeiShenEntity = firstArg()
+            leiShenService.save(leiShenEntity)
+            val signOpenButton = inlineKeyboardButton("自动签到（开）", "leiShenSignOpen")
+            val signCloseButton = inlineKeyboardButton("自动签到（关）", "leiShenSignClose")
+            val markup = InlineKeyboardMarkup(listOf(listOf(signOpenButton, signCloseButton)))
+            editMessageText("""
+                雷神加速器，当前状态：
+                未暂停时间提醒：${leiShenEntity.status.str()}
             """.trimIndent(), markup, top = true)
         }
     }

@@ -54,6 +54,7 @@ class ToolExtension(
 
     fun TelegramSubscribe.selectCard() {
         callbackStartsWith("ygoCard") {
+            answerCallbackQuery("获取成功")
             val id = query.data.split("-")[1]
             val card = ygoLogic.searchDetail(id.toLong())
             val sendPhoto = SendPhoto()

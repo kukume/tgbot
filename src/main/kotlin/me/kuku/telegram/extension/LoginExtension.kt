@@ -1,4 +1,4 @@
-@file:Suppress("SpellCheckingInspection")
+@file:Suppress("SpellCheckingInspection", "unused")
 
 package me.kuku.telegram.extension
 
@@ -39,7 +39,8 @@ class LoginExtension(
     private val pixivService: PixivService,
     private val buffService: BuffService,
     private val smZdmService: SmZdmService,
-    private val aliDriverService: AliDriverService
+    private val aliDriverService: AliDriverService,
+    private val leiShenService: LeiShenService
 ): AbilityExtension {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -60,6 +61,7 @@ class LoginExtension(
         val buffButton = InlineKeyboardButton("网易Buff").also { it.callbackData = "buffLogin" }
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmLogin")
         val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriverLogin")
+        val leiShenButton = inlineKeyboardButton("雷神加速器", "leiShenLogin")
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -69,7 +71,7 @@ class LoginExtension(
             listOf(weiboStepButton, douYinButton),
             listOf(twitterButton, pixivButton),
             listOf(buffButton, smZdmButton),
-            listOf(aliDriverButton)
+            listOf(aliDriverButton, leiShenButton)
         ))
     }
 
@@ -696,6 +698,22 @@ class LoginExtension(
                 }
             }
             photoMessage?.delete()
+        }
+    }
+
+    fun TelegramSubscribe.leiShenLogin() {
+        callback("leiShenLogin") {
+            editMessageText("请发送手机号")
+            val phone = nextMessage().text
+            editMessageText("请发送密码")
+            val password = nextMessage().text
+            val leiShenEntity = LeiShenLogic.login(phone, password)
+            leiShenService.findByTgId(tgId)?.let {
+                leiShenEntity.id = it.id
+            }
+            leiShenEntity.tgId = tgId
+            leiShenService.save(leiShenEntity)
+            editMessageText("绑定雷神加速器成功")
         }
     }
 
