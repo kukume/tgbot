@@ -18,13 +18,31 @@ class AbilitySubscriber {
         abilityMap[this] = ability
     }
 
-    fun sub(name: String, info: String = "这个命令没有描述", input: Int = 0, reply: Reply? = null, locality: Locality = Locality.ALL,
+    fun sub(name: String, info: String = "这个命令没有描述", input: Int = 0, reply: Reply? = null, locality: Locality = Locality.USER,
             privacy: Privacy = Privacy.PUBLIC, block: suspend AbilityContext.() -> Unit) {
         val ability = ability(name, info, input, reply, locality, privacy, block)
         abilityMap[name] = ability
     }
 
-    private fun ability(name: String, info: String = "这个命令没有描述", input: Int = 0, reply: Reply? = null, locality: Locality = Locality.ALL,
+    fun userSub(name: String, info: String = "这个命令没有描述", input: Int = 0, reply: Reply? = null, locality: Locality = Locality.USER,
+                privacy: Privacy = Privacy.PUBLIC, block: suspend AbilityContext.() -> Unit) {
+        val ability = ability(name, info, input, reply, locality, privacy, block)
+        abilityMap[name] = ability
+    }
+
+    fun groupSub(name: String, info: String = "这个命令没有描述", input: Int = 0, reply: Reply? = null, locality: Locality = Locality.GROUP,
+                 privacy: Privacy = Privacy.PUBLIC, block: suspend AbilityContext.() -> Unit) {
+        val ability = ability(name, info, input, reply, locality, privacy, block)
+        abilityMap[name] = ability
+    }
+
+    fun allSub(name: String, info: String = "这个命令没有描述", input: Int = 0, reply: Reply? = null, locality: Locality = Locality.ALL,
+                 privacy: Privacy = Privacy.PUBLIC, block: suspend AbilityContext.() -> Unit) {
+        val ability = ability(name, info, input, reply, locality, privacy, block)
+        abilityMap[name] = ability
+    }
+
+    private fun ability(name: String, info: String = "这个命令没有描述", input: Int = 0, reply: Reply? = null, locality: Locality = Locality.USER,
                         privacy: Privacy = Privacy.PUBLIC, block: suspend AbilityContext.() -> Unit): Ability {
         return Ability.builder().locality(locality).privacy(privacy).name(name).info(info).input(input).action {
             JobManager.now {

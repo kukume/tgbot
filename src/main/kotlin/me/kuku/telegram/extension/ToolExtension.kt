@@ -8,6 +8,7 @@ import me.kuku.telegram.logic.YgoLogic
 import me.kuku.telegram.utils.*
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
+import org.telegram.abilitybots.api.objects.Locality
 import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendAudio
@@ -37,7 +38,7 @@ class ToolExtension(
             }
             sendMessage("请选择查询的卡片", replyKeyboard = InlineKeyboardMarkup(list))
         }
-        sub("lolicon", "lolicon图片") {
+        sub("lolicon", "lolicon图片", locality = Locality.ALL) {
             val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?r18=2")
             val url = jsonNode["data"][0]["urls"]["original"].asText()
             val bytes = OkHttpKtUtils.getBytes(url)

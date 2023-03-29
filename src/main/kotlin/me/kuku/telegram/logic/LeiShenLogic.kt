@@ -10,10 +10,9 @@ import me.kuku.utils.*
 object LeiShenLogic {
 
     suspend fun login(phone: String, password: String): LeiShenEntity {
-        val md5Pass = password.md5()
         val jsonNode = client.post("https://webapi.leigod.com/wap/login/bind") {
             setJsonBody("""
-                {"username":"$phone","password":"$md5Pass","user_type":"0","src_channel":"guanwang","code":"","country_code":86,"lang":"zh_CN"}
+                {"username":"$phone","password":"$password","user_type":"0","src_channel":"guanwang","code":"","country_code":86,"lang":"zh_CN"}
             """.trimIndent())
         }.body<JsonNode>()
         if (jsonNode["code"].asInt() != 0) error(jsonNode["msg"].asText())
@@ -27,7 +26,7 @@ object LeiShenLogic {
             it.nnToken = nnToken
             it.expiryTime = expiryTime
             it.username = phone
-            it.password = md5Pass
+            it.password = password
         }
     }
 

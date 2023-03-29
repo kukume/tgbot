@@ -707,7 +707,7 @@ class LoginExtension(
             val phone = nextMessage().text
             editMessageText("请发送密码")
             val password = nextMessage().text
-            val leiShenEntity = LeiShenLogic.login(phone, password)
+            val leiShenEntity = LeiShenLogic.login(phone, password.md5())
             leiShenService.findByTgId(tgId)?.let {
                 leiShenEntity.id = it.id
             }
