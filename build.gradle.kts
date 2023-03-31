@@ -1,9 +1,9 @@
 plugins {
-    val kotlinVersion = "1.8.10"
+    val kotlinVersion = "1.8.20"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     id("org.jetbrains.kotlin.kapt") version kotlinVersion
-    id("org.springframework.boot") version "3.0.4"
+    id("org.springframework.boot") version "3.0.5"
     id("io.spring.dependency-management") version "1.1.0"
 }
 
@@ -24,7 +24,6 @@ dependencies {
     implementation("org.telegram:telegrambots-abilities:6.5.0")
     implementation("me.kuku:utils:2.2.4.0")
     implementation("org.jsoup:jsoup:1.15.3")
-    implementation("org.springframework.boot:spring-boot-starter-mail")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

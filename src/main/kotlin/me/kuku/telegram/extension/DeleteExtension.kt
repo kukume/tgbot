@@ -24,7 +24,8 @@ class DeleteExtension(
     private val pixivService: PixivService,
     private val buffService: BuffService,
     private val smZdmService: SmZdmService,
-    private val aliDriverService: AliDriverService
+    private val aliDriverService: AliDriverService,
+    private val leiShenService: LeiShenService
 ): AbilityExtension {
 
     private fun markup(): InlineKeyboardMarkup {
@@ -44,6 +45,7 @@ class DeleteExtension(
         val buffButton = InlineKeyboardButton("网易buff").also { it.callbackData = "buffDelete" }
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmDelete")
         val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriveDelete")
+        val leiShenDelete = inlineKeyboardButton("雷神加速器", "leiShenDelete")
         return InlineKeyboardMarkup(listOf(
             listOf(baiduButton, biliBiliButton),
             listOf(douYuButton, hostLocButton),
@@ -52,7 +54,8 @@ class DeleteExtension(
             listOf(stepButton, weiboStepButton),
             listOf(douYinButton, twitterButton),
             listOf(pixivButton, buffButton),
-            listOf(smZdmButton, aliDriverButton)
+            listOf(smZdmButton, aliDriverButton),
+            listOf(leiShenDelete)
         ))
     }
 
@@ -126,6 +129,10 @@ class DeleteExtension(
         callback("aliDriveDelete") {
             aliDriverService.deleteByTgId(tgId)
             editMessageText("删除阿里云盘成功")
+        }
+        callback("leiShenDelete") {
+            leiShenService.deleteByTgId(tgId)
+            editMessageText("删除雷神加速器成功")
         }
     }
 

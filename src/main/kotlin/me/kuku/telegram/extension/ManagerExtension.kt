@@ -3,6 +3,7 @@
 package me.kuku.telegram.extension
 
 import me.kuku.telegram.entity.*
+import me.kuku.telegram.logic.LeiShenLogic
 import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Service
 import org.telegram.abilitybots.api.util.AbilityExtension
@@ -423,15 +424,31 @@ class ManagerExtension(
         callback("leiShenManager") {}
         callback("leiShenSignOpen") { firstArg<LeiShenEntity>().status = Status.ON }
         callback("leiShenSignClose") { firstArg<LeiShenEntity>().status = Status.OFF }
+        callback("leiShenPause") {
+            LeiShenLogic.pause(firstArg())
+        }
+        callback("leiShenRecover") {
+            LeiShenLogic.recover(firstArg())
+        }
         after {
             val leiShenEntity: LeiShenEntity = firstArg()
             leiShenService.save(leiShenEntity)
             val signOpenButton = inlineKeyboardButton("自动签到（开）", "leiShenSignOpen")
             val signCloseButton = inlineKeyboardButton("自动签到（关）", "leiShenSignClose")
-            val markup = InlineKeyboardMarkup(listOf(listOf(signOpenButton, signCloseButton)))
+            val split = inlineKeyboardButton("以下是手动暂停与恢复时间按钮", "not")
+            val pause = inlineKeyboardButton("暂停时间", "leiShenPause")
+            val recover = inlineKeyboardButton("恢复时间", "leiShenRecover")
+            val markup = InlineKeyboardMarkup(listOf(
+                listOf(signOpenButton, signCloseButton),
+                listOf(split),
+                listOf(pause),
+                listOf(recover)
+            ))
+            val userInfo = LeiShenLogic.userInfo(leiShenEntity)
             editMessageText("""
                 雷神加速器，当前状态：
                 未暂停时间提醒：${leiShenEntity.status.str()}
+                时间状态：${if (userInfo.pauseStatusId == 1) "正在暂停中" else "没有在暂停哦"}
             """.trimIndent(), markup, top = true)
         }
     }

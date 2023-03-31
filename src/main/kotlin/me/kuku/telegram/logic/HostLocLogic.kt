@@ -31,6 +31,15 @@ object HostLocLogic {
         if (!b) error("cookie已失效")
     }
 
+    suspend fun singleSign(cookie: String) {
+        checkLogin(cookie)
+        val url = "https://hostloc.com/space-uid-${MyUtils.randomInt(10000, 50000)}.html"
+        kotlin.runCatching {
+            OkHttpKtUtils.get(url, OkUtils.headers(cookie, "https://hostloc.com/forum.php", UA.PC))
+                .close()
+        }
+    }
+
     suspend fun sign(cookie: String) {
         checkLogin(cookie)
         val urlList = mutableListOf<String>()

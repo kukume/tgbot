@@ -6,7 +6,6 @@ import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Service
 import org.telegram.abilitybots.api.util.AbilityExtension
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
@@ -106,8 +105,10 @@ class ExecExtension(
         }
         callback("hostLocSign") {
             val hostLocEntity = firstArg<HostLocEntity>()
-            editMessageText("HostLoc签到后台进行中")
-            HostLocLogic.sign(hostLocEntity.cookie)
+            for (i in 0 until 12) {
+                editMessageText("正在进行第${i}次访问HostLoc用户主页")
+                HostLocLogic.singleSign(hostLocEntity.cookie)
+            }
         }
     }
 
