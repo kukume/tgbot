@@ -1,4 +1,6 @@
 spring:
+  ktor:
+    port: 8080
   data:
     mongodb:
       uri: mongodb://localhost/tg
@@ -16,5 +18,5 @@ kuku:
     creatorId: -1
     proxyHost:
     proxyPort: 0
-    proxyType: NO_PROXY
+    proxyType: no_proxy
     url:

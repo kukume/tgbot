@@ -17,8 +17,10 @@ class SettingExtension(
     fun settingMarkup(): InlineKeyboardMarkup {
         val blackSetting = inlineKeyboardButton("黑名单", "blackSetting")
         val adminSetting = inlineKeyboardButton("管理员", "adminSetting")
+        val url = inlineKeyboardButton("设置推送url", "pushUrlSetting")
         return InlineKeyboardMarkup(listOf(
-            listOf(blackSetting, adminSetting)
+            listOf(blackSetting, adminSetting),
+            listOf(url)
         ))
     }
 
@@ -108,6 +110,16 @@ class SettingExtension(
             val ss = nextMessage().text.toLongOrNull() ?: error("发送的不为数字")
             telegramBot.admins().remove(ss)
             editMessageText("删除管理员（$ss）成功")
+        }
+    }
+
+    fun TelegramSubscribe.url() {
+        callback("pushUrlSetting") {
+            editMessageText("请发送推送url，例如<http://127.0.0.1:5460>，带上http，最后不要/")
+            val url = nextMessage().text
+            val stringVar = telegramBot.db().getVar<String>("pushUrl")
+            stringVar.set(url)
+            editMessageText("设置推送url成功")
         }
     }
 

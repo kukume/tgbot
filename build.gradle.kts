@@ -23,6 +23,7 @@ dependencies {
     implementation("org.telegram:telegrambots:6.5.0")
     implementation("org.telegram:telegrambots-abilities:6.5.0")
     implementation("me.kuku:utils:2.2.4.0")
+    implementation("me.kuku:ktor-spring-boot-starter:2.2.4.0")
     implementation("org.jsoup:jsoup:1.15.3")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -32,6 +33,10 @@ tasks.compileKotlin {
     kotlinOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict", "-Xcontext-receivers")
     }
+}
+
+tasks.compileJava {
+    options.encoding = "utf-8"
 }
 
 kotlin {
