@@ -116,7 +116,7 @@ class SettingExtension(
     fun TelegramSubscribe.url() {
         callback("pushUrlSetting") {
             editMessageText("请发送推送url，例如<http://127.0.0.1:5460>，带上http，最后不要/")
-            val url = nextMessage().text
+            val url = nextMessage().text + "/push"
             val stringVar = telegramBot.db().getVar<String>("pushUrl")
             stringVar.set(url)
             editMessageText("设置推送url成功")
