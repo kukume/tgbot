@@ -189,6 +189,7 @@ class ManagerExtension(
         callback("hostLocSignClose") { firstArg<HostLocEntity>().sign = Status.OFF }
         after {
             val hostLocEntity = firstArg<HostLocEntity>()
+            hostLocService.save(hostLocEntity)
             val pushOpenButton = InlineKeyboardButton("动态推送（开）").apply { callbackData = "hostLocPushOpen" }
             val pushCloseButton = InlineKeyboardButton("动态推送（关）").apply { callbackData = "hostLocPushClose" }
             val signOpenButton = InlineKeyboardButton("自动签到（开）").apply { callbackData = "hostLocSignOpen" }
