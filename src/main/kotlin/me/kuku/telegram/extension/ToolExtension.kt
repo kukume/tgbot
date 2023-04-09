@@ -8,6 +8,7 @@ import me.kuku.telegram.logic.YgoLogic
 import me.kuku.telegram.utils.*
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
+import org.telegram.abilitybots.api.bot.BaseAbilityBot
 import org.telegram.abilitybots.api.objects.Locality
 import org.telegram.abilitybots.api.util.AbilityExtension
 import org.telegram.telegrambots.meta.api.methods.GetFile
@@ -48,6 +49,9 @@ class ToolExtension(
                 bot.execute(sendPhoto)
             }
         }
+        sub("loliconmulti", "lolicon多张图片", locality = Locality.ALL) {
+            loLiConMulti(chatId.toString(), bot)
+        }
         sub("tool", "工具") {
             sendMessage("请选择小工具", toolKeyboardMarkup())
         }
@@ -77,29 +81,33 @@ class ToolExtension(
         ))
     }
 
+    private suspend fun loLiConMulti(chatId: String, bot: BaseAbilityBot) {
+        val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=2")
+        val list = jsonNode["data"].map { node -> node["urls"]["original"].asText() }
+        val inputMediaList = mutableListOf<InputMedia>()
+        val ii = mutableListOf<InputStream>()
+        try {
+            for (i in list.indices) {
+                val s = list[i]
+                val bytes = OkHttpKtUtils.getBytes(s)
+                if (bytes.size > 1024 * 10 * 1024) error("图片大于10M，发送失败")
+                val name = s.substring(s.lastIndexOf('/') + 1)
+                val bis = bytes.inputStream()
+                val mediaPhoto =
+                    InputMediaPhoto.builder().newMediaStream(bis).media("attach://$name").mediaName(name).isNewMedia(true).build()
+                inputMediaList.add(mediaPhoto)
+                ii.add(bis)
+            }
+            val sendMediaGroup = SendMediaGroup(chatId, inputMediaList)
+            bot.execute(sendMediaGroup)
+        } finally {
+            ii.forEach { iis -> iis.close() }
+        }
+    }
+
     fun TelegramSubscribe.colorPic() {
         callback("LoLiConTool") {
-            val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=2")
-            val list = jsonNode["data"].map { node -> node["urls"]["original"].asText() }
-            val inputMediaList = mutableListOf<InputMedia>()
-            val ii = mutableListOf<InputStream>()
-            try {
-                for (i in list.indices) {
-                    val s = list[i]
-                    val bytes = OkHttpKtUtils.getBytes(s)
-                    if (bytes.size > 1024 * 10 * 1024) error("图片大于10M，发送失败")
-                    val name = s.substring(s.lastIndexOf('/') + 1)
-                    val bis = bytes.inputStream()
-                    val mediaPhoto =
-                        InputMediaPhoto.builder().newMediaStream(bis).media("attach://$name").mediaName(name).isNewMedia(true).build()
-                    inputMediaList.add(mediaPhoto)
-                    ii.add(bis)
-                }
-                val sendMediaGroup = SendMediaGroup(chatId.toString(), inputMediaList)
-                bot.execute(sendMediaGroup)
-            } finally {
-                ii.forEach { iis -> iis.close() }
-            }
+            loLiConMulti(chatId.toString(), bot)
         }
         callback("FishermanCalendarTool") {
             OkHttpKtUtils.getByteStream("https://api.kukuqaq.com/fishermanCalendar?preview").use { iis ->

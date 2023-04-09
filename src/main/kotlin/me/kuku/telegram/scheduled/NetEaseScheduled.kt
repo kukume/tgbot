@@ -24,13 +24,13 @@ class NetEaseScheduled(
             }
             kotlin.runCatching {
                 delay(3000)
+                NetEaseLogic.listenMusic(netEaseEntity)
+                delay(3000)
                 val result = NetEaseLogic.sign(netEaseEntity)
                 if (result.failure()) {
                     logEntity.text = "失败"
                     logEntity.sendFailMessage(telegramBot)
                 } else {
-                    delay(3000)
-                    NetEaseLogic.listenMusic(netEaseEntity)
                     logEntity.text = "成功"
                 }
             }.onFailure {
