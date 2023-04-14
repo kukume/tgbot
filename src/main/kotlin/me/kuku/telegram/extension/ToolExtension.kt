@@ -90,7 +90,7 @@ class ToolExtension(
             for (i in list.indices) {
                 val s = list[i]
                 val bytes = OkHttpKtUtils.getBytes(s)
-                if (bytes.size > 1024 * 10 * 1024) error("图片大于10M，发送失败")
+                if (bytes.size > 1024 * 10 * 1024) continue
                 val name = s.substring(s.lastIndexOf('/') + 1)
                 val bis = bytes.inputStream()
                 val mediaPhoto =
