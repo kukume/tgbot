@@ -25,6 +25,9 @@ dependencies {
     implementation("me.kuku:utils:2.2.4.0")
     implementation("me.kuku:ktor-spring-boot-starter:2.2.4.0")
     implementation("org.jsoup:jsoup:1.15.3")
+    implementation("com.oracle.oci.sdk:oci-java-sdk-core:3.11.0")
+    implementation("com.oracle.oci.sdk:oci-java-sdk-identity:3.11.0")
+    implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:3.11.0")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

@@ -22,6 +22,10 @@ class ErrorHandler {
             abilityContext.sendMessage(throwable.toString())
         }
 
+        handler<IllegalArgumentException> {
+            telegramContext.editMessageText(throwable.toString())
+        }
+
     }
 
 
