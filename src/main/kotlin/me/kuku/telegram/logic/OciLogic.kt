@@ -2,6 +2,7 @@ package me.kuku.telegram.logic
 
 import com.oracle.bmc.auth.SimpleAuthenticationDetailsProvider
 import com.oracle.bmc.auth.StringPrivateKeySupplier
+import com.oracle.bmc.core.BlockstorageClient
 import com.oracle.bmc.core.ComputeClient
 import com.oracle.bmc.core.VirtualNetworkClient
 import com.oracle.bmc.core.model.*
@@ -41,6 +42,11 @@ object OciLogic {
 
     fun computeClient(ociEntity: OciEntity): ComputeClient {
         return ComputeClient.builder().region(ociEntity.region)
+            .build(provider(ociEntity))
+    }
+
+    fun blockstorageClient(ociEntity: OciEntity): BlockstorageClient {
+        return BlockstorageClient.builder().region(ociEntity.region)
             .build(provider(ociEntity))
     }
 
@@ -130,6 +136,10 @@ object OciLogic {
         return response.items
     }
 
+    fun firstAvailabilityDomains(ociEntity: OciEntity): AvailabilityDomain {
+        return listAvailabilityDomains(ociEntity)[0]
+    }
+
     /**
      * VM.Standard.E2.1.Micro   amd
      * VM.Standard.A1.Flex  arm
@@ -201,6 +211,105 @@ object OciLogic {
     fun vnicByInstance(ociEntity: OciEntity, instance: Instance): Vnic {
         val vnicAttachment = oneVnicAttachmentsByInstanceId(ociEntity, instance.id)
         return getVnic(ociEntity, vnicAttachment.vnicId)
+    }
+
+    fun getInstance(ociEntity: OciEntity, instanceId: String): Instance {
+        val response = computeClient(ociEntity).getInstance(
+            GetInstanceRequest.builder()
+                .instanceId(instanceId)
+                .build()
+        )
+        return response.instance
+    }
+
+    fun listBootVolumeAttachments(ociEntity: OciEntity, instanceId: String? = null): List<BootVolumeAttachment> {
+        val response = computeClient(ociEntity).listBootVolumeAttachments(
+            ListBootVolumeAttachmentsRequest.builder()
+                .instanceId(instanceId)
+                .availabilityDomain(firstAvailabilityDomains(ociEntity).name)
+                .compartmentId(ociEntity.tenantId)
+                .build()
+        )
+        return response.items
+    }
+
+    fun getBootVolume(ociEntity: OciEntity, bootVolumeId: String): BootVolume {
+        val response = blockstorageClient(ociEntity).getBootVolume(GetBootVolumeRequest.builder()
+            .bootVolumeId(bootVolumeId).build())
+        return response.bootVolume
+    }
+
+    fun getPublicIpByIpAddress(ociEntity: OciEntity, ip: String): PublicIp {
+        val response = virtualNetworkClient(ociEntity).getPublicIpByIpAddress(GetPublicIpByIpAddressRequest.builder()
+            .getPublicIpByIpAddressDetails(
+                GetPublicIpByIpAddressDetails.builder()
+                    .ipAddress(ip)
+                    .build()
+            )
+            .build())
+        return response.publicIp
+    }
+
+    fun updatePublicIp(ociEntity: OciEntity, ipId: String, privateIpId: String? = null): PublicIp {
+        val response = virtualNetworkClient(ociEntity).updatePublicIp(UpdatePublicIpRequest.builder()
+            .publicIpId(ipId)
+            .updatePublicIpDetails(UpdatePublicIpDetails.builder()
+                .privateIpId(privateIpId)
+                .build())
+            .build())
+        return response.publicIp
+    }
+
+    fun deletePublicIp(ociEntity: OciEntity, ipId: String) {
+        virtualNetworkClient(ociEntity).deletePublicIp(DeletePublicIpRequest.builder()
+            .publicIpId(ipId)
+            .build())
+    }
+
+    fun createPublicIp(ociEntity: OciEntity, lifetime: CreatePublicIpDetails.Lifetime, privateIpId: String? = null): PublicIp {
+        val response = virtualNetworkClient(ociEntity).createPublicIp(CreatePublicIpRequest.builder()
+            .createPublicIpDetails(CreatePublicIpDetails.builder()
+                .compartmentId(ociEntity.tenantId)
+                .privateIpId(privateIpId)
+                .lifetime(lifetime)
+                .build()
+            )
+            .build())
+        return response.publicIp
+    }
+
+    fun listPrivateIps(ociEntity: OciEntity, ipAddress: String? = null, subnetId: String? = null, vnicId: String? = null): List<PrivateIp> {
+        val response = virtualNetworkClient(ociEntity).listPrivateIps(ListPrivateIpsRequest.builder()
+            .ipAddress(ipAddress)
+            .subnetId(subnetId)
+            .vnicId(vnicId)
+            .build())
+        return response.items
+    }
+
+    fun terminateInstance(ociEntity: OciEntity, instanceId: String, preserveBootVolume: Boolean = false) {
+        computeClient(ociEntity).terminateInstance(TerminateInstanceRequest.builder()
+            .instanceId(instanceId)
+            .preserveBootVolume(preserveBootVolume)
+            .build())
+    }
+
+    /**
+     * STOP
+     * START
+     * SOFTRESET
+     * RESET
+     * SOFTSTOP
+     * SENDDIAGNOSTICINTERRUPT
+     * DIAGNOSTICREBOOT
+     * REBOOTMIGRATE
+     */
+    fun instanceAction(ociEntity: OciEntity, instanceId: String, action: String): Instance {
+        val response = computeClient(ociEntity).instanceAction(InstanceActionRequest.builder()
+            .instanceId(instanceId)
+            .action(action)
+            .build())
+        return response.instance
     }
 
 }

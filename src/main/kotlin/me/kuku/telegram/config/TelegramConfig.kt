@@ -1,7 +1,5 @@
 package me.kuku.telegram.config
 
-import io.ktor.client.call.*
-import io.ktor.client.request.*
 import jakarta.annotation.PostConstruct
 import me.kuku.telegram.utils.*
 import me.kuku.utils.JobManager
@@ -149,7 +147,6 @@ class TelegramBot(val token: String, botUsername: String, private val creatorId:
         }
         @Suppress("UNCHECKED_CAST")
         map.putAll(abilitySubscriber::class.java.getDeclaredField("abilityMap").also { it.isAccessible = true }.get(abilitySubscriber) as Map<out String, Ability>)
-        @Suppress("UNCHECKED_CAST")
         callBackQList.forEach { callBackQ ->
             list.add(callBackQ::class.java.getDeclaredMethod("toReply").also { it.isAccessible = true }.invoke(callBackQ) as Reply) }
         abilitiesField.set(this, map)

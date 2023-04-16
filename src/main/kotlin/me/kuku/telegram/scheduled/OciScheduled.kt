@@ -14,7 +14,7 @@ class OciScheduled(
     private val telegramBot: TelegramBot
 ) {
 
-    @Scheduled(fixedDelay = 30, timeUnit = TimeUnit.SECONDS)
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     suspend fun createInstance() {
         val list = ociService.findAll()
         for (ociEntity in list) {

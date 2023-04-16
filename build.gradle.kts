@@ -20,6 +20,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
+    implementation("org.ehcache:ehcache:3.10.8")
     implementation("org.telegram:telegrambots:6.5.0")
     implementation("org.telegram:telegrambots-abilities:6.5.0")
     implementation("me.kuku:utils:2.2.4.0")

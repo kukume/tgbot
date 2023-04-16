@@ -1,6 +1,8 @@
 package me.kuku.telegram.extension
 
 import com.oracle.bmc.Region
+import com.oracle.bmc.core.model.CreatePublicIpDetails
+import com.oracle.bmc.core.model.Instance
 import com.oracle.bmc.model.BmcException
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.OciEntity
@@ -9,14 +11,16 @@ import me.kuku.telegram.logic.OciLogic
 import me.kuku.telegram.utils.AbilitySubscriber
 import me.kuku.telegram.utils.TelegramSubscribe
 import me.kuku.telegram.utils.inlineKeyboardButton
-import me.kuku.utils.JobManager
+import org.ehcache.Cache
+import org.ehcache.CacheManager
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
 @Service
 class OciExtension(
-    private val ociService: OciService
+    private val ociService: OciService,
+    private val cacheManager: CacheManager
 ) {
 
     fun AbilitySubscriber.oci() {
@@ -40,9 +44,9 @@ class OciExtension(
 
     }
 
-    private val ociCache = mutableMapOf<Long, OciEntity>()
+    private val bindCache = cacheManager.getCache("bindOci", Long::class.javaObjectType, OciEntity::class.java)
 
-    private val selectCache = mutableMapOf<Long, OciCache>()
+    private val selectCache = cacheManager.getCache("selectOci", Long::class.javaObjectType, OciCache::class.java)
 
     fun TelegramSubscribe.oci() {
         callback("addOci") {
@@ -67,22 +71,19 @@ class OciExtension(
                 }
                 regionList.add(buttons)
             }
-            ociCache[tgId] = OciEntity().also {
+            bindCache.put(tgId, OciEntity().also {
                 it.tenantId = tenantId
                 it.userid = userid
                 it.fingerprint = fingerprint
                 it.privateKey = privateKey
                 it.tgId = tgId
                 it.remark = remark
-            }
-            JobManager.delay(1000 * 60 * 3) {
-                ociCache.remove(tgId)
-            }
+            })
             editMessageText("请选择账号所属的区域", InlineKeyboardMarkup(regionList), top = true)
         }
 
         callbackStartsWith("ociRegion-") {
-            val ociEntity = ociCache[tgId] ?: error("缓存已失效，请重新新增oci的api信息")
+            val ociEntity = bindCache[tgId] ?: error("缓存已失效，请重新新增oci的api信息")
             val regionId = query.data.substring(10)
             ociEntity.region = regionId
             OciLogic.listCompartments(ociEntity)
@@ -126,13 +127,12 @@ class OciExtension(
         callbackStartsWith("ociQuery-") {
             val id = query.data.split("-")[1]
             val ociEntity = ociService.findById(id) ?: error("选歪了")
-            selectCache[tgId] = OciCache(ociEntity)
-            JobManager.delay(1000 * 60 * 3){
-                selectCache.remove(tgId)
-            }
+            selectCache.put(tgId, OciCache(ociEntity))
             val createInstance = inlineKeyboardButton("创建实例", "ociCom")
+            val lookInstance = inlineKeyboardButton("查看实例", "ociLook")
             editMessageText("请选择操作方式", InlineKeyboardMarkup(listOf(
-                listOf(createInstance)
+                listOf(createInstance),
+                listOf(lookInstance)
             )))
         }
 
@@ -156,11 +156,12 @@ class OciExtension(
             ociService.save(ociEntity)
             editMessageText("删除定时任务成功")
         }
-
     }
 
+    private val chooseCache = cacheManager.getCache("chooseOci", String::class.java, String::class.java)
+
     fun TelegramSubscribe.operate() {
-        before { set(selectCache[tgId] ?: error("缓存不存在，请重新选择")) }
+        before { set(selectCache[tgId] ?: error("缓存不存在，请重新发送指令后选择")) }
         callback("ociCom") {
             val shape1 = inlineKeyboardButton("VM.Standard.E2.1.Micro（amd）", "ociSelShape-1")
             val shape2 = inlineKeyboardButton("VM.Standard.A1.Flex（arm）", "ociSelShape-2")
@@ -274,6 +275,97 @@ class OciExtension(
             } else {
                 editMessageText("已取消")
             }
+        }
+        callback("ociLook") {
+            val entity = firstArg<OciCache>().entity
+            val instances = OciLogic.listInstances(entity).filter {
+                it.lifecycleState !in listOf(
+                    Instance.LifecycleState.Terminated,
+                    Instance.LifecycleState.Terminating
+                )
+            }
+            val list = mutableListOf<List<InlineKeyboardButton>>()
+            for ((i, instance) in instances.withIndex()) {
+                val shapeConfig = instance.shapeConfig
+                val title =
+                    "${instance.shape}-${shapeConfig.ocpus}H-${shapeConfig.memoryInGBs}G-${shapeConfig.networkingBandwidthInGbps}G"
+                list.add(listOf(inlineKeyboardButton(title, "ociLookDetail-$i")))
+                chooseCache.put("$tgId$i", instance.id)
+            }
+            editMessageText("请选择实例，其显示内容为：\n形状-cpu核心数量-内存-带宽", InlineKeyboardMarkup(list))
+        }
+
+    }
+
+    fun TelegramSubscribe.operateInstance() {
+        before {
+            set(selectCache[tgId] ?: error("缓存不存在，请重新发送指令后选择"))
+            val int = query.data.split("-")[1].toInt()
+            set(int)
+            set(chooseCache["$tgId$int"] ?: error("缓存不存在，请重新发送指令"))
+        }
+        callbackStartsWith("ociLookDetail-") {
+            val instanceId = thirdArg<String>()
+            val ociEntity = firstArg<OciCache>().entity
+            val i = secondArg<Int>()
+            val instance = OciLogic.getInstance(ociEntity, instanceId)
+            val vnic = OciLogic.vnicByInstance(ociEntity, instance)
+            val listBootVolumeAttachments = OciLogic.listBootVolumeAttachments(ociEntity, instanceId)
+            val bootVolumeAttachment = listBootVolumeAttachments[0]
+            val bootVolumeId = bootVolumeAttachment.bootVolumeId
+            val bootVolume = OciLogic.getBootVolume(ociEntity, bootVolumeId)
+            val shapeConfig = instance.shapeConfig
+            val start = inlineKeyboardButton("启动", "ociOpStart-$i")
+            val stop = inlineKeyboardButton("停止", "ociOpStop-$i")
+            val terminate = inlineKeyboardButton("销毁", "ociOpTerminate-$i")
+            val updateIp = inlineKeyboardButton("更换ip", "ociOpUpdateIp-$i")
+            editMessageText("""
+                请选择您的操作，您的该实例信息为：
+                形状：${instance.shape}
+                cpu：${shapeConfig.ocpus}H/C
+                内存：${shapeConfig.memoryInGBs}G
+                带宽；${shapeConfig.networkingBandwidthInGbps}G
+                硬盘：${bootVolume.sizeInGBs}G
+                公网IP：${vnic.publicIp}
+                内网IP：${vnic.privateIp}
+            """.trimIndent(), InlineKeyboardMarkup(listOf(
+                listOf(start, stop, terminate),
+                listOf(updateIp)
+            )))
+        }
+        callbackStartsWith("ociOpStart-") {
+            val ociEntity = firstArg<OciCache>().entity
+            val instanceId = thirdArg<String>()
+            OciLogic.instanceAction(ociEntity, instanceId, "START")
+            editMessageText("启动实例成功")
+        }
+        callbackStartsWith("ociOpStop-") {
+            val ociEntity = firstArg<OciCache>().entity
+            val instanceId = thirdArg<String>()
+            OciLogic.instanceAction(ociEntity, instanceId, "STOP")
+            editMessageText("停止实例成功")
+        }
+        callbackStartsWith("ociOpTerminate-") {
+            val ociEntity = firstArg<OciCache>().entity
+            val instanceId = thirdArg<String>()
+            OciLogic.terminateInstance(ociEntity, instanceId, true)
+            editMessageText("销毁实例成功", top = true)
+        }
+        callbackStartsWith("ociOpUpdateIp-") {
+            val ociEntity = firstArg<OciCache>().entity
+            val instanceId = thirdArg<String>()
+            val instance = OciLogic.getInstance(ociEntity, instanceId)
+            val vnic = OciLogic.vnicByInstance(ociEntity, instance)
+            val publicIp = vnic.publicIp
+            val privateIpList = OciLogic.listPrivateIps(ociEntity, vnicId = vnic.id)
+            if (publicIp != null) {
+                val ip = OciLogic.getPublicIpByIpAddress(ociEntity, publicIp)
+                OciLogic.deletePublicIp(ociEntity, ip.id)
+            }
+            val createPublicIp =
+                OciLogic.createPublicIp(ociEntity, CreatePublicIpDetails.Lifetime.Ephemeral, privateIpList[0].id)
+            val ipAddress = createPublicIp.ipAddress
+            editMessageText("更新ip成功，您的新ip为：$ipAddress", refreshReturn = true)
         }
     }
 

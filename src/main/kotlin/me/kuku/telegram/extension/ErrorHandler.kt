@@ -1,8 +1,10 @@
 package me.kuku.telegram.extension
 
 import me.kuku.telegram.utils.AnswerCallbackQueryException
+import me.kuku.telegram.utils.MessageExpiredException
 import me.kuku.telegram.utils.TelegramExceptionHandler
 import org.springframework.stereotype.Component
+import java.net.SocketException
 import kotlin.IllegalStateException
 
 @Component
@@ -24,6 +26,14 @@ class ErrorHandler {
 
         handler<IllegalArgumentException> {
             telegramContext.editMessageText(throwable.toString())
+        }
+
+        handler<MessageExpiredException> {
+            telegramContext.editMessageText(throwable.message ?: "未知错消息", returnButton = false)
+        }
+
+        handler<SocketException> {
+            telegramContext.editMessageText("请求接口异常，请重试，异常信息：${throwable.message}")
         }
 
     }
