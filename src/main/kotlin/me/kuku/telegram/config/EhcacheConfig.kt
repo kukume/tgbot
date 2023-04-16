@@ -1,6 +1,5 @@
 package me.kuku.telegram.config
 
-import jakarta.annotation.PreDestroy
 import me.kuku.telegram.entity.OciEntity
 import me.kuku.telegram.extension.OciCache
 import org.ehcache.CacheManager
@@ -34,12 +33,6 @@ class EhcacheConfig(
                 CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.java, String::class.java,
                     ResourcePoolsBuilder.heap(2)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
             .build(true)
-    }
-
-    @PreDestroy
-    fun preDestroy() {
-        val cacheManager = applicationContext.getBean(CacheManager::class.java)
-        cacheManager.close()
     }
 
 }
