@@ -361,4 +361,26 @@ object OciLogic {
         }
     }
 
+    /**
+     * protocol 1-icmp 6-tcp 17-udp 58-ICMPv6
+     */
+    fun listSecurityLists(ociEntity: OciEntity, vcnId: String? = null): List<SecurityList> {
+        return virtualNetworkClient(ociEntity).use {
+            val response = it.listSecurityLists(ListSecurityListsRequest.builder()
+                .compartmentId(ociEntity.tenantId)
+                .vcnId(vcnId)
+                .build())
+            response.items
+        }
+    }
+
+    fun getSubnet(ociEntity: OciEntity, subnetId: String? = null): Subnet {
+        return virtualNetworkClient(ociEntity).use {
+            val response = it.getSubnet(GetSubnetRequest.builder()
+                .subnetId(subnetId)
+                .build())
+            response.subnet
+        }
+    }
+
 }

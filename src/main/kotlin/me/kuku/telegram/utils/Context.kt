@@ -4,11 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.config.TelegramBot
-import me.kuku.telegram.config.TelegramUpdateEvent
 import me.kuku.utils.JobManager
-import org.ehcache.Cache
-import org.ehcache.CacheManager
-import org.springframework.context.ApplicationListener
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
@@ -22,6 +18,7 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMedia
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
+import org.telegram.telegrambots.meta.api.objects.Chat
 import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.media.InputMedia
@@ -29,9 +26,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
-import kotlin.collections.LinkedHashMap
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -92,6 +87,8 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
         message.chatId
     }
 
+    val lastMessageList: MutableList<Message> = mutableListOf()
+
     init {
         update.callbackQuery?.let { query = it }
     }
@@ -106,12 +103,15 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
         }
     }
 
-    private fun addReturnButton(replyMarkup: InlineKeyboardMarkup, after: ReturnMessageAfter, top: Boolean, refreshReturn: Boolean): InlineKeyboardMarkup {
+    private fun addReturnButton(replyMarkup: InlineKeyboardMarkup, after: ReturnMessageAfter, top: Boolean,
+                                refreshReturn: Boolean): InlineKeyboardMarkup {
         val data = query.data
         val historyKey = "$tgId${message.messageId}"
         val history = callbackHistory.getOrDefault(historyKey, LinkedList())
-        callbackHistory[historyKey] = history.also { it.addLast(History(message, data, refreshReturn)) }
-        if (history.size > 3) history.removeFirst()
+        if (history.isEmpty() || (history.last != null && history.last.data != data)) {
+            callbackHistory[historyKey] = history.also { it.addLast(History(message, data, refreshReturn)) }
+            if (history.size > 3) history.removeFirst()
+        }
         val uuid = UUID.randomUUID().toString()
         val key = if (refreshReturn) history[history.size - 2].data else {
             val temp = "return_$uuid"
@@ -136,6 +136,12 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
         val markup = if (returnButton) {
             addReturnButton(replyMarkup, after, top, refreshReturn)
         } else replyMarkup
+        val lastMessage = Message()
+        lastMessage.text = text
+        lastMessage.chat = Chat(chatId, "")
+        lastMessage.replyMarkup = markup
+        lastMessage.messageId = messageId
+        lastMessageList.add(lastMessage)
         val editMessageText = EditMessageText.builder().text(text)
             .messageId(messageId).chatId(chatId).parseMode(parseMode)
             .replyMarkup(markup).build()
@@ -165,8 +171,8 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
         }
     }
 
-    suspend fun nextMessage(maxTime: Long = 30000, filter: FilterMessage = { true }): Message {
-        val message = waitNextMessageCommon(tgId.toString(), maxTime, filter)
+    suspend fun nextMessage(maxTime: Long = 30000, errMessage: String = "您发送的信息有误，请重新发送", filter: FilterMessage = { true }): Message {
+        val message = waitNextMessageCommon(tgId.toString(), maxTime, errMessage, lastMessageList, filter)
         editMessageText("请稍后......")
         return message
     }
@@ -255,18 +261,18 @@ class MonitorReturn(
 
 }
 
-private typealias FilterMessage = Message.() -> Boolean
+private typealias FilterMessage = suspend Message.() -> Boolean
 
-private data class NextMessageValue(val continuation: Continuation<Message>, val filter: FilterMessage)
+private data class NextMessageValue(val continuation: Continuation<Message>, val errMessage: String, val lastMessage: List<Message>, val filter: FilterMessage)
 
 private val contextSessionCacheMap = ConcurrentHashMap<String, NextMessageValue>()
 
-private suspend fun waitNextMessageCommon(code: String, maxTime: Long, filter: FilterMessage): Message {
+private suspend fun waitNextMessageCommon(code: String, maxTime: Long, errMessage: String, lastMessage: List<Message>, filter: FilterMessage): Message {
     return withContext(Dispatchers.IO) {
         try {
             withTimeout(maxTime){
                 val msg = suspendCoroutine {
-                    val value = NextMessageValue(it, filter)
+                    val value = NextMessageValue(it, errMessage, lastMessage, filter)
                     contextSessionCacheMap.merge(code, value) { _, _ ->
                         error("Account $code was still waiting.")
                     }
@@ -283,11 +289,11 @@ private suspend fun waitNextMessageCommon(code: String, maxTime: Long, filter: F
 @Service
 class ContextSessionBack(
     private val telegramBot: TelegramBot
-): ApplicationListener<TelegramUpdateEvent> {
-    override fun onApplicationEvent(event: TelegramUpdateEvent) {
-        val update = event.update
-        val message = update.message ?: return
-        val tgId = update.message.from.id.toString()
+) {
+
+    suspend fun Update.ss() {
+        if (message == null) return
+        val tgId = message.from.id.toString()
         val value = contextSessionCacheMap[tgId] ?: return
         if (value.filter.invoke(message)) {
             contextSessionCacheMap.remove(tgId)?.let {
@@ -296,6 +302,14 @@ class ContextSessionBack(
                     telegramBot.execute(deleteMessage)
                 }
             }
+        } else {
+            val deleteMessage = DeleteMessage(message.chatId.toString(), message.messageId)
+            telegramBot.execute(deleteMessage)
+            val lastMessage = value.lastMessage.lastOrNull() ?: return
+            val editMessageText = EditMessageText.builder().text(value.errMessage)
+                .messageId(lastMessage.messageId).chatId(lastMessage.chatId)
+                .replyMarkup(lastMessage.replyMarkup).build()
+            telegramBot.execute(editMessageText)
         }
     }
 }

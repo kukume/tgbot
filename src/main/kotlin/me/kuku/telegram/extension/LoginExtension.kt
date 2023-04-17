@@ -514,7 +514,7 @@ class LoginExtension(
             editMessageText("请选择pixiv登录方式", markup)
         }
         callback("pixivLoginByWeibo") {
-            error("没写")
+            answerCallbackQuery("没写")
         }
         callback("pixivCookieLogin") {
             editMessageText("请发送pixiv的cookie")

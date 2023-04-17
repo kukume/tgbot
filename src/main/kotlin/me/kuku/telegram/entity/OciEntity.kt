@@ -31,6 +31,8 @@ interface OciRepository: CoroutineCrudRepository<OciEntity, String> {
 
     suspend fun findByTgId(tgId: Long): List<OciEntity>
 
+    suspend fun findByRemarkAndTgId(remark: String, tgId: Long): OciEntity?
+
 }
 
 @Service
@@ -47,5 +49,10 @@ class OciService(
     suspend fun findById(id: String) = ociRepository.findById(id)
 
     suspend fun findAll() = ociRepository.findAll().toList()
+
+    suspend fun checkRemark(remark: String, tgId: Long): Boolean {
+        val entity = ociRepository.findByRemarkAndTgId(remark, tgId)
+        return entity == null || entity.remark == remark
+    }
 
 }

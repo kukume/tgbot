@@ -7,15 +7,12 @@ import org.ehcache.config.builders.CacheConfigurationBuilder
 import org.ehcache.config.builders.CacheManagerBuilder
 import org.ehcache.config.builders.ExpiryPolicyBuilder
 import org.ehcache.config.builders.ResourcePoolsBuilder
-import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
 import java.time.Duration
 
 @Component
-class EhcacheConfig(
-    private val applicationContext: ApplicationContext
-) {
+class EhcacheConfig {
 
     @Bean
     fun cacheManager(): CacheManager {

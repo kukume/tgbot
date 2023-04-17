@@ -3,6 +3,7 @@ package me.kuku.telegram.extension
 import com.oracle.bmc.Region
 import com.oracle.bmc.core.model.CreatePublicIpDetails
 import com.oracle.bmc.core.model.Instance
+import com.oracle.bmc.core.model.PortRange
 import com.oracle.bmc.model.BmcException
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.OciEntity
@@ -11,7 +12,6 @@ import me.kuku.telegram.logic.OciLogic
 import me.kuku.telegram.utils.AbilitySubscriber
 import me.kuku.telegram.utils.TelegramSubscribe
 import me.kuku.telegram.utils.inlineKeyboardButton
-import org.ehcache.Cache
 import org.ehcache.CacheManager
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
@@ -20,7 +20,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 @Service
 class OciExtension(
     private val ociService: OciService,
-    private val cacheManager: CacheManager
+    cacheManager: CacheManager
 ) {
 
     fun AbilitySubscriber.oci() {
@@ -59,7 +59,9 @@ class OciExtension(
             editMessageText("请发送创建api密钥下载的私钥信息，请复制全部内容并发送")
             val privateKey = nextMessage().text
             editMessageText("请发送您这个api信息要显示的名字，即备注")
-            val remark = nextMessage().text
+            val remark = nextMessage(errMessage = "您发送的备注重复，请重新发送") {
+                ociService.checkRemark(text, tgId)
+            }.text
             val regions = Region.values()
             val regionList = mutableListOf<List<InlineKeyboardButton>>()
             for (i in regions.indices step 2) {
@@ -130,10 +132,24 @@ class OciExtension(
             selectCache.put(tgId, OciCache(ociEntity))
             val createInstance = inlineKeyboardButton("创建实例", "ociCom")
             val lookInstance = inlineKeyboardButton("查看实例", "ociLook")
+            val changeRemark = inlineKeyboardButton("修改备注", "ociChRemark-$id")
             editMessageText("请选择操作方式", InlineKeyboardMarkup(listOf(
                 listOf(createInstance),
-                listOf(lookInstance)
+                listOf(lookInstance),
+                listOf(changeRemark)
             )))
+        }
+
+        callbackStartsWith("ociChRemark-") {
+            val id = query.data.substring(12)
+            val ociEntity = ociService.findById(id)!!
+            editMessageText("请发送你修改后的备注")
+            val remark = nextMessage(errMessage = "您发送的备注重复，请重新发送") {
+                ociService.checkRemark(text, tgId)
+            }.text
+            ociEntity.remark = remark
+            ociService.save(ociEntity)
+            editMessageText("修改备注成功")
         }
 
         callback("deleteOciCreateInstanceTask") {
@@ -319,6 +335,7 @@ class OciExtension(
             val stop = inlineKeyboardButton("停止", "ociOpStop-$i")
             val terminate = inlineKeyboardButton("销毁", "ociOpTerminate-$i")
             val updateIp = inlineKeyboardButton("更换ip", "ociOpUpdateIp-$i")
+            val securityList = inlineKeyboardButton("安全列表（入）", "ociQuerySecList-$i")
             editMessageText("""
                 请选择您的操作，您的该实例信息为：
                 形状：${instance.shape}
@@ -330,7 +347,8 @@ class OciExtension(
                 内网IP：${vnic.privateIp}
             """.trimIndent(), InlineKeyboardMarkup(listOf(
                 listOf(start, stop, terminate),
-                listOf(updateIp)
+                listOf(updateIp),
+                listOf(securityList)
             )))
         }
         callbackStartsWith("ociOpStart-") {
@@ -366,6 +384,47 @@ class OciExtension(
                 OciLogic.createPublicIp(ociEntity, CreatePublicIpDetails.Lifetime.Ephemeral, privateIpList[0].id)
             val ipAddress = createPublicIp.ipAddress
             editMessageText("更新ip成功，您的新ip为：$ipAddress", refreshReturn = true)
+        }
+        callbackStartsWith("ociQuerySecList-") {
+            val ociEntity = firstArg<OciCache>().entity
+            val instanceId = thirdArg<String>()
+            val attachment = OciLogic.oneVnicAttachmentsByInstanceId(ociEntity, instanceId)
+            val subnetId = attachment.subnetId
+            val subnet = OciLogic.getSubnet(ociEntity, subnetId)
+            val vcnId = subnet.vcnId
+            val securityList = OciLogic.listSecurityLists(ociEntity, vcnId)
+            val ingressSecurityRules = securityList[0].ingressSecurityRules
+            val buttonList = mutableListOf<List<InlineKeyboardButton>>()
+            for (rule in ingressSecurityRules) {
+                val protocol = rule.protocol.toInt()
+                val type = when (protocol) {
+                    1 -> "icmp"
+                    6 -> "tcp"
+                    17 -> "udp"
+                    58 -> "icmpV6"
+                    else -> "unknown"
+                }
+                var text = "${rule.source} $type"
+                if (protocol in listOf(6, 17)) {
+                    var sourcePortRange: PortRange? = null
+                    var destinationPortRange: PortRange? = null
+                    rule.tcpOptions?.let {
+                        sourcePortRange = it.sourcePortRange
+                        destinationPortRange = it.destinationPortRange
+                    }
+                    rule.udpOptions?.let {
+                        sourcePortRange = it.sourcePortRange
+                        destinationPortRange = it.destinationPortRange
+                    }
+                    val source = if (sourcePortRange == null) "全部" else "${sourcePortRange!!.min}-${sourcePortRange!!.max}"
+                    val destination = if (destinationPortRange == null) "全部" else "${destinationPortRange!!.min}-${destinationPortRange!!.max}"
+                    text += " $source $destination"
+                }
+                buttonList.add(listOf(inlineKeyboardButton(text, "notWrite")))
+            }
+            buttonList.add(listOf(inlineKeyboardButton("新增", "notWrite")))
+            editMessageText("您的该实例的安全列表如下：\n格式：源 协议 源端口范围 目的地端口范围\n您可以点击安全列表按钮来进行删除",
+                InlineKeyboardMarkup(buttonList))
         }
     }
 
