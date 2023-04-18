@@ -13,9 +13,13 @@ import me.kuku.telegram.utils.AbilitySubscriber
 import me.kuku.telegram.utils.TelegramSubscribe
 import me.kuku.telegram.utils.inlineKeyboardButton
 import org.ehcache.CacheManager
+import org.ehcache.config.builders.CacheConfigurationBuilder
+import org.ehcache.config.builders.ExpiryPolicyBuilder
+import org.ehcache.config.builders.ResourcePoolsBuilder
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
+import java.time.Duration
 
 @Service
 class OciExtension(
@@ -269,7 +273,7 @@ class OciExtension(
                 }
                 return@callbackStartsWith
             }
-            editMessageText("创建实例成功，查询ip中")
+            editMessageText("创建实例成功，查询ip中", returnButton = false)
             delay(1000 * 15)
             val attachment = OciLogic.oneVnicAttachmentsByInstanceId(ociCache.entity, instance.id)
             val vnic = OciLogic.getVnic(ociCache.entity, attachment.vnicId)
@@ -277,7 +281,7 @@ class OciExtension(
             editMessageText("""
                 创建实例成功
                 ip：$publicIp
-            """.trimIndent())
+            """.trimIndent(), top = true)
         }
         callbackStartsWith("ociAddTask-") {
             val i = query.data.substring(11).toIntOrNull() ?: error("错误的代码")
@@ -313,12 +317,17 @@ class OciExtension(
 
     }
 
+    private val securityListCache = cacheManager.createCache("selectsecurityList", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, String::class.java,
+        ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+
     fun TelegramSubscribe.operateInstance() {
         before {
             set(selectCache[tgId] ?: error("缓存不存在，请重新发送指令后选择"))
-            val int = query.data.split("-")[1].toInt()
-            set(int)
-            set(chooseCache["$tgId$int"] ?: error("缓存不存在，请重新发送指令"))
+            kotlin.runCatching {
+                val int = query.data.split("-")[1].toInt()
+                set(int)
+                set(chooseCache["$tgId$int"] ?: error("缓存不存在，请重新发送指令"))
+            }
         }
         callbackStartsWith("ociLookDetail-") {
             val instanceId = thirdArg<String>()
@@ -345,6 +354,7 @@ class OciExtension(
                 硬盘：${bootVolume.sizeInGBs}G
                 公网IP：${vnic.publicIp}
                 内网IP：${vnic.privateIp}
+                状态：${instance.lifecycleState}
             """.trimIndent(), InlineKeyboardMarkup(listOf(
                 listOf(start, stop, terminate),
                 listOf(updateIp),
@@ -392,8 +402,9 @@ class OciExtension(
             val subnetId = attachment.subnetId
             val subnet = OciLogic.getSubnet(ociEntity, subnetId)
             val vcnId = subnet.vcnId
-            val securityList = OciLogic.listSecurityLists(ociEntity, vcnId)
-            val ingressSecurityRules = securityList[0].ingressSecurityRules
+            val securityListList = OciLogic.listSecurityLists(ociEntity, vcnId)
+            val securityList = securityListList[0]
+            val ingressSecurityRules = securityList.ingressSecurityRules
             val buttonList = mutableListOf<List<InlineKeyboardButton>>()
             for (rule in ingressSecurityRules) {
                 val protocol = rule.protocol.toInt()
@@ -422,9 +433,30 @@ class OciExtension(
                 }
                 buttonList.add(listOf(inlineKeyboardButton(text, "notWrite")))
             }
-            buttonList.add(listOf(inlineKeyboardButton("新增", "notWrite")))
+            securityListCache.put(tgId, securityList.id)
+            buttonList.add(listOf(inlineKeyboardButton("新增", "addOciSecRule")))
             editMessageText("您的该实例的安全列表如下：\n格式：源 协议 源端口范围 目的地端口范围\n您可以点击安全列表按钮来进行删除",
                 InlineKeyboardMarkup(buttonList))
+        }
+        callback("addOciSecRule") {
+            val ociEntity = firstArg<OciCache>().entity
+            val id = securityListCache[tgId] ?: error("缓存不存在，请重新发送指令")
+            editMessageText("请发送源")
+            val source = nextMessage().text
+            editMessageText("请发送协议类型，tcp or udp")
+            val protocol = nextMessage(errMessage = "您发送的协议类型有误，请重新发送") {
+                text in listOf("tcp", "udp")
+            }.run { if (text == "tcp") "6" else if (text == "udp") "17" else error("不支持的协议") }
+            editMessageText("请发送端口范围（min）")
+            val min = nextMessage(errMessage = "您发送的端口范围不为数字，请重新发送") {
+                text.toIntOrNull() != null
+            }.text.toInt()
+            editMessageText("请发送端口范围（max）")
+            val max = nextMessage(errMessage = "您发送的端口范围不为数字，请重新发送") {
+                text.toIntOrNull() != null
+            }.text.toInt()
+            OciLogic.updateSecurityList(ociEntity, id, protocol, source, min, max)
+            editMessageText("添加安全列表成功", refreshReturn = true)
         }
     }
 

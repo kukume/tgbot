@@ -383,4 +383,102 @@ object OciLogic {
         }
     }
 
+    fun listNetworkSecurityGroups(ociEntity: OciEntity, vcnId: String? = null): List<NetworkSecurityGroup> {
+        return virtualNetworkClient(ociEntity).use {
+            val response = it.listNetworkSecurityGroups(ListNetworkSecurityGroupsRequest.builder()
+                .vcnId(vcnId)
+                .build())
+            response.items
+        }
+    }
+
+    @Suppress("DuplicatedCode")
+    fun addNetworkSecurityGroupSecurityRules(ociEntity: OciEntity, securityId: String, protocol: String? = null,
+                                             source: String? = null, min: Int? = null, max: Int? = null): AddedNetworkSecurityGroupSecurityRules {
+        var builder = AddSecurityRuleDetails.builder()
+            .protocol(protocol)
+            .sourceType(AddSecurityRuleDetails.SourceType.CidrBlock)
+            .source(source)
+        if (protocol == "6") {
+            builder = builder.tcpOptions(TcpOptions.builder()
+                .destinationPortRange(PortRange.builder()
+                    .min(min)
+                    .max(max)
+                    .build()
+                )
+                .build())
+        }
+        if (protocol == "17") {
+            builder = builder.udpOptions(UdpOptions.builder()
+                .destinationPortRange(PortRange.builder()
+                    .min(min)
+                    .max(max)
+                    .build())
+                .build())
+        }
+        return virtualNetworkClient(ociEntity).use {
+            val response = it.addNetworkSecurityGroupSecurityRules(AddNetworkSecurityGroupSecurityRulesRequest.builder()
+                .networkSecurityGroupId(securityId)
+                .addNetworkSecurityGroupSecurityRulesDetails(AddNetworkSecurityGroupSecurityRulesDetails.builder()
+                    .securityRules(listOf(builder.build()))
+                    .build()
+                )
+                .build())
+            response.addedNetworkSecurityGroupSecurityRules
+        }
+    }
+
+    fun getSecurityList(ociEntity: OciEntity, securityId: String): SecurityList {
+        return virtualNetworkClient(ociEntity).use {
+            val response = it.getSecurityList(GetSecurityListRequest.builder()
+                .securityListId(securityId)
+                .build())
+            response.securityList
+        }
+    }
+
+    @Suppress("DuplicatedCode")
+    fun updateSecurityList(ociEntity: OciEntity, securityId: String,
+                           protocol: String? = null,
+                           source: String? = null, min: Int? = null, max: Int? = null): SecurityList {
+        var builder = IngressSecurityRule.builder()
+            .protocol(protocol)
+            .sourceType(IngressSecurityRule.SourceType.CidrBlock)
+            .source(source)
+        if (protocol == "6") {
+            builder = builder.tcpOptions(TcpOptions.builder()
+                .destinationPortRange(PortRange.builder()
+                    .min(min)
+                    .max(max)
+                    .build()
+                )
+                .build())
+        }
+        if (protocol == "17") {
+            builder = builder.udpOptions(UdpOptions.builder()
+                .destinationPortRange(PortRange.builder()
+                    .min(min)
+                    .max(max)
+                    .build())
+                .build())
+        }
+        val securityList = getSecurityList(ociEntity, securityId)
+        val ingressSecurityRules = securityList.ingressSecurityRules
+        ingressSecurityRules.add(builder.build())
+        return virtualNetworkClient(ociEntity).use {
+            val response = it.updateSecurityList(UpdateSecurityListRequest.builder()
+                .securityListId(securityId)
+                .updateSecurityListDetails(UpdateSecurityListDetails.builder()
+                    .egressSecurityRules(securityList.egressSecurityRules)
+                    .ingressSecurityRules(ingressSecurityRules)
+                    .definedTags(securityList.definedTags)
+                    .displayName(securityList.displayName)
+                    .freeformTags(securityList.freeformTags)
+                    .build())
+                .build())
+            response.securityList
+        }
+    }
+
+
 }
