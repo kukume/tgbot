@@ -22,7 +22,6 @@ class OciEntity {
     var fingerprint: String = ""
     var privateKey: String = ""
     var region: String = ""
-    var createInstanceList: MutableList<CreateInstanceCache> = mutableListOf()
 }
 
 class OciTask

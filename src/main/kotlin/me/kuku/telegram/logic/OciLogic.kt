@@ -480,5 +480,24 @@ object OciLogic {
         }
     }
 
+    fun updateSecurityList(ociEntity: OciEntity, securityId: String, num: Int): SecurityList {
+        val securityList = getSecurityList(ociEntity, securityId)
+        val ingressSecurityRules = securityList.ingressSecurityRules
+        ingressSecurityRules.removeAt(num)
+        return virtualNetworkClient(ociEntity).use {
+            val response = it.updateSecurityList(UpdateSecurityListRequest.builder()
+                .securityListId(securityId)
+                .updateSecurityListDetails(UpdateSecurityListDetails.builder()
+                    .egressSecurityRules(securityList.egressSecurityRules)
+                    .ingressSecurityRules(ingressSecurityRules)
+                    .definedTags(securityList.definedTags)
+                    .displayName(securityList.displayName)
+                    .freeformTags(securityList.freeformTags)
+                    .build())
+                .build())
+            response.securityList
+        }
+    }
+
 
 }
