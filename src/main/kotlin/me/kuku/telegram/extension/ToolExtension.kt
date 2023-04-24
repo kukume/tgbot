@@ -40,7 +40,10 @@ class ToolExtension(
             sendMessage("请选择查询的卡片", replyKeyboard = InlineKeyboardMarkup(list))
         }
         sub("lolicon", "lolicon图片", locality = Locality.ALL) {
-            val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?r18=2")
+            val r18 = kotlin.runCatching {
+                if (firstArg().lowercase() == "r18") 1 else 0
+            }.getOrDefault(0)
+            val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?r18=$r18")
             val url = jsonNode["data"][0]["urls"]["original"].asText()
             val bytes = OkHttpKtUtils.getBytes(url)
             if (bytes.size > 1024 * 10 * 1024) error("图片大于10M，发送失败")
@@ -50,7 +53,7 @@ class ToolExtension(
             }
         }
         sub("loliconmulti", "lolicon多张图片", locality = Locality.ALL) {
-            loLiConMulti(chatId.toString(), bot)
+            loLiConMulti(chatId.toString(), bot, this)
         }
         sub("tool", "工具") {
             sendMessage("请选择小工具", toolKeyboardMarkup())
@@ -71,18 +74,20 @@ class ToolExtension(
     }
 
     private fun toolKeyboardMarkup(): InlineKeyboardMarkup {
-        val loLiConButton = InlineKeyboardButton("LoLiCon").also { it.callbackData = "LoLiConTool" }
         val fishermanCalendarButton = InlineKeyboardButton("摸鱼日历").also { it.callbackData = "FishermanCalendarTool" }
         val ttsButton = InlineKeyboardButton("tts").also { it.callbackData = "ttsTool" }
         val saucenaoButton = InlineKeyboardButton("saucenao识图").also { it.callbackData = "saucenaoTool" }
         return InlineKeyboardMarkup(listOf(
-            listOf(loLiConButton, fishermanCalendarButton),
+            listOf(fishermanCalendarButton),
             listOf(ttsButton, saucenaoButton)
         ))
     }
 
-    private suspend fun loLiConMulti(chatId: String, bot: BaseAbilityBot) {
-        val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=2")
+    private suspend fun loLiConMulti(chatId: String, bot: BaseAbilityBot, abilityContext: AbilityContext) {
+        val r18 = kotlin.runCatching {
+            if (abilityContext.firstArg().lowercase() == "r18") 1 else 0
+        }.getOrDefault(0)
+        val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=$r18")
         val list = jsonNode["data"].map { node -> node["urls"]["original"].asText() }
         val inputMediaList = mutableListOf<InputMedia>()
         val ii = mutableListOf<InputStream>()
@@ -106,9 +111,6 @@ class ToolExtension(
     }
 
     fun TelegramSubscribe.colorPic() {
-        callback("LoLiConTool") {
-            loLiConMulti(chatId.toString(), bot)
-        }
         callback("FishermanCalendarTool") {
             OkHttpKtUtils.getByteStream("https://api.kukuqaq.com/fishermanCalendar?preview").use { iis ->
                 val sendPhoto = SendPhoto(query.message.chatId.toString(), InputFile(iis, "FishermanCalendarTool.jpg"))
