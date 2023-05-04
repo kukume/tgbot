@@ -565,7 +565,7 @@ class LoginExtension(
             val buffEntity = buffService.findByTgId(tgId) ?: BuffEntity().also { ii -> ii.tgId = tgId }
             buffEntity.cookie = cookie
             buffService.save(buffEntity)
-            editMessageText("绑定pixiv成功")
+            editMessageText("绑定网易buff成功")
         }
     }
 

@@ -25,6 +25,7 @@ data class BuffMonitor(
     var paintWearInterval: PaintWearInterval = PaintWearInterval(0.0, 0.0),
     var maxPrice: Double = 0.0,
     var payMethod: Int = 6,
+    var type: BuffType = BuffType.Push,
     var id: String = UUID.randomUUID().toString().replace("-", "")
 )
 
@@ -49,4 +50,9 @@ class BuffService(
     @Transactional
     suspend fun deleteByTgId(tgId: Long) = buffRepository.deleteByTgId(tgId).awaitSingleOrNull()
 
+}
+
+
+enum class BuffType {
+    Push, Buy
 }

@@ -3,6 +3,7 @@ package me.kuku.telegram.extension
 import me.kuku.telegram.entity.BuffEntity
 import me.kuku.telegram.entity.BuffMonitor
 import me.kuku.telegram.entity.BuffService
+import me.kuku.telegram.entity.BuffType
 import me.kuku.telegram.logic.BuffLogic
 import me.kuku.telegram.logic.PaintWearInterval
 import me.kuku.telegram.utils.*
@@ -49,15 +50,22 @@ class BuffExtension(
 
         callbackStartsWith("buffSearch") {
             val goodsId = query.data.split("-")[1].toInt()
-            val paintWearList = BuffLogic.paintWear(goodsId)
             val buttonList = mutableListOf<List<InlineKeyboardButton>>()
-            for (paintWearInterval in paintWearList) {
-                val text = "${paintWearInterval.min}-${paintWearInterval.max}"
-                buttonList.add(listOf(inlineKeyboardButton(text, "buffWear-$goodsId:${text}")))
-            }
-            buttonList.add(listOf(inlineKeyboardButton("自定义", "buffWear-$goodsId:customer")))
             val goodsInfo = BuffLogic.goodsInfo(goodsId)
-            editMessageText("您选择的是（${goodsInfo.name}），请选择监控的磨损度范围", InlineKeyboardMarkup(buttonList))
+            try {
+                val paintWearList = BuffLogic.paintWear(goodsId)
+                for (paintWearInterval in paintWearList) {
+                    val text = "${paintWearInterval.min}-${paintWearInterval.max}"
+                    buttonList.add(listOf(inlineKeyboardButton(text, "buffWear-$goodsId:${text}")))
+                }
+                buttonList.add(listOf(inlineKeyboardButton("自定义", "buffWear-$goodsId:customer")))
+                editMessageText("您选择的是（${goodsInfo.name}），请选择监控的磨损度范围", InlineKeyboardMarkup(buttonList))
+            } catch (e: IllegalStateException) {
+                buttonList.add(listOf(inlineKeyboardButton("推送", "buffType-$goodsId-null-null-1")))
+                buttonList.add(listOf(inlineKeyboardButton("购买", "buffType-$goodsId-null-null-2")))
+                editMessageText("您选择的是（${goodsInfo.name}），请选择监控类型\n推送：每隔一段时间推送该饰品的价格\n购买：每隔一段时间检测价格，符合要求直接购买",
+                    InlineKeyboardMarkup(buttonList))
+            }
         }
 
         callbackStartsWith("buffWear") {
@@ -77,17 +85,42 @@ class BuffExtension(
                 max = arr[1].toDouble()
             }
             val goodsInfo = BuffLogic.goodsInfo(goodsId)
-            editMessageText("您选择的是${goodsInfo.name}，您设置的磨损范围（$min-$max），请发送您能接受的最高价格")
-            val price = nextMessage().text.toDoubleOrNull() ?: error("您发送的价格不符合规范")
-            val prefix = "buffPay-${goodsId}-${min}-${max}-${price}"
             val list = listOf(
-                listOf(inlineKeyboardButton("Buff余额（支付宝）", "$prefix-3")),
-                listOf(inlineKeyboardButton("支付宝花呗", "$prefix-10")),
-                listOf(inlineKeyboardButton("Buff余额（银行卡）", "$prefix-1")),
-                listOf(inlineKeyboardButton("微信", "$prefix-6"))
+                listOf(inlineKeyboardButton("推送", "buffType-$goodsId-$min-$max-1")),
+                listOf(inlineKeyboardButton("购买", "buffType-$goodsId-$min-$max-2")),
             )
-            editMessageText("您选择的是${goodsInfo.name}，您设置的磨损范围（$min-$max），您能接受的最高价格为$price，请选择您的支付方式",
+            editMessageText("您选择的是（${goodsInfo.name}），您设置的磨损范围（$min-$max），请选择监控类型\n推送：每隔一段时间推送该饰品的价格\n购买：每隔一段时间检测价格，符合要求直接购买",
                 InlineKeyboardMarkup(list))
+        }
+
+        callbackStartsWith("buffType-") {
+            val arr = query.data.split("-")
+            val goodsId = arr[1].toInt()
+            val goodsInfo = BuffLogic.goodsInfo(goodsId)
+            val min = arr[2].toDoubleOrNull()
+            val max = arr[3].toDoubleOrNull()
+            val type = arr.last().toInt()
+            if (type == 1) {
+                val buffEntity = firstArg<BuffEntity>()
+                buffEntity.monitors.add(
+                    BuffMonitor(goodsId, goodsInfo.name,
+                        PaintWearInterval(min ?: 0.0, max ?: 0.0), 0.0, 0, BuffType.Push)
+                )
+                buffService.save(buffEntity)
+                editMessageText("您选择的是${goodsInfo.name}，您设置的磨损范围（$min-$max），网易buff监控添加成功", top = true)
+            } else {
+                editMessageText("您选择的是${goodsInfo.name}，您设置的磨损范围（$min-$max），请发送您能接受的最高价格")
+                val price = nextMessage().text.toDoubleOrNull() ?: error("您发送的价格不符合规范")
+                val prefix = "buffPay-${goodsId}-${min}-${max}-${price}"
+                val list = listOf(
+                    listOf(inlineKeyboardButton("Buff余额（支付宝）", "$prefix-3")),
+                    listOf(inlineKeyboardButton("支付宝花呗", "$prefix-10")),
+                    listOf(inlineKeyboardButton("Buff余额（银行卡）", "$prefix-1")),
+                    listOf(inlineKeyboardButton("微信", "$prefix-6"))
+                )
+                editMessageText("您选择的是${goodsInfo.name}，您设置的磨损范围（$min-$max），您能接受的最高价格为$price，请选择您的支付方式",
+                    InlineKeyboardMarkup(list))
+            }
         }
 
         callbackStartsWith("buffPay") {
@@ -99,7 +132,9 @@ class BuffExtension(
             val payMethod = split[5].toInt()
             val goodsInfo = BuffLogic.goodsInfo(goodsId)
             val buffEntity = firstArg<BuffEntity>()
-            buffEntity.monitors.add(BuffMonitor(goodsId, goodsInfo.name, PaintWearInterval(min, max), price, payMethod))
+            buffEntity.monitors.add(
+                BuffMonitor(goodsId, goodsInfo.name, PaintWearInterval(min, max), price, payMethod, BuffType.Buy)
+            )
             buffService.save(buffEntity)
             editMessageText("您选择的是${goodsInfo.name}，您设置的磨损范围（$min-$max），您能接受的最高价格为$price，您的支付方式是$payMethod（3是buff余额（支付宝），10是支付宝花呗，1是buff余额（银行卡），6是微信），网易buff监控添加成功", top = true)
         }
@@ -129,7 +164,11 @@ class BuffExtension(
             list.add(listOf(inlineKeyboardButton("编辑", "editBuff-${uuid}")))
             list.add(listOf(inlineKeyboardButton("删除", "deleteBuff-${uuid}")))
             editMessageText("""
-                您选择的是${monitor.goodsName}，您设置的磨损范围（${monitor.paintWearInterval.min}-${monitor.paintWearInterval.max}），您能接受的最高价格为${monitor.maxPrice}，您的支付方式是${monitor.payMethod}（3是buff余额（支付宝），10是支付宝花呗，1是buff余额（银行卡），6是微信）
+                您选择的是${monitor.goodsName}
+                您设置的类型是${if (monitor.type == BuffType.Push) "推送" else "购买"}
+                您设置的磨损范围（${monitor.paintWearInterval.min}-${monitor.paintWearInterval.max}）
+                您能接受的最高价格为${monitor.maxPrice}
+                您的支付方式是${monitor.payMethod}（3是buff余额（支付宝），10是支付宝花呗，1是buff余额（银行卡），6是微信）
                 请选择您的操作
             """.trimIndent(), InlineKeyboardMarkup(list))
         }
@@ -137,11 +176,16 @@ class BuffExtension(
         callbackStartsWith("editBuff-") {
             val uuid = query.data.split("-")[1]
             val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
+                listOf(inlineKeyboardButton("编辑监控类型", "editBuffType-$uuid")),
                 listOf(inlineKeyboardButton("编辑磨损范围", "editBuffWear-$uuid")),
                 listOf(inlineKeyboardButton("编辑最高价格", "editBuffPrice-$uuid")),
                 listOf(inlineKeyboardButton("编辑支付方法", "editBuffPay-$uuid"))
             ))
             editMessageText("请选择：", inlineKeyboardMarkup)
+        }
+
+        callbackStartsWith("editBuffType-") {
+            error("没写")
         }
 
         callbackStartsWith("editBuffPay-") {
@@ -216,7 +260,7 @@ class BuffExtension(
             val buffEntity = firstArg<BuffEntity>()
             buffEntity.monitors.removeIf { s -> s.id == uuid }
             buffService.save(buffEntity)
-            editMessageText("删除网易buff监控成功")
+            editMessageText("删除网易buff监控成功", top = true)
         }
 
     }

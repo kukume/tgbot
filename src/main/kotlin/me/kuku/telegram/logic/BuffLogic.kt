@@ -46,6 +46,20 @@ object BuffLogic {
 
     suspend fun paintWear(id: Int): List<PaintWearInterval> {
         val html = client.get("https://buff.163.com/goods/$id?from=market#tab=selling&page_num=1").bodyAsText()
+        val sortJsonStr = MyUtils.regex("(?<=sort_by_fields: )[\\s\\S]*?(?=type)", html)!!.trim()
+            .removeSuffix(",")
+        val sortNode = Jackson.parse(sortJsonStr)
+        var b = true
+        out@for (node in sortNode["list"]) {
+            val nodeList = node["list"]
+            for (innerNode in nodeList) {
+                if (innerNode["title"].asText().contains("磨损")) {
+                    b = false
+                    break@out
+                }
+            }
+        }
+        if (b) error("该饰品不具备磨损属性")
         val jsonStr = MyUtils.regex("paintwear_choices: ", "]],", html)?.plus("]]") ?: return listOf()
         val list = mutableListOf<PaintWearInterval>()
         val jsonNode = Jackson.parse(jsonStr)
