@@ -26,9 +26,10 @@ dependencies {
     implementation("me.kuku:utils:2.3.0.0")
     implementation("me.kuku:ktor-spring-boot-starter:2.3.0.0")
     implementation("org.jsoup:jsoup:1.15.3")
-    implementation("com.oracle.oci.sdk:oci-java-sdk-core:3.11.0")
-    implementation("com.oracle.oci.sdk:oci-java-sdk-identity:3.11.0")
-    implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:3.11.0")
+    val ociVersion = "3.11.0"
+    implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
+    implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
+    implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion")
     implementation("org.apache.poi:poi-ooxml:5.2.3")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

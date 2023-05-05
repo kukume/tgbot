@@ -118,7 +118,6 @@ class ToolLogic {
         }
         sb.removeSuffix("\n")
         val txtFile = File("$date.txt")
-        println(txtFile.absoluteFile)
         val txtFos = withContext(Dispatchers.IO) {
             FileOutputStream(txtFile)
         }

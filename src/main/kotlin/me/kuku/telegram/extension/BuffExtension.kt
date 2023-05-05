@@ -16,7 +16,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.util.concurrent.locks.ReentrantLock
 
 @Component
 class BuffExtension(
@@ -148,7 +147,8 @@ class BuffExtension(
 
     }
 
-    private val exportLock = ReentrantLock()
+    @Volatile
+    private var lock = 0
 
     @Suppress("DuplicatedCode")
     fun TelegramSubscribe.queryBuff() {
@@ -174,7 +174,7 @@ class BuffExtension(
             list.add(listOf(inlineKeyboardButton("导出在售列表", "exportBuffSell-$uuid")))
             editMessageText("""
                 您选择的是${monitor.goodsName}
-                您设置的类型是${if (monitor.type == BuffType.Push) "推送" else "购买"}
+                您设置的类型是${if (monitor.type == BuffType.Push) "推送" else if (monitor.type == BuffType.Buy) "购买" else "取消"}
                 您设置的磨损范围（${monitor.paintWearInterval.min}-${monitor.paintWearInterval.max}）
                 您能接受的最高价格为${monitor.maxPrice}
                 您的支付方式是${monitor.payMethod}（3是buff余额（支付宝），10是支付宝花呗，1是buff余额（银行卡），6是微信）
@@ -205,8 +205,8 @@ class BuffExtension(
 
         callbackStartsWith("editBuffType2-") {
             val arr = query.data.split("-")
-            val uuid = arr[0]
-            val type = arr[1].toInt()
+            val uuid = arr[1]
+            val type = arr[2].toInt()
             val buffEntity = firstArg<BuffEntity>()
             val monitor = buffEntity.monitors.find { it.id == uuid }!!
             monitor.type = if (type == 1) BuffType.Push else if (type == 2) BuffType.Buy else BuffType.Non
@@ -290,8 +290,8 @@ class BuffExtension(
         }
 
         callbackStartsWith("exportBuffSell-") {
-            val tryLock = exportLock.tryLock()
-            if (!tryLock) errorAnswerCallbackQuery("已有后台正在导出，请稍后再试", true)
+            if (lock >= 1) errorAnswerCallbackQuery("已有后台正在导出，请稍后再试", true)
+            lock++
             try {
                 val uuid = query.data.split("-")[1]
                 val monitor = firstArg<BuffEntity>().monitors.find { s -> s.id == uuid }!!
@@ -311,7 +311,7 @@ class BuffExtension(
                     file.delete()
                 }
             } finally {
-                exportLock.unlock()
+                lock--
             }
         }
 

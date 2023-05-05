@@ -10,6 +10,7 @@ import me.kuku.telegram.entity.BuffEntity
 import me.kuku.utils.*
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.ByteArrayOutputStream
+import java.lang.IllegalStateException
 
 object BuffLogic {
 
@@ -118,9 +119,20 @@ object BuffLogic {
     suspend fun sellRepeat(buffEntity: BuffEntity, id: Int, min: Double? = null, max: Double? = null, pageSize: Int = 10): List<Accessory> {
         val allList = mutableListOf<Accessory>()
         var i = 1
+        var status = true
         while (true) {
-            val list = sell(buffEntity, id, min, max, pageSize, i++)
-            delay(3000)
+            val list = try {
+                sell(buffEntity, id, min, max, pageSize, i++)
+            } catch (e: IllegalStateException) {
+                delay(1000 * 60 * 2)
+                if (!status) {
+                    error("获取失败，异常：" + e.message)
+                }
+                status = false
+                continue
+            }
+            status = true
+            delay(10000)
             allList.addAll(list)
             if (list.isEmpty()) break
         }
