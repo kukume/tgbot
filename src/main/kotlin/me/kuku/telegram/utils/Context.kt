@@ -163,9 +163,10 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
         bot.execute(editMessageMedia)
     }
 
-    fun answerCallbackQuery(text: String) {
+    fun answerCallbackQuery(text: String, showAlert: Boolean = false) {
         if (this::query.isInitialized) {
             val answerCallbackQuery = AnswerCallbackQuery.builder().callbackQueryId(query.id)
+                .showAlert(showAlert)
                 .text(text).build()
             bot.execute(answerCallbackQuery)
         }
@@ -178,11 +179,12 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
     }
 }
 
-class AnswerCallbackQueryException(message: String): RuntimeException(message)
+class AnswerCallbackQueryException(message: String, val showAlert: Boolean = false): RuntimeException(message)
 
 class MessageExpiredException(message: String): RuntimeException(message)
 
-fun errorAnswerCallbackQuery(message: String): Nothing = throw AnswerCallbackQueryException(message)
+fun errorAnswerCallbackQuery(message: String, showAlert: Boolean = false): Nothing =
+    throw AnswerCallbackQueryException(message, showAlert)
 
 fun errorMessageExpired(message: String): Nothing = throw MessageExpiredException(message)
 

@@ -54,5 +54,5 @@ class BuffService(
 
 
 enum class BuffType {
-    Push, Buy
+    Push, Buy, Non
 }

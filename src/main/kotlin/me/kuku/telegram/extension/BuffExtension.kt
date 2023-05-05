@@ -9,8 +9,14 @@ import me.kuku.telegram.logic.PaintWearInterval
 import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Component
 import org.telegram.abilitybots.api.util.AbilityExtension
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument
+import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.util.concurrent.locks.ReentrantLock
 
 @Component
 class BuffExtension(
@@ -142,6 +148,8 @@ class BuffExtension(
 
     }
 
+    private val exportLock = ReentrantLock()
+
     @Suppress("DuplicatedCode")
     fun TelegramSubscribe.queryBuff() {
 
@@ -163,6 +171,7 @@ class BuffExtension(
             val list = mutableListOf<List<InlineKeyboardButton>>()
             list.add(listOf(inlineKeyboardButton("编辑", "editBuff-${uuid}")))
             list.add(listOf(inlineKeyboardButton("删除", "deleteBuff-${uuid}")))
+            list.add(listOf(inlineKeyboardButton("导出在售列表", "exportBuffSell-$uuid")))
             editMessageText("""
                 您选择的是${monitor.goodsName}
                 您设置的类型是${if (monitor.type == BuffType.Push) "推送" else "购买"}
@@ -185,7 +194,24 @@ class BuffExtension(
         }
 
         callbackStartsWith("editBuffType-") {
-            error("没写")
+            val uuid = query.data.split("-")[1]
+            val buttonList = mutableListOf<List<InlineKeyboardButton>>()
+            buttonList.add(listOf(inlineKeyboardButton("推送", "editBuffType2-$-$uuid-1")))
+            buttonList.add(listOf(inlineKeyboardButton("购买", "editBuffType2-$uuid-2")))
+            buttonList.add(listOf(inlineKeyboardButton("取消", "editBuffType2-$uuid-3")))
+            editMessageText("请选择更改的监控类型，由推送更改为购买请补充磨损率以及价格要求\n推送：每隔一段时间推送该饰品的价格\n购买：每隔一段时间检测价格，符合要求直接购买\n取消：什么都不做",
+                InlineKeyboardMarkup(buttonList))
+        }
+
+        callbackStartsWith("editBuffType2-") {
+            val arr = query.data.split("-")
+            val uuid = arr[0]
+            val type = arr[1].toInt()
+            val buffEntity = firstArg<BuffEntity>()
+            val monitor = buffEntity.monitors.find { it.id == uuid }!!
+            monitor.type = if (type == 1) BuffType.Push else if (type == 2) BuffType.Buy else BuffType.Non
+            buffService.save(buffEntity)
+            editMessageText("更新buff监控类型成功", top = true)
         }
 
         callbackStartsWith("editBuffPay-") {
@@ -261,6 +287,32 @@ class BuffExtension(
             buffEntity.monitors.removeIf { s -> s.id == uuid }
             buffService.save(buffEntity)
             editMessageText("删除网易buff监控成功", top = true)
+        }
+
+        callbackStartsWith("exportBuffSell-") {
+            val tryLock = exportLock.tryLock()
+            if (!tryLock) errorAnswerCallbackQuery("已有后台正在导出，请稍后再试", true)
+            try {
+                val uuid = query.data.split("-")[1]
+                val monitor = firstArg<BuffEntity>().monitors.find { s -> s.id == uuid }!!
+                val paintWearInterval = monitor.paintWearInterval
+                answerCallbackQuery("导出已在后台进行中，将在成功的时候发送给您，请注意消息", true)
+                val list =
+                    BuffLogic.sellRepeat(firstArg(), monitor.goodsId, paintWearInterval.min(), paintWearInterval.max(), 100)
+                BuffLogic.export(list).use {
+                    val fileName = "tmp" + File.separator + "${System.currentTimeMillis()}-${uuid}.xlsx"
+                    val file = File(fileName)
+                    FileOutputStream(file).use { os -> it.writeTo(os) }
+                    FileInputStream(file).use { fis ->
+                        val inputFile = InputFile(fis, "$uuid.xlsx")
+                        val sendDocument = SendDocument(chatId.toString(), inputFile)
+                        bot.execute(sendDocument)
+                    }
+                    file.delete()
+                }
+            } finally {
+                exportLock.unlock()
+            }
         }
 
     }

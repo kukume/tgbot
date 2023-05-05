@@ -5,8 +5,11 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.BuffEntity
 import me.kuku.utils.*
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.ByteArrayOutputStream
 
 object BuffLogic {
 
@@ -84,8 +87,9 @@ object BuffLogic {
         return GoodsInfo(id, name, hashName, shortName, steamPrice, steamPriceCny)
     }
 
-    suspend fun sell(buffEntity: BuffEntity, id: Int, min: Double? = null, max: Double? = null): List<Accessory> {
-        val jsonNode = client.get("https://buff.163.com/api/market/goods/sell_order?game=csgo&goods_id=$id&page_num=1&sort_by=default&mode=&allow_tradable_cooldown=1${if (min != null && max != null) "&min_paintwear=$min&max_paintwear=$max" else ""}&_=${System.currentTimeMillis()}") {
+    suspend fun sell(buffEntity: BuffEntity, id: Int, min: Double? = null, max: Double? = null, pageSize: Int = 10, pageNum: Int = 1): List<Accessory> {
+        //                                     https://buff.163.com/api/market/goods/sell_order?game=csgo&goods_id=912923&page_num=1&sort_by=default&mode=&allow_tradable_cooldown=1&_=1683264283697
+        val jsonNode = client.get("https://buff.163.com/api/market/goods/sell_order?game=csgo&goods_id=$id&page_num=$pageNum&page_size=$pageSize&sort_by=default&mode=&allow_tradable_cooldown=1${if (min != null && max != null) "&min_paintwear=$min&max_paintwear=$max" else ""}&_=${System.currentTimeMillis()}") {
             headers {
                 cookieString(buffEntity.cookie)
             }
@@ -109,6 +113,47 @@ object BuffLogic {
             list.add(Accessory(goodsId, sellId, name, paintWear, price, description, userid, fraudWarnings))
         }
         return list
+    }
+
+    suspend fun sellRepeat(buffEntity: BuffEntity, id: Int, min: Double? = null, max: Double? = null, pageSize: Int = 10): List<Accessory> {
+        val allList = mutableListOf<Accessory>()
+        var i = 1
+        while (true) {
+            val list = sell(buffEntity, id, min, max, pageSize, i++)
+            delay(3000)
+            allList.addAll(list)
+            if (list.isEmpty()) break
+        }
+        return allList
+    }
+
+    fun export(list: List<Accessory>): ByteArrayOutputStream {
+        val workbook = XSSFWorkbook()
+        val sheet = workbook.createSheet("sheet1")
+        val headerRow = sheet.createRow(0)
+        val cell0 = headerRow.createCell(0)
+        cell0.setCellValue("饰品名字")
+        val cell1 = headerRow.createCell(1)
+        cell1.setCellValue("磨损")
+        val cell2 = headerRow.createCell(2)
+        cell2.setCellValue("价格")
+        val cell3 = headerRow.createCell(3)
+        cell3.setCellValue("描述")
+        for ((i, accessory) in list.withIndex()) {
+            val row = sheet.createRow(i + 1)
+            val c0 = row.createCell(0)
+            c0.setCellValue(accessory.name)
+            val c1 = row.createCell(1)
+            c1.setCellValue(accessory.paintWear)
+            val c2 = row.createCell(2)
+            c2.setCellValue(accessory.price)
+            val c3 = row.createCell(3)
+            c3.setCellValue(accessory.description)
+        }
+        val bos = ByteArrayOutputStream().also {
+            workbook.write(it)
+        }
+        return bos
     }
 
     // 3 buff 余额 支付宝  10  支付宝花呗  1 buff余额 银行卡  6 微信
@@ -142,8 +187,13 @@ object BuffLogic {
 
 data class BuffSearch(val id: Int, val name: String)
 
-data class PaintWearInterval(val min: Double, val max: Double)
+data class PaintWearInterval(val min: Double, val max: Double) {
+    fun min() = if (min == 0.0) null else min
+    fun max() = if (max == 0.0) null else max
+}
 
-data class Accessory(val goodsId: Int, var sellId: String, val name: String, val paintWear: Double, val price: Double, val description: String, val userid: Int, val fraudWarnings: String)
+data class Accessory(val goodsId: Int, var sellId: String, val name: String, val paintWear: Double, val price: Double, val description: String, val userid: Int, val fraudWarnings: String) {
+    fun price() = if (price == 0.0) null else price
+}
 
 data class GoodsInfo(val id: Int, val name: String, val hashName: String, val shortName: String, val steamPrice: Double, val steamPriceCny: Double)

@@ -23,6 +23,7 @@ class BuffScheduled(
         for (buffEntity in buffEntityList) {
             for (monitor in buffEntity.monitors.filter { it.type == BuffType.Buy }) {
                 val paintWearInterval = monitor.paintWearInterval
+                if ((paintWearInterval.min == 0.0 && paintWearInterval.max == 0.0) || monitor.maxPrice == 0.0) continue
                 val accessoryList = try {
                     BuffLogic.sell(buffEntity, monitor.goodsId, paintWearInterval.min, paintWearInterval.max)
                 } catch (e: Exception) {
@@ -55,10 +56,9 @@ class BuffScheduled(
         for (buffEntity in buffEntityList) {
             for (monitor in buffEntity.monitors.filter { it.type == BuffType.Push }) {
                 val paintWearInterval = monitor.paintWearInterval
-                val min = if (paintWearInterval.min == 0.0) null else paintWearInterval.min
-                val max = if (paintWearInterval.max == 0.0) null else paintWearInterval.max
                 delay(3000)
-                val list = BuffLogic.sell(buffEntity, monitor.goodsId, min, max)
+                val list = BuffLogic.sell(buffEntity, monitor.goodsId, paintWearInterval.min(),
+                    paintWearInterval.max())
                 if (list.isNotEmpty()) {
                     val accessory = list[0]
                     telegramBot.silent().send("""

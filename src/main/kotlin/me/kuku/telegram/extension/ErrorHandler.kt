@@ -17,7 +17,7 @@ class ErrorHandler {
         }
 
         handler<AnswerCallbackQueryException> {
-            telegramContext.answerCallbackQuery(throwable.message?: "未知错误消息")
+            telegramContext.answerCallbackQuery(throwable.message?: "未知错误消息", throwable.showAlert)
         }
 
         abilityHandler<IllegalStateException> {
