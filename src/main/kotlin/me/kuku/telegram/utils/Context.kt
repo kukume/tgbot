@@ -177,6 +177,10 @@ class TelegramContext(val bot: BaseAbilityBot, val update: Update) {
         editMessageText("请稍后......")
         return message
     }
+
+    suspend fun wait() {
+        editMessageText("请稍后...", returnButton = false)
+    }
 }
 
 class AnswerCallbackQueryException(message: String, val showAlert: Boolean = false): RuntimeException(message)

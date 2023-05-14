@@ -262,13 +262,20 @@ class ExecExtension(
         before { set(aliDriverService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定阿里云盘账号")) }
         callback("aliDriverExec") {
             val signButton = inlineKeyboardButton("签到", "aliDriverSign")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(signButton)))
+            val receive = inlineKeyboardButton("领取", "aliDriverReceive")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(listOf(signButton), listOf(receive)))
             editMessageText("阿里云盘", inlineKeyboardMarkup)
         }
         callback("aliDriverSign") {
             val entity: AliDriverEntity = firstArg()
             val res = AliDriverLogic.sign(entity)
             editMessageText(res)
+        }
+        callback("aliDriverReceive") {
+            editMessageText("请发送领取哪天的奖励")
+            val day = nextMessage().text.toIntOrNull() ?: error("错误，不为数字")
+            val result = AliDriverLogic.receive(firstArg(), day)
+            editMessageText(result)
         }
     }
 

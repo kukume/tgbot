@@ -25,6 +25,9 @@ class AliDriverScheduled(
             kotlin.runCatching {
                 delay(3000)
                 AliDriverLogic.sign(aliDriverEntity)
+                if (aliDriverEntity.receive == Status.ON) {
+                    AliDriverLogic.receive(aliDriverEntity)
+                }
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.sendFailMessage(telegramBot)

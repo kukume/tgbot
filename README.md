@@ -4,6 +4,8 @@
 
 Demo：https://t.me/kukume_bot （搭建在家宽上，可能不稳定）
 
+想更换依赖的`tgbot`框架为 https://github.com/pengrad/java-telegram-bot-api
+
 ## Environment
 
 JDK17 + Mongodb

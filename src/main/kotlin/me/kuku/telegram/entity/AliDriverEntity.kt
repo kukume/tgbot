@@ -12,6 +12,7 @@ class AliDriverEntity {
     var tgId: Long = 0
     var refreshToken: String = ""
     var sign: Status = Status.OFF
+    var receive: Status = Status.OFF
 }
 
 @Suppress("SpringDataRepositoryMethodReturnTypeInspection")

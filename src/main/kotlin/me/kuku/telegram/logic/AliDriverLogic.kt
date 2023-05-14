@@ -7,6 +7,7 @@ import me.kuku.pojo.CommonResult
 import me.kuku.telegram.entity.AliDriverEntity
 import me.kuku.utils.client
 import me.kuku.utils.setJsonBody
+import java.time.LocalDate
 
 object AliDriverLogic {
 
@@ -48,6 +49,19 @@ object AliDriverLogic {
         }.body<JsonNode>()
         return if (jsonNode["success"]?.asBoolean() == true) {
             "签到成功，本月已签到${jsonNode["result"]["signInCount"].asInt()}次"
+        } else error(jsonNode["code"].asText())
+    }
+
+    suspend fun receive(aliDriverEntity: AliDriverEntity, day: Int = LocalDate.now().dayOfMonth): String {
+        val accessToken = accessToken(aliDriverEntity)
+        val jsonNode = client.post("https://member.aliyundrive.com/v1/activity/sign_in_reward?_rx-s=mobile") {
+            setJsonBody("""{"signInDay": $day}""")
+            headers {
+                append("Authorization", accessToken)
+            }
+        }.body<JsonNode>()
+        return if (jsonNode["success"]?.asBoolean() == true) {
+            "领取成功，${jsonNode["result"]["notice"].asText()}"
         } else error(jsonNode["code"].asText())
     }
 
