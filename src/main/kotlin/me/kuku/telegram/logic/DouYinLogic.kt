@@ -12,7 +12,7 @@ import okhttp3.Response
 object DouYinLogic {
 
     private suspend fun request(url: String, cookie: String = ""): Response {
-        val jsonNode = OkHttpKtUtils.postJson("https://api.jpa.cc/exec/douYin", mapOf("url" to url))
+        val jsonNode = OkHttpKtUtils.postJson("https://api.kukuqaq.com/exec/douYin", mapOf("url" to url))
         val newUrl = jsonNode["url"].asText()
         val userAgent = jsonNode["userAgent"].asText()
         return OkHttpKtUtils.get(newUrl, mapOf("user-agent" to userAgent, "referer" to "https://www.douyin.com/user", "cookie" to cookie))
