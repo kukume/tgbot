@@ -29,8 +29,8 @@ kuku:
     proxyHost:
     # 代理端口
     proxyPort: 0
-    # 代理类型，可选 NO_PROXY（不设置代理）、HTTP、SOCKS4、SOCKS5
-    proxyType: NO_PROXY
+    # 代理类型，可选 DIRECT（不设置代理）、HTTP、SOCKS
+    proxyType: DIRECT
     # 自建的tg服务器的地址（包含http://或者https://），如果填了，
     # 上传文件到机器人的功能均会失效，如果不填，动态推送将不能推送50M以上的视频
     url: 
