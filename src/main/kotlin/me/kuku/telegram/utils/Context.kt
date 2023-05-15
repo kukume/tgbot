@@ -30,7 +30,9 @@ abstract class Context {
 
     fun sendMessage(text: String, replyKeyboard: Keyboard? = null, parseMode: ParseMode? = null) {
         val sendMessage = SendMessage(chatId, text)
-            .replyMarkup(replyKeyboard)
+        replyKeyboard?.let {
+            sendMessage.replyMarkup(replyKeyboard)
+        }
         parseMode?.let {
             sendMessage.parseMode(parseMode)
         }

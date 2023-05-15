@@ -36,7 +36,13 @@ class LeiShenScheduled(
                 """.trimIndent())
                 continue
             }
-            val userInfo = LeiShenLogic.userInfo(entity)
+            val userInfo = try {
+                LeiShenLogic.userInfo(entity)
+            } catch (e: Exception) {
+                entity.expiryTime = 0
+                leiShenService.save(entity)
+                continue
+            }
             if (userInfo.pauseStatusId == 0) {
                 telegramBot.sendTextMessage(entity.tgId, """
                     #雷神加速器未暂停时间提醒
