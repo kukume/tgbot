@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 
-@Document
+@Document("bot_config")
 class BotConfigEntity {
     @Id
     var id: String? = null

@@ -15,7 +15,6 @@ import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
-import java.io.InputStream
 
 @Service
 class LoginExtension(
@@ -39,7 +38,8 @@ class LoginExtension(
     private val buffService: BuffService,
     private val smZdmService: SmZdmService,
     private val aliDriverService: AliDriverService,
-    private val leiShenService: LeiShenService
+    private val leiShenService: LeiShenService,
+    private val youPinService: YouPinService
 ) {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -61,6 +61,7 @@ class LoginExtension(
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmLogin")
         val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriverLogin")
         val leiShenButton = inlineKeyboardButton("雷神加速器", "leiShenLogin")
+        val youPingButton = inlineKeyboardButton("悠悠有品", "youPingLogin")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -70,7 +71,8 @@ class LoginExtension(
             arrayOf(weiboStepButton, douYinButton),
             arrayOf(twitterButton, pixivButton),
             arrayOf(buffButton, smZdmButton),
-            arrayOf(aliDriverButton, leiShenButton)
+            arrayOf(aliDriverButton, leiShenButton),
+            arrayOf(youPingButton)
         )
     }
 
@@ -713,6 +715,27 @@ class LoginExtension(
             leiShenEntity.tgId = tgId
             leiShenService.save(leiShenEntity)
             editMessageText("绑定雷神加速器成功")
+        }
+    }
+
+    fun TelegramSubscribe.youPinLogin() {
+        callback("youPingLogin") {
+            editMessageText("请选择悠悠有品的登陆方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用短信登陆", "youPinSmsLogin"))
+            ))
+        }
+        callback("youPinSmsLogin") {
+            editMessageText("请发送您的手机号")
+            val phone = nextMessage(errMessage = "您发送的不为手机号，请重新发送") { text().length == 11 }.text()
+            val loginCache = YouPingLogic.smsLogin1(phone)
+            editMessageText("请发送验证码")
+            val code = nextMessage(1000 * 60 * 2).text()
+            val newEntity = YouPingLogic.smsLogin2(loginCache, code)
+            val youPingEntity = youPinService.findByTgId(tgId) ?: YouPinEntity().also { it.tgId = tgId }
+            youPingEntity.uk = newEntity.uk
+            youPingEntity.token = newEntity.token
+            youPinService.save(youPingEntity)
+            editMessageText("绑定悠悠有品成功")
         }
     }
 
