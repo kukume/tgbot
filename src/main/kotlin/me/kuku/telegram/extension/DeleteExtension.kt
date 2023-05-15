@@ -1,11 +1,10 @@
 package me.kuku.telegram.extension
 
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Component
-import org.telegram.abilitybots.api.util.AbilityExtension
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
 @Component
 class DeleteExtension(
@@ -26,41 +25,41 @@ class DeleteExtension(
     private val smZdmService: SmZdmService,
     private val aliDriverService: AliDriverService,
     private val leiShenService: LeiShenService
-): AbilityExtension {
+) {
 
     private fun markup(): InlineKeyboardMarkup {
-        val baiduButton = InlineKeyboardButton("百度").also { it.callbackData = "baiduDelete" }
-        val biliBiliButton = InlineKeyboardButton("哔哩哔哩").also { it.callbackData = "biliBiliDelete" }
-        val douYuButton = InlineKeyboardButton("斗鱼").also { it.callbackData = "douYuDelete" }
-        val hostLocButton = InlineKeyboardButton("HostLoc").also { it.callbackData = "hostLocDelete" }
-        val huYaButton = InlineKeyboardButton("虎牙").also { it.callbackData = "huYaDelete" }
-        val kuGouButton = InlineKeyboardButton("酷狗").also { it.callbackData = "kuGouDelete" }
-        val miHoYoButton = InlineKeyboardButton("米忽悠").also { it.callbackData = "miHoYoDelete" }
-        val netEaseButton = InlineKeyboardButton("网易云音乐").also { it.callbackData = "netEaseDelete" }
-        val stepButton = InlineKeyboardButton("修改步数").also { it.callbackData = "stepDelete" }
-        val weiboStepButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboDelete" }
-        val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinDelete" }
-        val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterDelete" }
-        val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivDelete" }
-        val buffButton = InlineKeyboardButton("网易buff").also { it.callbackData = "buffDelete" }
+        val baiduButton = InlineKeyboardButton("百度").callbackData("baiduDelete")
+        val biliBiliButton = InlineKeyboardButton("哔哩哔哩").callbackData("biliBiliDelete")
+        val douYuButton = InlineKeyboardButton("斗鱼").callbackData("douYuDelete")
+        val hostLocButton = InlineKeyboardButton("HostLoc").callbackData("hostLocDelete")
+        val huYaButton = InlineKeyboardButton("虎牙").callbackData("huYaDelete")
+        val kuGouButton = InlineKeyboardButton("酷狗").callbackData("kuGouDelete")
+        val miHoYoButton = InlineKeyboardButton("米忽悠").callbackData("miHoYoDelete")
+        val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseDelete")
+        val stepButton = InlineKeyboardButton("修改步数").callbackData("stepDelete")
+        val weiboStepButton = InlineKeyboardButton("微博").callbackData("weiboDelete")
+        val douYinButton = InlineKeyboardButton("抖音").callbackData("douYinDelete")
+        val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterDelete")
+        val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivDelete")
+        val buffButton = InlineKeyboardButton("网易buff").callbackData("buffDelete")
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmDelete")
         val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriveDelete")
         val leiShenDelete = inlineKeyboardButton("雷神加速器", "leiShenDelete")
-        return InlineKeyboardMarkup(listOf(
-            listOf(baiduButton, biliBiliButton),
-            listOf(douYuButton, hostLocButton),
-            listOf(huYaButton, kuGouButton),
-            listOf(miHoYoButton, netEaseButton),
-            listOf(stepButton, weiboStepButton),
-            listOf(douYinButton, twitterButton),
-            listOf(pixivButton, buffButton),
-            listOf(smZdmButton, aliDriverButton),
-            listOf(leiShenDelete)
-        ))
+        return InlineKeyboardMarkup(
+            arrayOf(baiduButton, biliBiliButton),
+            arrayOf(douYuButton, hostLocButton),
+            arrayOf(huYaButton, kuGouButton),
+            arrayOf(miHoYoButton, netEaseButton),
+            arrayOf(stepButton, weiboStepButton),
+            arrayOf(douYinButton, twitterButton),
+            arrayOf(pixivButton, buffButton),
+            arrayOf(smZdmButton, aliDriverButton),
+            arrayOf(leiShenDelete)
+        )
     }
 
     fun AbilitySubscriber.delete() {
-        sub("delete", "删除登录的账号") {
+        sub("delete") {
             sendMessage("请点击按钮，以删除对应账号", markup())
         }
     }

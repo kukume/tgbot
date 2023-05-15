@@ -124,7 +124,7 @@ object BuffLogic {
             val list = try {
                 sell(buffEntity, id, min, max, pageSize, i++)
             } catch (e: IllegalStateException) {
-                delay(1000 * 60 * 2)
+                delay(1000 * 30)
                 if (!status) {
                     error("获取失败，异常：" + e.message)
                 }

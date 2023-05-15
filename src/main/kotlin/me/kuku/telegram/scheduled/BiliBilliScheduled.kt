@@ -1,9 +1,12 @@
 package me.kuku.telegram.scheduled
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.request.SendMessage
+import com.pengrad.telegrambot.request.SendPhoto
+import com.pengrad.telegrambot.request.SendVideo
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
-import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.BiliBiliLogic
@@ -12,11 +15,7 @@ import me.kuku.telegram.utils.sendPic
 import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
-import org.telegram.telegrambots.meta.api.methods.send.SendVideo
-import org.telegram.telegrambots.meta.api.objects.InputFile
 import java.io.File
-import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -81,13 +80,10 @@ class BiliBilliScheduled(
                         val text = "#哔哩哔哩开播提醒\n#$name $msg\n标题：${live.title}\n链接：${live.url}"
                         val imageUrl = live.imageUrl
                         if (imageUrl.isEmpty())
-                            telegramBot.silent().send(text, tgId)
+                            telegramBot.execute(SendMessage(tgId, text))
                         else {
-                            client.get(imageUrl).body<InputStream>().use {
-                                val sendPhoto = SendPhoto()
-                                sendPhoto.chatId = tgId.toString()
-                                sendPhoto.caption = text
-                                sendPhoto.photo = InputFile(it, "live.jpg")
+                            client.get(imageUrl).body<ByteArray>().let {
+                                val sendPhoto = SendPhoto(tgId, it).caption(text).fileName("live.jpg")
                                 telegramBot.execute(sendPhoto)
                             }
                         }
@@ -123,12 +119,9 @@ class BiliBilliScheduled(
                             try {
                                 delay(3000)
                                 file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
-                                file.inputStream().use { iis ->
-                                    val sendVideo =
-                                        SendVideo(tgId.toString(), InputFile(iis, "${biliBiliPojo.bvId}.mp4"))
-                                    sendVideo.caption = text
-                                    telegramBot.execute(sendVideo)
-                                }
+                                val sendVideo =
+                                    SendVideo(tgId, file).caption(text)
+                                telegramBot.execute(sendVideo)
                             } finally {
                                 file?.delete()
                             }
@@ -136,9 +129,9 @@ class BiliBilliScheduled(
                             val picList = biliBiliPojo.picList
                             picList.addAll(biliBiliPojo.forwardPicList)
                             telegramBot.sendPic(tgId, text, picList)
-                        } else telegramBot.silent().send(text, tgId)
+                        } else telegramBot.execute(SendMessage(tgId, text))
                     } catch (e: Exception) {
-                        telegramBot.silent().send(text, tgId)
+                        telegramBot.execute(SendMessage(tgId, text))
                     }
                 }
             }

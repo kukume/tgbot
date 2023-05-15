@@ -1,7 +1,7 @@
 package me.kuku.telegram.scheduled
 
+import com.pengrad.telegrambot.TelegramBot
 import kotlinx.coroutines.delay
-import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.NetEaseLogic
 import org.springframework.scheduling.annotation.Scheduled
@@ -59,6 +59,8 @@ class NetEaseScheduled(
                         NetEaseLogic.publish(netEaseEntity)
                         delay(3000)
                         NetEaseLogic.publishMLog(netEaseEntity)
+                        delay(3000)
+                        NetEaseLogic.myMusicComment(netEaseEntity)
                         delay(1000 * 60)
                     }
                 }

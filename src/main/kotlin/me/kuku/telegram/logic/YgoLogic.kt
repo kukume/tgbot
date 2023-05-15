@@ -38,11 +38,11 @@ class YgoLogic {
         val str = OkHttpKtUtils.getStr(url)
         val document = Jsoup.parse(str)
         val imageUrl = document.select(".cardimg img").first()!!.attr("src")
-        val spans = document.select(".detail .names span").filter { it -> it.attr("class") != "text-muted" }
+        val spans = document.select(".detail .names span").filter { it -> it.attributes().isEmpty }
         val chineseName = spans[0].text()
         val japaneseName = spans[1].text()
-        val englishName = if (spans.size == 6) spans[2].text() else ""
-        val cardPassword = if (spans.size == 6) spans[3].text() else spans[2].text()
+        val englishName = spans[2].text()
+        val cardPassword = spans[3].text()
         val desc = document.select(".desc").first()!!
         val childNodes = desc.childNodes()
         val sb = StringBuilder()

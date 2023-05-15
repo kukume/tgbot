@@ -5,6 +5,8 @@ import com.oracle.bmc.core.model.CreatePublicIpDetails
 import com.oracle.bmc.core.model.Instance
 import com.oracle.bmc.core.model.PortRange
 import com.oracle.bmc.model.BmcException
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.OciEntity
 import me.kuku.telegram.entity.OciService
@@ -18,8 +20,6 @@ import org.ehcache.config.builders.CacheConfigurationBuilder
 import org.ehcache.config.builders.ExpiryPolicyBuilder
 import org.ehcache.config.builders.ResourcePoolsBuilder
 import org.springframework.stereotype.Service
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import java.time.Duration
 
 @Service
@@ -30,15 +30,15 @@ class OciExtension(
 
     fun AbilitySubscriber.oci() {
 
-        sub("oci", "oracle cloud管理") {
+        sub("oci") {
             val add = inlineKeyboardButton("新增api密钥", "addOci")
             val query = inlineKeyboardButton("查询及操作", "queryOci")
             val delete = inlineKeyboardButton("删除", "deleteOci")
-            val markup = InlineKeyboardMarkup(listOf(
-                listOf(add),
-                listOf(query),
-                listOf(delete)
-            ))
+            val markup = InlineKeyboardMarkup(
+                arrayOf(add),
+                arrayOf(query),
+                arrayOf(delete)
+            )
             sendMessage("""
                 oci管理，如何创建api密钥
                 租户id: 右上角头像->租户设置->租户信息->ocid
@@ -53,9 +53,9 @@ class OciExtension(
 
     private val selectCache = cacheManager.getCache("selectOci", Long::class.javaObjectType, OciCache::class.java)
 
-    private fun regionButton(): MutableList<List<InlineKeyboardButton>> {
+    private fun regionButton(): Array<Array<InlineKeyboardButton>> {
         val regions = Region.values()
-        val regionList = mutableListOf<List<InlineKeyboardButton>>()
+        val regionList = mutableListOf<Array<InlineKeyboardButton>>()
         for (i in regions.indices step 2) {
             val buttons = mutableListOf(
                 inlineKeyboardButton(regions[i].regionId, "ociRegion-${regions[i].regionId}")
@@ -63,21 +63,21 @@ class OciExtension(
             if (i + 1 < regions.size) {
                 buttons.add(inlineKeyboardButton(regions[i + 1].regionId, "ociRegion-${regions[i + 1].regionId}"))
             }
-            regionList.add(buttons)
+            regionList.add(buttons.toTypedArray())
         }
-        return regionList
+        return regionList.toTypedArray()
     }
 
     fun TelegramSubscribe.oci() {
         callback("addOci") {
             editMessageText("请发送租户id")
-            val tenantId = nextMessage().text
+            val tenantId = nextMessage().text()
             editMessageText("请发送用户id")
-            val userid = nextMessage().text
+            val userid = nextMessage().text()
             editMessageText("请发送api密钥配置文件中的fingerprint")
-            val fingerprint = nextMessage().text
+            val fingerprint = nextMessage().text()
             editMessageText("请发送创建api密钥下载的私钥信息，请复制全部内容并发送")
-            val privateKey = nextMessage().text
+            val privateKey = nextMessage().text()
             bindCache.put(tgId, OciEntity().also {
                 it.tenantId = tenantId
                 it.userid = userid
@@ -85,18 +85,18 @@ class OciExtension(
                 it.privateKey = privateKey
                 it.tgId = tgId
             })
-            editMessageText("请选择该api信息绑定的账号的区域", InlineKeyboardMarkup(regionButton()), top = true)
+            editMessageText("请选择该api信息绑定的账号的区域", InlineKeyboardMarkup(*regionButton()), top = true)
         }
 
         callbackStartsWith("ociRegion-") {
             val ociEntity = bindCache[tgId] ?: error("缓存已失效，请重新新增oci的api信息")
-            val regionId = query.data.substring(10)
+            val regionId = query.data().substring(10)
             ociEntity.region = regionId
 //            OciLogic.listCompartments(ociEntity)
             editMessageText("请发送您这个api信息要显示的名字，即备注")
             val remark = nextMessage(errMessage = "您发送的备注重复，请重新发送") {
-                ociService.checkRemark(text, tgId)
-            }.text
+                ociService.checkRemark(text(), tgId)
+            }.text()
             ociEntity.remark = remark
             ociEntity.id = null
             ociService.save(ociEntity)
@@ -105,61 +105,61 @@ class OciExtension(
 
         callback("deleteOci") {
             val ociList = ociService.findByTgId(tgId)
-            val buttonList = mutableListOf<List<InlineKeyboardButton>>()
+            val buttonList = mutableListOf<Array<InlineKeyboardButton>>()
             for (ociEntity in ociList) {
-                buttonList.add(listOf(inlineKeyboardButton(ociEntity.remark, "ociDelete-${ociEntity.id}")))
+                buttonList.add(arrayOf(inlineKeyboardButton(ociEntity.remark, "ociDelete-${ociEntity.id}")))
             }
-            editMessageText("请选择你需要删除的oci的key", InlineKeyboardMarkup(buttonList))
+            editMessageText("请选择你需要删除的oci的key", InlineKeyboardMarkup(*buttonList.toTypedArray()))
         }
 
         callbackStartsWith("ociDelete-") {
-            val id = query.data.split("-")[1]
+            val id = query.data().split("-")[1]
             ociService.deleteById(id)
             editMessageText("删除oci的api信息成功")
         }
 
         callback("queryOci") {
             val ociList = ociService.findByTgId(tgId)
-            val buttonList = mutableListOf<List<InlineKeyboardButton>>()
+            val buttonList = mutableListOf<Array<InlineKeyboardButton>>()
             for (ociEntity in ociList) {
-                buttonList.add(listOf(inlineKeyboardButton(ociEntity.remark, "ociQuery-${ociEntity.id}")))
+                buttonList.add(arrayOf(inlineKeyboardButton(ociEntity.remark, "ociQuery-${ociEntity.id}")))
             }
-            editMessageText("请选择要操作的条目", InlineKeyboardMarkup(buttonList))
+            editMessageText("请选择要操作的条目", InlineKeyboardMarkup(*buttonList.toTypedArray()))
         }
 
         callbackStartsWith("ociQuery-") {
-            val id = query.data.split("-")[1]
+            val id = query.data().split("-")[1]
             val ociEntity = ociService.findById(id) ?: error("选歪了")
             selectCache.put(tgId, OciCache(ociEntity))
             val createInstance = inlineKeyboardButton("创建实例", "ociCom")
             val lookInstance = inlineKeyboardButton("查看实例", "ociLook")
             val changeRemark = inlineKeyboardButton("修改备注", "ociChRemark-$id")
             val copy = inlineKeyboardButton("复制", "ociKeyCopy-$id")
-            editMessageText("请选择操作方式\noracle多个区好像仅region不同，所以提供一个复制按钮，来把除region的信息复制一份", InlineKeyboardMarkup(listOf(
-                listOf(createInstance),
-                listOf(lookInstance),
-                listOf(changeRemark),
-                listOf(copy)
-            )))
+            editMessageText("请选择操作方式\noracle多个区好像仅region不同，所以提供一个复制按钮，来把除region的信息复制一份", InlineKeyboardMarkup(
+                arrayOf(createInstance),
+                arrayOf(lookInstance),
+                arrayOf(changeRemark),
+                arrayOf(copy)
+            ))
         }
 
         callbackStartsWith("ociChRemark-") {
-            val id = query.data.substring(12)
+            val id = query.data().substring(12)
             val ociEntity = ociService.findById(id)!!
             editMessageText("请发送你修改后的备注")
             val remark = nextMessage(errMessage = "您发送的备注重复，请重新发送") {
-                ociService.checkRemark(text, tgId)
-            }.text
+                ociService.checkRemark(text(), tgId)
+            }.text()
             ociEntity.remark = remark
             ociService.save(ociEntity)
             editMessageText("修改备注成功")
         }
 
         callbackStartsWith("ociKeyCopy-") {
-            val id = query.data.substring(11)
+            val id = query.data().substring(11)
             val ociEntity = ociService.findById(id)!!
             bindCache.put(tgId, ociEntity)
-            editMessageText("请选择您的区域（region）信息", InlineKeyboardMarkup(regionButton()), top = true)
+            editMessageText("请选择您的区域（region）信息", InlineKeyboardMarkup(*regionButton()), top = true)
         }
     }
 
@@ -170,10 +170,10 @@ class OciExtension(
         callback("ociCom") {
             val shape1 = inlineKeyboardButton("VM.Standard.E2.1.Micro（amd）", "ociSelShape-1")
             val shape2 = inlineKeyboardButton("VM.Standard.A1.Flex（arm）", "ociSelShape-2")
-            editMessageText("请选择创建的实例形状", InlineKeyboardMarkup(listOf(listOf(shape1), listOf(shape2))))
+            editMessageText("请选择创建的实例形状", InlineKeyboardMarkup(arrayOf(shape1), arrayOf(shape2)))
         }
         callbackStartsWith("ociSelShape-") {
-            val i = query.data.substring(12).toInt()
+            val i = query.data().substring(12).toInt()
             val shape = if (i == 1) "VM.Standard.E2.1.Micro" else if (i == 2) "VM.Standard.A1.Flex" else error("选歪了")
             firstArg<OciCache>().createInstanceCache.shape = shape
             val os1 = inlineKeyboardButton("Oracle-Linux-9", "ociSelOs-1")
@@ -185,17 +185,17 @@ class OciExtension(
             val os7 = inlineKeyboardButton("Canonical-Ubuntu-18.04", "ociSelOs-7")
             val os8 = inlineKeyboardButton("CentOS-8", "ociSelOs-8")
             val os9 = inlineKeyboardButton("CentOS-7", "ociSelOs-9")
-            val markup = InlineKeyboardMarkup(listOf(
-                listOf(os1),
-                listOf(os2),
-                listOf(os3),
-                listOf(os4),
-                listOf(os5),
-                listOf(os6),
-                listOf(os7),
-                listOf(os8),
-                listOf(os9)
-            ))
+            val markup = InlineKeyboardMarkup(
+                arrayOf(os1),
+                arrayOf(os2),
+                arrayOf(os3),
+                arrayOf(os4),
+                arrayOf(os5),
+                arrayOf(os6),
+                arrayOf(os7),
+                arrayOf(os8),
+                arrayOf(os9)
+            )
             editMessageText("请选择镜像", markup)
         }
         callbackStartsWith("ociSelOs-") {
@@ -203,7 +203,7 @@ class OciExtension(
             val createInstanceCache = ociCache.createInstanceCache
             val operaSystem: String
             val version: String
-            when (query.data.substring(9).toInt()) {
+            when (query.data().substring(9).toInt()) {
                 1 -> ("Oracle Linux" to "9").apply { operaSystem = first; version = second }
                 2 -> ("Oracle Linux" to "8").apply { operaSystem = first; version = second }
                 3 -> ("Oracle Linux" to "7").apply { operaSystem = first; version = second }
@@ -222,13 +222,13 @@ class OciExtension(
                 imageList.find { !it.displayName.contains("aarch64") }!!.id
             }
             editMessageText("请发送创建实例的cpu，请注意，永久免费服务器amd只有1h1g，arm合计4h24g")
-            val cpu = nextMessage().text.toFloatOrNull() ?: error("您发送的不为浮点数字")
+            val cpu = nextMessage().text().toFloatOrNull() ?: error("您发送的不为浮点数字")
             editMessageText("请发送创建实例的内存，请注意，永久免费服务器amd只有1h1g，arm合计4h24g")
-            val memory = nextMessage().text.toFloatOrNull() ?: error("您发送的不为浮点数字")
+            val memory = nextMessage().text().toFloatOrNull() ?: error("您发送的不为浮点数字")
             editMessageText("请发送创建实例的磁盘，请数字，永久免费配额只有200G的磁盘，所以磁盘因在50G和200G之间")
-            val volumeSize = nextMessage().text.toLongOrNull() ?: error("您发送的不为数字")
+            val volumeSize = nextMessage().text().toLongOrNull() ?: error("您发送的不为数字")
             editMessageText("请发送创建实例的root密码")
-            val password = nextMessage().text
+            val password = nextMessage().text()
             val instance = try {
                 OciLogic.launchInstance(
                     ociCache.entity,
@@ -261,15 +261,15 @@ class OciExtension(
                     Instance.LifecycleState.Terminating
                 )
             }
-            val list = mutableListOf<List<InlineKeyboardButton>>()
+            val list = mutableListOf<Array<InlineKeyboardButton>>()
             for ((i, instance) in instances.withIndex()) {
                 val shapeConfig = instance.shapeConfig
                 val title =
                     "${instance.shape}-${shapeConfig.ocpus}H-${shapeConfig.memoryInGBs}G-${shapeConfig.networkingBandwidthInGbps}G"
-                list.add(listOf(inlineKeyboardButton(title, "ociLookDetail-$i")))
+                list.add(arrayOf(inlineKeyboardButton(title, "ociLookDetail-$i")))
                 chooseCache.put("$tgId$i", instance.id)
             }
-            editMessageText("请选择实例，其显示内容为：\n形状-cpu核心数量-内存-带宽", InlineKeyboardMarkup(list))
+            editMessageText("请选择实例，其显示内容为：\n形状-cpu核心数量-内存-带宽", InlineKeyboardMarkup(*list.toTypedArray()))
         }
 
     }
@@ -281,7 +281,7 @@ class OciExtension(
         before {
             set(selectCache[tgId] ?: error("缓存不存在，请重新发送指令后选择"))
             kotlin.runCatching {
-                val int = query.data.split("-")[1].toInt()
+                val int = query.data().split("-")[1].toInt()
                 set(int)
                 set(chooseCache["$tgId$int"] ?: error("缓存不存在，请重新发送指令"))
             }
@@ -312,11 +312,11 @@ class OciExtension(
                 公网IP：${vnic.publicIp}
                 内网IP：${vnic.privateIp}
                 状态：${instance.lifecycleState}
-            """.trimIndent(), InlineKeyboardMarkup(listOf(
-                listOf(start, stop, terminate),
-                listOf(updateIp),
-                listOf(securityList)
-            )))
+            """.trimIndent(), InlineKeyboardMarkup(
+                arrayOf(start, stop, terminate),
+                arrayOf(updateIp),
+                arrayOf(securityList)
+            ))
         }
         callbackStartsWith("ociOpStart-") {
             val ociEntity = firstArg<OciCache>().entity
@@ -363,7 +363,7 @@ class OciExtension(
             val securityListList = OciLogic.listSecurityLists(ociEntity, vcnId)
             val securityList = securityListList[0]
             val ingressSecurityRules = securityList.ingressSecurityRules
-            val buttonList = mutableListOf<List<InlineKeyboardButton>>()
+            val buttonList = mutableListOf<Array<InlineKeyboardButton>>()
             for ((i, rule) in ingressSecurityRules.withIndex()) {
                 val protocol = rule.protocol.toInt()
                 val type = when (protocol) {
@@ -389,37 +389,37 @@ class OciExtension(
                     val destination = if (destinationPortRange == null) "全部" else "${destinationPortRange!!.min}-${destinationPortRange!!.max}"
                     text += " $source $destination"
                 }
-                buttonList.add(listOf(inlineKeyboardButton(text, "removeOciSecRule-$i")))
+                buttonList.add(arrayOf(inlineKeyboardButton(text, "removeOciSecRule-$i")))
             }
             securityListCache.put(tgId, securityList.id)
-            buttonList.add(listOf(inlineKeyboardButton("新增", "addOciSecRule")))
+            buttonList.add(arrayOf(inlineKeyboardButton("新增", "addOciSecRule")))
             editMessageText("您的该实例的安全列表如下：\n格式：源 协议 源端口范围 目的地端口范围\n您可以点击安全规则按钮来进行删除\n添加安全规则暂时仅支持tcp和udp",
-                InlineKeyboardMarkup(buttonList))
+                InlineKeyboardMarkup(*buttonList.toTypedArray()))
         }
         callback("addOciSecRule") {
             val ociEntity = firstArg<OciCache>().entity
             val id = securityListCache[tgId] ?: error("缓存不存在，请重新发送指令")
             editMessageText("请发送源")
-            val source = nextMessage().text
+            val source = nextMessage().text()
             editMessageText("请发送协议类型，tcp or udp")
             val protocol = nextMessage(errMessage = "您发送的协议类型有误，请重新发送") {
-                text in listOf("tcp", "udp")
-            }.run { if (text == "tcp") "6" else if (text == "udp") "17" else error("不支持的协议") }
+                text() in listOf("tcp", "udp")
+            }.run { if (text() == "tcp") "6" else if (text() == "udp") "17" else error("不支持的协议") }
             editMessageText("请发送端口范围（min）")
             val min = nextMessage(errMessage = "您发送的端口范围不为数字，请重新发送") {
-                text.toIntOrNull() != null
-            }.text.toInt()
+                text().toIntOrNull() != null
+            }.text().toInt()
             editMessageText("请发送端口范围（max）")
             val max = nextMessage(errMessage = "您发送的端口范围不为数字，请重新发送") {
-                text.toIntOrNull() != null
-            }.text.toInt()
+                text().toIntOrNull() != null
+            }.text().toInt()
             OciLogic.updateSecurityList(ociEntity, id, protocol, source, min, max)
             editMessageText("添加安全列表成功", refreshReturn = true)
         }
         callbackStartsWith("removeOciSecRule") {
             val ociEntity = firstArg<OciCache>().entity
             val id = securityListCache[tgId] ?: error("缓存不存在，请重新发送指令")
-            val so = query.data.split("-")[1].toInt()
+            val so = query.data().split("-")[1].toInt()
             OciLogic.updateSecurityList(ociEntity, id, so)
             editMessageText("删除安全列表成功", refreshReturn = true)
         }

@@ -2,20 +2,17 @@
 
 package me.kuku.telegram.scheduled
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.request.InputMediaPhoto
+import com.pengrad.telegrambot.request.SendMediaGroup
+import com.pengrad.telegrambot.request.SendPhoto
 import kotlinx.coroutines.delay
-import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.PixivService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.PixivLogic
 import me.kuku.telegram.logic.PixivPojo
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
-import org.telegram.telegrambots.meta.api.objects.InputFile
-import org.telegram.telegrambots.meta.api.objects.media.InputMedia
-import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto
-import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -55,29 +52,22 @@ class PixivScheduled(
                         if (innerList.size == 1) {
                             val url = imageList[0]
                             val name = url.substring(url.lastIndexOf('/') + 1)
-                            PixivLogic.imageIs(url).use {
-                                val sendPhoto = SendPhoto(tgId.toString(), InputFile(it, "$name.jpg"))
-                                sendPhoto.caption = text
+                            PixivLogic.imageIs(url).readAllBytes().let {
+                                val sendPhoto = SendPhoto(tgId, it).fileName("$name.jpg")
+                                    .caption(text)
                                 telegramBot.execute(sendPhoto)
                             }
                         } else {
-                            val ii = mutableListOf<InputStream>()
-                            val inputMediaList = mutableListOf<InputMedia>()
-                            try {
-                                for (imageUrl in innerList) {
-                                    val iis = PixivLogic.imageIs(imageUrl)
-                                    val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
-                                    ii.add(iis)
-                                    val mediaPhoto =
-                                        InputMediaPhoto.builder().isNewMedia(true).newMediaStream(iis).mediaName(name).media("attach://$name").build()
-                                    mediaPhoto.caption = text
-                                    inputMediaList.add(mediaPhoto)
-                                }
-                                val sendMediaGroup = SendMediaGroup(tgId.toString(), inputMediaList)
-                                telegramBot.execute(sendMediaGroup)
-                            } finally {
-                                ii.forEach { it.close() }
+                            val inputMediaList = mutableListOf<InputMediaPhoto>()
+                            for (imageUrl in innerList) {
+                                val iis = PixivLogic.imageIs(imageUrl)
+                                val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
+                                val mediaPhoto = InputMediaPhoto(iis.readAllBytes())
+                                    .fileName(name).caption(text)
+                                inputMediaList.add(mediaPhoto)
                             }
+                            val sendMediaGroup = SendMediaGroup(tgId, *inputMediaList.toTypedArray())
+                            telegramBot.execute(sendMediaGroup)
                         }
                     }
 

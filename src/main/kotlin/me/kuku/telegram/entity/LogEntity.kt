@@ -1,12 +1,12 @@
 package me.kuku.telegram.entity
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.request.SendMessage
 import kotlinx.coroutines.reactor.awaitSingle
-import me.kuku.telegram.config.TelegramBot
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Service
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import reactor.core.publisher.Flux
 import java.time.LocalDateTime
 
@@ -19,9 +19,7 @@ class LogEntity: BaseEntity() {
     var text: String = "成功"
 
     fun sendFailMessage(telegramBot: TelegramBot) {
-        val sendMessage = SendMessage()
-        sendMessage.chatId = tgId.toString()
-        sendMessage.text = "#自动签到失败提醒\n${type.value}自动签到失败，请手动执行以查看原因"
+        val sendMessage = SendMessage(tgId, "#自动签到失败提醒\n${type.value}自动签到失败，请手动执行以查看原因")
         telegramBot.execute(sendMessage)
     }
 }

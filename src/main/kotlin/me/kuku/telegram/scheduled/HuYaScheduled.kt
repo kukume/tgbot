@@ -1,17 +1,16 @@
 package me.kuku.telegram.scheduled
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.request.SendPhoto
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
-import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.HuYaLogic
+import me.kuku.telegram.utils.sendTextMessage
 import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
-import org.telegram.telegrambots.meta.api.objects.InputFile
-import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -43,11 +42,11 @@ class HuYaScheduled(
                         val msg = if (b) "直播啦！！" else "下播啦"
                         val text = "#虎牙开播提醒\n#${room.nick} $msg\n标题：${room.liveDesc}\n分类：${room.gameName}\n链接：${room.url}"
                         val videoCaptureUrl = room.videoCaptureUrl
-                        if (videoCaptureUrl.isEmpty()) telegramBot.silent().send(text, tgId)
+                        if (videoCaptureUrl.isEmpty()) telegramBot.sendTextMessage(tgId, text)
                         else {
-                            client.get(videoCaptureUrl).body<InputStream>().use {
+                            client.get(videoCaptureUrl).body<ByteArray>().let {
                                 val sendPhoto =
-                                    SendPhoto.builder().chatId(tgId).caption(text).photo(InputFile(it, "huYa.jpg")).build()
+                                    SendPhoto(tgId, text).caption(text).fileName("huYa.jpg")
                                 telegramBot.execute(sendPhoto)
                             }
                         }

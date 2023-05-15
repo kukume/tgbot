@@ -27,7 +27,7 @@ object DouYinLogic {
         val response = OkHttpKtUtils.get("https://www.douyin.com").apply { close() }
         var cookie = OkUtils.cookie(response)
         val nonce = OkUtils.cookie(cookie, "__ac_nonce")!!
-        val signJsonNode = OkHttpKtUtils.postJson("https://api.jpa.cc/exec/douYinSign", mapOf("nonce" to nonce))
+        val signJsonNode = OkHttpKtUtils.postJson("https://api.kukuqaq.com/exec/douYinSign", mapOf("nonce" to nonce))
         val sign = signJsonNode["sign"].asText()
         cookie += "__ac_signature=$sign; "
         val ssResponse = OkHttpKtUtils.get("https://www.douyin.com", OkUtils.cookie(cookie)).apply { close() }

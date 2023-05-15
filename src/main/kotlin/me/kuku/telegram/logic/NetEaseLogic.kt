@@ -397,6 +397,9 @@ object NetEaseLogic {
         else CommonResult.failure(jsonNode.getString("message"))
     }
 
+    // /api/nmusician/workbench/upgrade/production/song/publish/list
+    // {"limit":10,"offset":0,"publishStatus":200,"operations":"[\\"MANAGE_SONG\\",\\"EDIT_SONG\\",\\"OFFLINE_SONG\\",\\"SET_SCHEDULE_TIME\\"]","onlyBeat":false}
+
     suspend fun myMusicComment(netEaseEntity: NetEaseEntity): CommonResult<Void> {
         val musicCommonResult = myMusic(netEaseEntity)
         if (musicCommonResult.failure()) return CommonResult.failure(musicCommonResult.message)

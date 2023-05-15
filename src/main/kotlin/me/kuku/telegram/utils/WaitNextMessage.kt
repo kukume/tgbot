@@ -1,14 +1,12 @@
 package me.kuku.telegram.utils
 
+import com.pengrad.telegrambot.model.Message
+import com.pengrad.telegrambot.model.Update
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.config.TelegramUpdateEvent
 import org.springframework.context.ApplicationListener
 import org.springframework.stereotype.Service
-import org.telegram.abilitybots.api.objects.MessageContext
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery
-import org.telegram.telegrambots.meta.api.objects.Message
-import org.telegram.telegrambots.meta.api.objects.Update
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
@@ -34,23 +32,15 @@ private fun waitNextMessageCommon(code: String, maxTime: Long): Message {
     }
 }
 
-fun MessageContext.waitNextMessage(maxTime: Long = 30000): Message {
-    return waitNextMessageCommon(user().id.toString(), maxTime)
-}
-
 fun Update.waitNextMessage(maxTime: Long = 30000): Message {
-    return waitNextMessageCommon(message.chatId.toString(), maxTime)
-}
-
-fun CallbackQuery.waitNextMessage(maxTime: Long = 30000): Message {
-    return waitNextMessageCommon(message.chatId.toString(), maxTime)
+    return waitNextMessageCommon(message().chat().id().toString(), maxTime)
 }
 
 @Service
 class ContextSession: ApplicationListener<TelegramUpdateEvent> {
     override fun onApplicationEvent(event: TelegramUpdateEvent) {
         val update = event.update
-        val message = update.message ?: return
-        contextSessionCacheMap.remove(message.chatId.toString())?.resume(message)
+        val message = update.message() ?: return
+        contextSessionCacheMap.remove(message.chat().id().toString())?.resume(message)
     }
 }

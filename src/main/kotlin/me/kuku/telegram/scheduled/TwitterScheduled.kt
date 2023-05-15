@@ -1,17 +1,17 @@
 package me.kuku.telegram.scheduled
 
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.request.SendVideo
 import kotlinx.coroutines.delay
-import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.entity.TwitterService
 import me.kuku.telegram.logic.TwitterLogic
 import me.kuku.telegram.logic.TwitterPojo
 import me.kuku.telegram.utils.sendPic
+import me.kuku.telegram.utils.sendTextMessage
 import me.kuku.utils.OkHttpKtUtils
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.telegram.telegrambots.meta.api.methods.send.SendVideo
-import org.telegram.telegrambots.meta.api.objects.InputFile
 import java.lang.Long.max
 import java.util.concurrent.TimeUnit
 
@@ -45,18 +45,18 @@ class TwitterScheduled(
                     else ""
                     try {
                         if (videoUrl.isNotEmpty()) {
-                            OkHttpKtUtils.getByteStream(videoUrl).use {
-                                val sendVideo = SendVideo(tgId.toString(), InputFile(it, "${twitterPojo.id}.mp4"))
-                                sendVideo.caption = text
+                            OkHttpKtUtils.getBytes(videoUrl).let {
+                                val sendVideo = SendVideo(tgId, it).fileName("${twitterPojo.id}.mp4")
+                                    .caption(text)
                                 telegramBot.execute(sendVideo)
                             }
                         } else if (twitterPojo.photoList.isNotEmpty() || twitterPojo.forwardPhotoList.isNotEmpty()) {
                             val imageList = twitterPojo.photoList
                             imageList.addAll(twitterPojo.forwardPhotoList)
                             telegramBot.sendPic(tgId, text, imageList)
-                        } else telegramBot.silent().send(text, tgId)
+                        } else telegramBot.sendTextMessage(tgId, text)
                     } catch (e: Exception) {
-                        telegramBot.silent().send(text, tgId)
+                        telegramBot.sendTextMessage(tgId, text)
                     }
                 }
             }

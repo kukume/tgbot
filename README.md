@@ -1,10 +1,8 @@
 ## TelegramBot
 
-[SpringBoot](https://spring.io/projects/spring-boot) + [Spring-Data-Mongodb-Reactive](https://spring.io/projects/spring-data-mongodb) + [Telegram-Bots](https://github.com/rubenlagus/TelegramBots)
+[SpringBoot](https://spring.io/projects/spring-boot) + [Spring-Data-Mongodb-Reactive](https://spring.io/projects/spring-data-mongodb) + [Java-Telegram-Bot-Api](https://github.com/pengrad/java-telegram-bot-api)
 
 Demo：https://t.me/kukume_bot （搭建在家宽上，可能不稳定）
-
-想更换依赖的`tgbot`框架为 https://github.com/pengrad/java-telegram-bot-api
 
 ## Environment
 
@@ -25,10 +23,8 @@ kuku:
   telegram:
     # @BotFather获取到的token
     token:
-    # bot的用户名
-    username:
     # 机器人管理员的id
-    creatorId:
+    creatorId: 0
     # 代理地址
     proxyHost:
     # 代理端口

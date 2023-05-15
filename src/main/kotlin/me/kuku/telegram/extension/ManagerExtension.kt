@@ -2,13 +2,12 @@
 
 package me.kuku.telegram.extension
 
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.LeiShenLogic
 import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Service
-import org.telegram.abilitybots.api.util.AbilityExtension
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
 @Service
 class ManagerExtension(
@@ -28,39 +27,39 @@ class ManagerExtension(
     private val smZdmService: SmZdmService,
     private val aliDriverService: AliDriverService,
     private val leiShenService: LeiShenService
-): AbilityExtension {
+) {
 
     private fun managerKeyboardMarkup(): InlineKeyboardMarkup {
-        val baiduButton = InlineKeyboardButton("百度").also { it.callbackData = "baiduManager" }
-        val biliBiliButton = InlineKeyboardButton("哔哩哔哩").also { it.callbackData = "biliBiliManager" }
-        val douYuButton = InlineKeyboardButton("斗鱼").also { it.callbackData = "douYuManager" }
-        val hostLocButton = InlineKeyboardButton("HostLoc").also { it.callbackData = "hostLocManager" }
-        val huYaButton = InlineKeyboardButton("虎牙").also { it.callbackData = "huYaManager" }
-        val kuGouButton = InlineKeyboardButton("酷狗").also { it.callbackData = "kuGouManager" }
-        val miHoYoButton = InlineKeyboardButton("米忽悠").also { it.callbackData = "miHoYoManager" }
-        val netEaseButton = InlineKeyboardButton("网易云音乐").also { it.callbackData = "netEaseManager" }
-        val xiaomiStepButton = InlineKeyboardButton("刷步数").also { it.callbackData = "stepManager" }
-        val weiboButton = InlineKeyboardButton("微博").also { it.callbackData = "weiboManager" }
-        val twitterButton = InlineKeyboardButton("twitter").also { it.callbackData = "twitterManager" }
-        val pixivButton = InlineKeyboardButton("pixiv").also { it.callbackData = "pixivManager" }
-        val douYinButton = InlineKeyboardButton("抖音").also { it.callbackData = "douYinManager" }
-        val smZdmButton = InlineKeyboardButton("什么值得买").also { it.callbackData = "smZdmManager" }
+        val baiduButton = InlineKeyboardButton("百度").callbackData("baiduManager")
+        val biliBiliButton = InlineKeyboardButton("哔哩哔哩").callbackData("biliBiliManager")
+        val douYuButton = InlineKeyboardButton("斗鱼").callbackData("douYuManager")
+        val hostLocButton = InlineKeyboardButton("HostLoc").callbackData("hostLocManager")
+        val huYaButton = InlineKeyboardButton("虎牙").callbackData("huYaManager")
+        val kuGouButton = InlineKeyboardButton("酷狗").callbackData("kuGouManager")
+        val miHoYoButton = InlineKeyboardButton("米忽悠").callbackData("miHoYoManager")
+        val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseManager")
+        val xiaomiStepButton = InlineKeyboardButton("刷步数").callbackData("stepManager")
+        val weiboButton = InlineKeyboardButton("微博").callbackData("weiboManager")
+        val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterManager")
+        val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivManager")
+        val douYinButton = InlineKeyboardButton("抖音").callbackData("douYinManager")
+        val smZdmButton = InlineKeyboardButton("什么值得买").callbackData("smZdmManager")
         val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverManager")
         val leiShen = inlineKeyboardButton("雷神加速器", "leiShenManager")
-        return InlineKeyboardMarkup(listOf(
-            listOf(baiduButton, biliBiliButton),
-            listOf(douYuButton, hostLocButton),
-            listOf(huYaButton, kuGouButton),
-            listOf(miHoYoButton, netEaseButton),
-            listOf(xiaomiStepButton, weiboButton),
-            listOf(twitterButton, pixivButton),
-            listOf(douYinButton, smZdmButton),
-            listOf(aliDriver, leiShen)
-        ))
+        return InlineKeyboardMarkup(
+            arrayOf(baiduButton, biliBiliButton),
+            arrayOf(douYuButton, hostLocButton),
+            arrayOf(huYaButton, kuGouButton),
+            arrayOf(miHoYoButton, netEaseButton),
+            arrayOf(xiaomiStepButton, weiboButton),
+            arrayOf(twitterButton, pixivButton),
+            arrayOf(douYinButton, smZdmButton),
+            arrayOf(aliDriver, leiShen)
+        )
     }
 
     fun AbilitySubscriber.manager() {
-        sub("manager", "管理") {
+        sub("manager") {
             val markup = managerKeyboardMarkup()
             sendMessage("请选择管理选项", markup)
         }
@@ -76,9 +75,9 @@ class ManagerExtension(
             baiduService.save(baiduEntity)
             val signOpenButton = inlineKeyboardButton("自动签到（开）", "baiduSignOpen")
             val signCloseButton = inlineKeyboardButton("自动签到（关）", "baiduSignClose")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(signOpenButton, signCloseButton)
-            ))
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(signOpenButton, signCloseButton)
+            )
             editMessageText("""
                 百度自动签到管理，当前状态：
                 自动签到：${baiduEntity.sign.str()}
@@ -97,17 +96,17 @@ class ManagerExtension(
         callback("biliBiliLiveClose") { firstArg<BiliBiliEntity>().live = Status.OFF }
         after {
             val biliBiliEntity = firstArg<BiliBiliEntity>()
-            val pushOpenButton = InlineKeyboardButton("动态推送（开）").apply { callbackData = "biliBiliPushOpen" }
-            val pushCloseButton = InlineKeyboardButton("动态推送（关）").apply { callbackData = "biliBiliPushClose" }
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").apply { callbackData = "biliBiliSignOpen" }
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").apply { callbackData = "biliBiliSignClose" }
-            val liveOpenButton = InlineKeyboardButton("开播提醒（开）").apply { callbackData = "biliBiliLiveOpen" }
-            val liveCloseButton = InlineKeyboardButton("开播提醒（关）").apply { callbackData = "biliBiliLiveClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(pushOpenButton, pushCloseButton),
-                listOf(signOpenButton, signCloseButton),
-                listOf(liveOpenButton, liveCloseButton)
-            ))
+            val pushOpenButton = InlineKeyboardButton("动态推送（开）").callbackData("biliBiliPushOpen")
+            val pushCloseButton = InlineKeyboardButton("动态推送（关）").callbackData("biliBiliPushClose")
+            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("biliBiliSignOpen")
+            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("biliBiliSignClose")
+            val liveOpenButton = InlineKeyboardButton("开播提醒（开）").callbackData("biliBiliLiveOpen")
+            val liveCloseButton = InlineKeyboardButton("开播提醒（关）").callbackData("biliBiliLiveClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(pushOpenButton, pushCloseButton),
+                arrayOf(signOpenButton, signCloseButton),
+                arrayOf(liveOpenButton, liveCloseButton)
+            )
             editMessageText("""
                 哔哩哔哩自动签到管理，当前状态：
                 动态推送：${biliBiliEntity.push.str()}
@@ -133,23 +132,23 @@ class ManagerExtension(
         after {
             val douYuEntity = firstArg<DouYuEntity>()
             douYuService.save(douYuEntity)
-            val liveOpenButton = InlineKeyboardButton("开播提醒（开）").apply { callbackData = "douYuLiveOpen" }
-            val liveCloseButton = InlineKeyboardButton("开播提醒（关）").apply { callbackData = "douYuLiveClose" }
-            val fishOpenButton = InlineKeyboardButton("鱼吧签到（开）").apply { callbackData = "douYuFishOpen" }
-            val fishCloseButton = InlineKeyboardButton("鱼吧签到（关）").apply { callbackData = "douYuFishClose" }
-            val fishPushOpenButton = InlineKeyboardButton("鱼吧推送（开）").apply { callbackData = "douYuFishPushOpen" }
-            val fishPushCloseButton = InlineKeyboardButton("鱼吧推送（关）").apply { callbackData = "douYuFishPushClose" }
+            val liveOpenButton = InlineKeyboardButton("开播提醒（开）").callbackData("douYuLiveOpen")
+            val liveCloseButton = InlineKeyboardButton("开播提醒（关）").callbackData("douYuLiveClose")
+            val fishOpenButton = InlineKeyboardButton("鱼吧签到（开）").callbackData("douYuFishOpen")
+            val fishCloseButton = InlineKeyboardButton("鱼吧签到（关）").callbackData("douYuFishClose")
+            val fishPushOpenButton = InlineKeyboardButton("鱼吧推送（开）").callbackData("douYuFishPushOpen")
+            val fishPushCloseButton = InlineKeyboardButton("鱼吧推送（关）").callbackData("douYuFishPushClose")
             val appSignOpenButton = inlineKeyboardButton("app签到（开）", "douYuAppSignOpen")
             val appSignCloseButton = inlineKeyboardButton("app签到（关）", "douYuAppSignClose")
             val titleChangeOpenButton = inlineKeyboardButton("直播标题更新推送（开）", "douYuTitleChangeOpen")
             val titleChangeCloseButton = inlineKeyboardButton("直播标题更新推送（关）", "douYuTitleChangeClose")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(liveOpenButton, liveCloseButton),
-                listOf(fishOpenButton, fishCloseButton),
-                listOf(fishPushOpenButton, fishPushCloseButton),
-                listOf(appSignOpenButton, appSignCloseButton),
-                listOf(titleChangeOpenButton, titleChangeCloseButton)
-            ))
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(liveOpenButton, liveCloseButton),
+                arrayOf(fishOpenButton, fishCloseButton),
+                arrayOf(fishPushOpenButton, fishPushCloseButton),
+                arrayOf(appSignOpenButton, appSignCloseButton),
+                arrayOf(titleChangeOpenButton, titleChangeCloseButton)
+            )
             editMessageText("""
                 斗鱼自动签到管理，当前状态：
                 开播提醒：${douYuEntity.live.str()}
@@ -162,17 +161,17 @@ class ManagerExtension(
     }
 
     fun TelegramSubscribe.huYaManager() {
-        before { set(huYaService.findByTgId(query.from.id) ?: errorAnswerCallbackQuery("未绑定虎牙账号")) }
+        before { set(huYaService.findByTgId(query.from().id()) ?: errorAnswerCallbackQuery("未绑定虎牙账号")) }
         callback("huYaManager") {}
         callback("huYaLiveOpen") { firstArg<HuYaEntity>().live = Status.ON }
         callback("huYaLiveClose") { firstArg<HuYaEntity>().live = Status.OFF }
         after {
             val huYaEntity = firstArg<HuYaEntity>()
-            val liveOpenButton = InlineKeyboardButton("开播提醒（开）").apply { callbackData = "huYaLiveOpen" }
-            val liveCloseButton = InlineKeyboardButton("开播提醒（关）").apply { callbackData = "huYaLiveClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(liveOpenButton, liveCloseButton)
-            ))
+            val liveOpenButton = InlineKeyboardButton("开播提醒（开）").callbackData("huYaLiveOpen")
+            val liveCloseButton = InlineKeyboardButton("开播提醒（关）").callbackData("huYaLiveClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(liveOpenButton, liveCloseButton)
+            )
             editMessageText("""
                 虎牙自动签到管理，当前状态：
                 开播提醒：${huYaEntity.live.str()}
@@ -190,14 +189,14 @@ class ManagerExtension(
         after {
             val hostLocEntity = firstArg<HostLocEntity>()
             hostLocService.save(hostLocEntity)
-            val pushOpenButton = InlineKeyboardButton("动态推送（开）").apply { callbackData = "hostLocPushOpen" }
-            val pushCloseButton = InlineKeyboardButton("动态推送（关）").apply { callbackData = "hostLocPushClose" }
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").apply { callbackData = "hostLocSignOpen" }
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").apply { callbackData = "hostLocSignClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(pushOpenButton, pushCloseButton),
-                listOf(signOpenButton, signCloseButton)
-            ))
+            val pushOpenButton = InlineKeyboardButton("动态推送（开）").callbackData("hostLocPushOpen")
+            val pushCloseButton = InlineKeyboardButton("动态推送（关）").callbackData("hostLocPushClose")
+            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("hostLocSignOpen")
+            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("hostLocSignClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(pushOpenButton, pushCloseButton),
+                arrayOf(signOpenButton, signCloseButton)
+            )
             editMessageText("""
                 HostLoc自动签到管理，当前状态：
                 动态推送：${hostLocEntity.push.str()}
@@ -214,11 +213,11 @@ class ManagerExtension(
         after {
             val kuGouEntity = firstArg<KuGouEntity>()
             kuGouService.save(kuGouEntity)
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").apply { callbackData = "kuGouSignOpen" }
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").apply { callbackData = "kuGouSignClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(signOpenButton, signCloseButton)
-            ))
+            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("kuGouSignOpen")
+            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("kuGouSignClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(signOpenButton, signCloseButton)
+            )
             editMessageText("""
                 酷狗自动签到管理，当前状态：
                 自动签到：${kuGouEntity.sign.str()}
@@ -234,11 +233,11 @@ class ManagerExtension(
         after {
             val miHoYoEntity = firstArg<MiHoYoEntity>()
             miHoYoService.save(miHoYoEntity)
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").apply { callbackData = "miHoYoSignOpen" }
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").apply { callbackData = "miHoYoSignClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(signOpenButton, signCloseButton)
-            ))
+            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("miHoYoSignOpen")
+            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("miHoYoSignClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(signOpenButton, signCloseButton)
+            )
             editMessageText("""
                 米哈游（原神）签到管理，当前状态：
                 自动签到：${miHoYoEntity.sign.str()}
@@ -256,14 +255,14 @@ class ManagerExtension(
         after {
             val netEaseEntity = firstArg<NetEaseEntity>()
             netEaseService.save(netEaseEntity)
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").apply { callbackData = "netEaseSignOpen" }
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").apply { callbackData = "netEaseSignClose" }
-            val musicianSignOpenButton = InlineKeyboardButton("音乐人自动签到（开）").apply { callbackData = "netEaseMusicianSignOpen" }
-            val musicianSignCloseButton = InlineKeyboardButton("音乐人自动签到（关）").apply { callbackData = "netEaseMusicianSignClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(signOpenButton, signCloseButton),
-                listOf(musicianSignOpenButton, musicianSignCloseButton)
-            ))
+            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("netEaseSignOpen")
+            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("netEaseSignClose")
+            val musicianSignOpenButton = InlineKeyboardButton("音乐人自动签到（开）").callbackData("netEaseMusicianSignOpen")
+            val musicianSignCloseButton = InlineKeyboardButton("音乐人自动签到（关）").callbackData("netEaseMusicianSignClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(signOpenButton, signCloseButton),
+                arrayOf(musicianSignOpenButton, musicianSignCloseButton)
+            )
             editMessageText("""
                 网易云签到管理，当前状态：
                 自动签到：${netEaseEntity.sign.str()}
@@ -278,20 +277,20 @@ class ManagerExtension(
         callback("modifyStep") {
             val stepEntity = firstArg<StepEntity>()
             editMessageText("请发送需要修改的步数")
-            stepEntity.step = nextMessage().text.toIntOrNull() ?: -1
+            stepEntity.step = nextMessage().text().toIntOrNull() ?: -1
         }
         callback("stepOffsetOpen") { firstArg<StepEntity>().offset = Status.ON }
         callback("stepOffsetClose") { firstArg<StepEntity>().offset = Status.OFF }
         after {
             val stepEntity = firstArg<StepEntity>()
             stepService.save(stepEntity)
-            val modifyStepButton = InlineKeyboardButton("修改步数").apply { callbackData = "modifyStep" }
-            val stepOffsetOpenButton = InlineKeyboardButton("步数偏移（开）").apply { callbackData = "stepOffsetOpen" }
-            val stepOffsetCloseButton = InlineKeyboardButton("步数偏移（关）").apply { callbackData = "stepOffsetClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(modifyStepButton),
-                listOf(stepOffsetOpenButton, stepOffsetCloseButton)
-            ))
+            val modifyStepButton = InlineKeyboardButton("修改步数").callbackData("modifyStep")
+            val stepOffsetOpenButton = InlineKeyboardButton("步数偏移（开）").callbackData("stepOffsetOpen")
+            val stepOffsetCloseButton = InlineKeyboardButton("步数偏移（关）").callbackData("stepOffsetClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(modifyStepButton),
+                arrayOf(stepOffsetOpenButton, stepOffsetCloseButton)
+            )
             editMessageText("""
                 刷步数管理，当前状态：
                 自动步数：${stepEntity.step} (小于0为关闭自动刷步数)
@@ -310,14 +309,14 @@ class ManagerExtension(
         after {
             val weiboEntity = firstArg<WeiboEntity>()
             weiboService.save(weiboEntity)
-            val pushOpenButton = InlineKeyboardButton("动态推送（开）").apply { callbackData = "weiboPushOpen" }
-            val pushCloseButton = InlineKeyboardButton("动态推送（关）").apply { callbackData = "weiboPushClose" }
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").apply { callbackData = "weiboSignOpen" }
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").apply { callbackData = "weiboSignClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(pushOpenButton, pushCloseButton),
-                listOf(signOpenButton, signCloseButton)
-            ))
+            val pushOpenButton = InlineKeyboardButton("动态推送（开）").callbackData("weiboPushOpen")
+            val pushCloseButton = InlineKeyboardButton("动态推送（关）").callbackData("weiboPushClose")
+            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("weiboSignOpen")
+            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("weiboSignClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(pushOpenButton, pushCloseButton),
+                arrayOf(signOpenButton, signCloseButton)
+            )
             editMessageText("""
                 微博自动签到管理，当前状态：
                 动态推送：${weiboEntity.push.str()}
@@ -334,11 +333,11 @@ class ManagerExtension(
         after {
             val twitterEntity = firstArg<TwitterEntity>()
             twitterService.save(twitterEntity)
-            val pushOpenButton = InlineKeyboardButton("推文推送（开）").apply { callbackData = "twitterPushOpen" }
-            val pushCloseButton = InlineKeyboardButton("推文推送（关）").apply { callbackData = "twitterPushClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(pushOpenButton, pushCloseButton)
-            ))
+            val pushOpenButton = InlineKeyboardButton("推文推送（开）").callbackData("twitterPushOpen")
+            val pushCloseButton = InlineKeyboardButton("推文推送（关）").callbackData("twitterPushClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(pushOpenButton, pushCloseButton)
+            )
             editMessageText("""
                 推特管理，当前状态：
                 推文推送：${twitterEntity.push.str()}
@@ -354,11 +353,11 @@ class ManagerExtension(
         after {
             val pixivEntity = firstArg<PixivEntity>()
             pixivService.save(pixivEntity)
-            val pushOpenButton = InlineKeyboardButton("插画推送（开）").apply { callbackData = "pixivPushOpen" }
-            val pushCloseButton = InlineKeyboardButton("插画推送（关）").apply { callbackData = "pixivPushClose" }
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(listOf(
-                listOf(pushOpenButton, pushCloseButton)
-            ))
+            val pushOpenButton = InlineKeyboardButton("插画推送（开）").callbackData("pixivPushOpen")
+            val pushCloseButton = InlineKeyboardButton("插画推送（关）").callbackData("pixivPushClose")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(pushOpenButton, pushCloseButton)
+            )
             editMessageText("""
                 pixiv管理，当前状态：
                 插画推送：${pixivEntity.push.str()}
@@ -376,7 +375,7 @@ class ManagerExtension(
             douYinService.save(douYinEntity)
             val pushOpenButton = inlineKeyboardButton("视频推送（开）", "douYinPushOpen")
             val pushCloseButton = inlineKeyboardButton("视频推送（关）", "douYinPushClose")
-            val markup = InlineKeyboardMarkup(listOf(listOf(pushOpenButton, pushCloseButton)))
+            val markup = InlineKeyboardMarkup(arrayOf(pushOpenButton, pushCloseButton))
             editMessageText("""
                 抖音管理，当前状态：
                 视频推送：${douYinEntity.push.str()}
@@ -394,7 +393,7 @@ class ManagerExtension(
             smZdmService.save(smZdmEntity)
             val signOpenButton = inlineKeyboardButton("自动签到（开）", "smZdmSignOpen")
             val signCloseButton = inlineKeyboardButton("自动签到（关）", "smZdmSignClose")
-            val markup = InlineKeyboardMarkup(listOf(listOf(signOpenButton, signCloseButton)))
+            val markup = InlineKeyboardMarkup(arrayOf(signOpenButton, signCloseButton))
             editMessageText("""
                 什么值得买管理，当前状态：
                 签到：${smZdmEntity.sign.str()}
@@ -416,7 +415,7 @@ class ManagerExtension(
             val signCloseButton = inlineKeyboardButton("自动签到（关）", "aliDriverSignClose")
             val receiveOpenButton = inlineKeyboardButton("自动领取（开）", "aliDriverReceiveOpen")
             val receiveCloseButton = inlineKeyboardButton("自动领取（关）", "aliDriverReceiveClose")
-            val markup = InlineKeyboardMarkup(listOf(listOf(signOpenButton, signCloseButton), listOf(receiveOpenButton, receiveCloseButton)))
+            val markup = InlineKeyboardMarkup(arrayOf(signOpenButton, signCloseButton), arrayOf(receiveOpenButton, receiveCloseButton))
             editMessageText("""
                 阿里云盘，如自动签到为关，自动领取不生效
                 当前状态：
@@ -445,12 +444,12 @@ class ManagerExtension(
             val split = inlineKeyboardButton("以下是手动暂停与恢复时间按钮", "not")
             val pause = inlineKeyboardButton("暂停时间", "leiShenPause")
             val recover = inlineKeyboardButton("恢复时间", "leiShenRecover")
-            val markup = InlineKeyboardMarkup(listOf(
-                listOf(signOpenButton, signCloseButton),
-                listOf(split),
-                listOf(pause),
-                listOf(recover)
-            ))
+            val markup = InlineKeyboardMarkup(
+                arrayOf(signOpenButton, signCloseButton),
+                arrayOf(split),
+                arrayOf(pause),
+                arrayOf(recover)
+            )
             val userInfo = LeiShenLogic.userInfo(leiShenEntity)
             editMessageText("""
                 雷神加速器，当前状态：

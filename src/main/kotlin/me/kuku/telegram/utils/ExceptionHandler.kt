@@ -80,6 +80,7 @@ suspend fun TelegramExceptionHandler.invokeHandler(abilityContext: AbilityContex
                 }
             }
         }
+        throw it
     }
 }
 

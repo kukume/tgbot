@@ -1,7 +1,7 @@
 package me.kuku.telegram.scheduled
 
+import com.pengrad.telegrambot.TelegramBot
 import kotlinx.coroutines.delay
-import me.kuku.telegram.config.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.LeXinStepLogic
 import me.kuku.telegram.logic.XiaomiStepLogic

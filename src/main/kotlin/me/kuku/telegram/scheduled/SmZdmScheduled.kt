@@ -1,6 +1,6 @@
 package me.kuku.telegram.scheduled
 
-import me.kuku.telegram.config.TelegramBot
+import com.pengrad.telegrambot.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.SmZdmLogic
 import org.springframework.scheduling.annotation.Scheduled

@@ -14,9 +14,8 @@ spring:
 kuku:
   telegram:
     token:
-    username: kuku
-    creatorId: -1
+    creatorId: 0
     proxyHost:
-    proxyPort: 0
-    proxyType: no_proxy
+    proxyPort:
+    proxyType: direct
     url:
