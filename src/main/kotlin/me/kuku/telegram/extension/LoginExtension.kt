@@ -721,20 +721,33 @@ class LoginExtension(
     fun TelegramSubscribe.youPinLogin() {
         callback("youPingLogin") {
             editMessageText("请选择悠悠有品的登陆方式", InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("使用短信登陆", "youPinSmsLogin"))
+                arrayOf(inlineKeyboardButton("使用短信登陆", "youPinSmsLogin")),
+                arrayOf(inlineKeyboardButton("使用token登录", "youPinCookieLogin"))
             ))
         }
         callback("youPinSmsLogin") {
             editMessageText("请发送您的手机号")
             val phone = nextMessage(errMessage = "您发送的不为手机号，请重新发送") { text().length == 11 }.text()
-            val loginCache = YouPingLogic.smsLogin1(phone)
+            val loginCache = YouPinLogic.smsLogin1(phone)
             editMessageText("请发送验证码")
             val code = nextMessage(1000 * 60 * 2).text()
-            val newEntity = YouPingLogic.smsLogin2(loginCache, code)
-            val youPingEntity = youPinService.findByTgId(tgId) ?: YouPinEntity().also { it.tgId = tgId }
-            youPingEntity.uk = newEntity.uk
-            youPingEntity.token = newEntity.token
-            youPinService.save(youPingEntity)
+            val newEntity = YouPinLogic.smsLogin2(loginCache, code)
+            val youPinEntity = youPinService.findByTgId(tgId) ?: YouPinEntity().also { it.tgId = tgId }
+            youPinEntity.uk = newEntity.uk
+            youPinEntity.token = newEntity.token
+            youPinEntity.userid = newEntity.userid
+            youPinService.save(youPinEntity)
+            editMessageText("绑定悠悠有品成功")
+        }
+        callback("youPinCookieLogin") {
+            editMessageText("请发送您的cookie，带上Bearer ")
+            val token = nextMessage().text()
+            val youPinEntity = youPinService.findByTgId(tgId) ?: YouPinEntity().also { it.tgId = tgId }
+            youPinEntity.token = token
+            youPinEntity.uk = YouPinLogic.uk()
+            val userInfo = YouPinLogic.userInfo(youPinEntity)
+            youPinEntity.userid = userInfo.userid
+            youPinService.save(youPinEntity)
             editMessageText("绑定悠悠有品成功")
         }
     }
