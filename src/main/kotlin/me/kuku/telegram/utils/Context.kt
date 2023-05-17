@@ -61,7 +61,7 @@ private val returnMessageCache = mutableListOf<ReturnMessageCache>()
 typealias ReturnMessageAfter = TelegramContext.() -> Unit
 private data class ReturnMessageCache(val query: String, val messageId: Int, val chatId: Long, val method: BaseRequest<*, *>,
                                       val context: TelegramContext, val after: ReturnMessageAfter,
-                                      var expire: Long = System.currentTimeMillis() + 1000 * 120, var top: Boolean = false) {
+                                      var expire: Long = System.currentTimeMillis() + 1000 * 120, var top: Boolean = false, var goBackStep: Int = 1) {
     fun expire() = System.currentTimeMillis() > expire
 }
 
@@ -101,7 +101,7 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
     }
 
     private fun addReturnButton(replyMarkup: InlineKeyboardMarkup, after: ReturnMessageAfter, top: Boolean,
-                                refreshReturn: Boolean): InlineKeyboardMarkup {
+                                refreshReturn: Boolean, goBackStep: Int): InlineKeyboardMarkup {
         val data = query.data()
         val historyKey = "$tgId${message.messageId()}"
         val history = callbackHistory.getOrDefault(historyKey, LinkedList())
@@ -115,7 +115,7 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
             val tempMessage = if (history.getOrNull(history.size - 2)?.refreshReturn == true) history[history.size -3].message else message
             returnMessageCache.add(ReturnMessageCache(temp, message.messageId(), chatId,
                 EditMessageText(chatId, message.messageId(), tempMessage.text())
-                .replyMarkup(tempMessage.replyMarkup()), this, after, top = top))
+                .replyMarkup(tempMessage.replyMarkup()), this, after, top = top, goBackStep = goBackStep))
             temp
         }
         val list = replyMarkup.inlineKeyboard().toMutableList()
@@ -128,10 +128,11 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
                         returnButton: Boolean = true,
                         top: Boolean = false,
                         refreshReturn: Boolean = false,
+                        goBackStep: Int = 1,
                         after: ReturnMessageAfter = {}) {
         val messageId = message.messageId()
         val markup = if (returnButton) {
-            addReturnButton(replyMarkup, after, top, refreshReturn)
+            addReturnButton(replyMarkup, after, top, refreshReturn, goBackStep)
         } else replyMarkup
         val lastMessage = LastMessage(text, chatId, markup, messageId)
         lastMessageList.add(lastMessage)
@@ -145,9 +146,10 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
                          returnButton: Boolean = true,
                          top: Boolean = false,
                          refreshReturn: Boolean = false,
+                         goBackStep: Int = 1,
                          after: ReturnMessageAfter = {}) {
         val markup = if (returnButton) {
-            addReturnButton(replyMarkup, after, top, refreshReturn)
+            addReturnButton(replyMarkup, after, top, refreshReturn, goBackStep)
         } else replyMarkup
         val messageId = message.messageId()
         val editMessageMedia = EditMessageMedia(chatId, messageId, media)
@@ -197,23 +199,20 @@ class MonitorReturn(
         for (cache in returnMessageCache) {
             if (data == cache.query) {
                 val top = cache.top
-                if (!top) {
-                    val editMessageText = cache.method
-                    telegramBot.execute(editMessageText)
-                    cache.after.invoke(cache.context)
-                    contextSessionCacheMap.remove(tgId.toString())
-                    delList.add(cache)
-                } else {
-                    val groupCacheList = returnMessageCache.filter { it.messageId == mes }
-                    if (groupCacheList.isEmpty()) continue
-                    val topCache = groupCacheList[0]
-                    val editMessageText = topCache.method
-                    telegramBot.execute(editMessageText)
-                    topCache.after.invoke(cache.context)
-                    contextSessionCacheMap.remove(tgId.toString())
+                val groupCacheList = returnMessageCache.filter { it.messageId == mes }
+                if (groupCacheList.isEmpty()) continue
+                val topCache = if (top) {
                     delList.addAll(groupCacheList)
-                    break
+                    groupCacheList[0]
+                } else {
+                    delList.addAll(groupCacheList.subList(groupCacheList.size - cache.goBackStep, groupCacheList.size))
+                    groupCacheList[groupCacheList.size - cache.goBackStep]
                 }
+                val editMessageText = topCache.method
+                telegramBot.execute(editMessageText)
+                cache.after.invoke(cache.context)
+                contextSessionCacheMap.remove(tgId.toString())
+                break
             }
             if (Objects.equals(cache.messageId, mes)) {
                 cache.expire = System.currentTimeMillis() + 1000 * 120

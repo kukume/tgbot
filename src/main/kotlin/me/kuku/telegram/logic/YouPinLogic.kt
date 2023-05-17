@@ -151,7 +151,7 @@ data class YouPinUserInfo(val userid: Long, val nickname: String, val mobile: St
 
 class YouPinMarket {
     @JsonProperty("CommodityList")
-    var commodities: MutableList<Commodity> = mutableListOf()
+    var commodities: MutableList<Commodity>? = mutableListOf()
     @JsonProperty("Filters")
     var filters: MutableList<Filter> = mutableListOf()
     @JsonProperty("TemplateInfo")

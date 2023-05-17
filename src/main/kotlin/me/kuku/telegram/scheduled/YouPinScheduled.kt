@@ -25,7 +25,7 @@ class YouPinScheduled(
                 delay(3000)
                 val market = YouPinLogic.market(entity, monitor.templateId, 1,
                     minAbrade = monitor.minAbrade, maxAbrade = monitor.maxAbrade)
-                val list = market.commodities
+                val list = market.commodities ?: continue
                 if (list.isNotEmpty()) {
                     val commodity = list[0]
                     telegramBot.execute(
@@ -42,7 +42,7 @@ class YouPinScheduled(
                 }
                 val newMarket = YouPinLogic.market(entity, monitor.templateId, 1,
                     minAbrade = monitor.minAbrade, maxAbrade = monitor.maxAbrade, listSortType = 4)
-                newMarket.commodities.getOrNull(0)?.let {
+                newMarket.commodities?.getOrNull(0)?.let {
                     telegramBot.execute(
                         SendMessage(entity.tgId, """
                         #悠悠有品饰品价格推送
