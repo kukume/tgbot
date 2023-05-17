@@ -3,6 +3,7 @@ package me.kuku.telegram.utils
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Chat
 import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.request.GetMe
 import com.pengrad.telegrambot.request.SendMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asContextElement
@@ -53,21 +54,25 @@ class AbilitySubscriber {
             block.invoke(abilityContext)
         }
     }
+    private fun Chat.Type.isPrivate() = this == Chat.Type.Private
+    private fun Chat.Type.isGroup() = this == Chat.Type.group || this == Chat.Type.supergroup
 
     suspend fun invoke(bot: TelegramBot, update: Update) {
         val message = update.message() ?: return
-        val text = message.text()
+        val text = message.text() ?: return
         val messageSplit = text.split(" ")
         if (messageSplit.isEmpty()) return
-        val key = messageSplit[0].removePrefix("/")
+        var key = messageSplit[0].removePrefix("/")
+        val type = message.chat().type()
+        if (type == Chat.Type.channel) return
+        if (type.isGroup()) {
+            key = key.removeSuffix("@$botUsername")
+        }
         abilityMap[key]?.let {
-            val type = message.chat().type()
-            if (type == Chat.Type.channel) return
             val locality = it.locality
             val status = locality == Locality.ALL ||
-                    (locality == Locality.USER && type == Chat.Type.Private) ||
-                    (locality == Locality.GROUP && type in listOf(Chat.Type.group, Chat.Type.supergroup))
-
+                    (locality == Locality.USER && type.isPrivate()) ||
+                    (locality == Locality.GROUP && type.isGroup())
             if (!status) return
             val privacy = it.privacy
             if (privacy == Privacy.CREATOR && config.creatorId != message.from().id()) return
@@ -93,6 +98,12 @@ enum class Locality {
 
 enum class Privacy {
     PUBLIC, CREATOR
+}
+
+private val botUsername: String by lazy {
+    val telegramBot = SpringUtils.getBean<TelegramBot>()
+    val response = telegramBot.execute(GetMe())
+    response.user().username()
 }
 
 data class Ability(val name: String,
