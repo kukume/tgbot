@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlin.collections.Map
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -66,9 +67,11 @@ private data class ReturnMessageCache(val query: String, val messageId: Int, val
 }
 
 
-private val callbackHistory = mutableMapOf<String, LinkedList<History>>()
 
-private data class History(val message: Message, val data: String, val refreshReturn: Boolean)
+private val callbackHistory = ConcurrentHashMap<String, LinkedList<History>>()
+private val callbackHistoryTimer = ConcurrentHashMap<String, Long>()
+
+private data class History(val message: Message, val data: String, var refreshReturn: Boolean)
 
 private data class LastMessage(val text: String, val chatId: Long, val replyMarkup: InlineKeyboardMarkup, val messageId: Int)
 
@@ -105,14 +108,23 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
         val data = query.data()
         val historyKey = "$tgId${message.messageId()}"
         val history = callbackHistory.getOrDefault(historyKey, LinkedList())
+        callbackHistoryTimer[historyKey] = System.currentTimeMillis() + 1000 * 60 * 10
         if (history.isEmpty() || (history.last != null && history.last.data != data)) {
             callbackHistory[historyKey] = history.also { it.addLast(History(message, data, refreshReturn)) }
-            if (history.size > 3) history.removeFirst()
+//            if (history.size > 10) history.removeFirst()
+        } else if (refreshReturn && !history.last.refreshReturn) {
+            history.last.refreshReturn = true
         }
         val uuid = UUID.randomUUID().toString()
-        val key = if (refreshReturn) history[history.size - 2].data else {
+        val key = if (refreshReturn) {
+            history.getOrNull(history.size - 2 - (goBackStep - 1))?.data
+                ?: errorAnswerCallbackQuery("缓存已过期，请重新发送指令后重试")
+        } else {
             val temp = "return_$uuid"
-            val tempMessage = if (history.getOrNull(history.size - 2)?.refreshReturn == true) history[history.size -3].message else message
+            val tempMessage = if (history.getOrNull(history.size - 2 - (goBackStep - 1))?.refreshReturn == true) {
+                history.getOrNull(history.size - 4 - (goBackStep - 1))?.message
+                    ?: errorAnswerCallbackQuery("缓存已过期，请重新发送指令后重试")
+            } else message
             returnMessageCache.add(ReturnMessageCache(temp, message.messageId(), chatId,
                 EditMessageText(chatId, message.messageId(), tempMessage.text())
                 .replyMarkup(tempMessage.replyMarkup()), this, after, top = top, goBackStep = goBackStep))
@@ -205,9 +217,11 @@ class MonitorReturn(
                     delList.addAll(groupCacheList)
                     groupCacheList[0]
                 } else {
-                    delList.addAll(groupCacheList.subList(groupCacheList.size - cache.goBackStep, groupCacheList.size))
-                    groupCacheList[groupCacheList.size - cache.goBackStep]
+                    val confirmIndex = groupCacheList.indexOf(cache) - (cache.goBackStep - 1)
+                    delList.addAll(groupCacheList.subList(confirmIndex, groupCacheList.size))
+                    groupCacheList[confirmIndex]
                 }
+                callbackHistory["$tgId$mes"]?.removeLastOrNull()
                 val editMessageText = topCache.method
                 telegramBot.execute(editMessageText)
                 cache.after.invoke(cache.context)
@@ -254,6 +268,11 @@ class MonitorReturn(
 //                .chatId(cache.chatId).messageId(cache.messageId).build()
 //            telegramBot.execute(editMessageText)
         }
+        val historyDeleteList = mutableListOf<String>()
+        for ((k, v) in callbackHistoryTimer) {
+            if (System.currentTimeMillis() > v) historyDeleteList.add(k)
+        }
+        historyDeleteList.forEach { callbackHistory.remove(it) }
     }
 
 }

@@ -303,7 +303,7 @@ class BuffExtension(
                     FileOutputStream(file).use { os -> it.writeTo(os) }
                     val sendDocument = SendDocument(chatId, file)
                     bot.execute(sendDocument)
-                    file.delete()
+//                    file.delete()
                 }
             } finally {
                 lock--

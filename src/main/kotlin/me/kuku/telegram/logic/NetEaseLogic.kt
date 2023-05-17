@@ -2,6 +2,7 @@ package me.kuku.telegram.logic
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
+import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.NetEaseEntity
@@ -404,11 +405,15 @@ object NetEaseLogic {
         val musicCommonResult = myMusic(netEaseEntity)
         if (musicCommonResult.failure()) return CommonResult.failure(musicCommonResult.message)
         val netEaseSong = musicCommonResult.data().random()
-        val result = musicComment(netEaseEntity, netEaseSong.songId)
-        val commentId = result.data()
-        return deleteMusicComment(netEaseEntity, netEaseSong.songId, commentId).also {
-            finishStageMission(netEaseEntity, "发布主创说")
-        }
+        val result1 = musicComment(netEaseEntity, netEaseSong.songId)
+        val commentId1 = result1.data()
+        delay(2000)
+        deleteMusicComment(netEaseEntity, netEaseSong.songId, commentId1)
+        val result2 = musicComment(netEaseEntity, netEaseSong.songId)
+        val commentId2 = result2.data()
+        delay(2000)
+        deleteMusicComment(netEaseEntity, netEaseSong.songId, commentId2)
+        return finishStageMission(netEaseEntity, "发表主创说")
     }
 
 }

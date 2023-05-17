@@ -139,7 +139,7 @@ class YouPinExtension(
                     .find { it.id == id }!!
             monitor.type = if (type == 1) YouPinEntity.Monitor.Type.Push else YouPinEntity.Monitor.Type.LowDepositPush
             youPinService.save(entity)
-            editMessageText("更新监控类别成功", goBackStep = 2)
+            editMessageText("更新监控类别成功", goBackStep = 2, refreshReturn = true)
         }
         callbackStartsWith("deleteYouPinMonitory-") {
             val id = query.data().split("-")[1]

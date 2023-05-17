@@ -97,7 +97,7 @@ object BuffLogic {
         }.body<JsonNode>()
         if (jsonNode["code"].asText() != "OK") error(jsonNode["error"]?.asText() ?: "未知错误")
         val data = jsonNode["data"]
-        val goods = data["goods_infos"][id.toString()]
+        val goods = data["goods_infos"][id.toString()] ?: return listOf()
         val name = goods["name"].asText()
         val items = data["items"]
         val list = mutableListOf<Accessory>()
