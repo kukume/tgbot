@@ -45,6 +45,8 @@ class YouPinEntity {
 interface YouPinRepository: CoroutineCrudRepository<YouPinEntity, String> {
     suspend fun findByTgId(tgId: Long): YouPinEntity?
 
+    suspend fun deleteByTgId(tgId: Long)
+
 }
 
 @Service
@@ -58,5 +60,5 @@ class YouPinService(
 
     suspend fun findAll() = youPinRepository.findAll().toList()
 
-
+    suspend fun deleteByTgId(tgId: Long) = youPinRepository.deleteByTgId(tgId)
 }

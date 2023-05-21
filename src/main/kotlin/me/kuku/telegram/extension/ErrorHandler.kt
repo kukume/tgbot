@@ -10,6 +10,12 @@ import kotlin.IllegalStateException
 @Component
 class ErrorHandler {
 
+    fun TelegramExceptionHandler.ss() {
+        abilityHandler<IllegalStateException> {
+            abilityContext.sendMessage(throwable.toString())
+        }
+    }
+
     fun TelegramExceptionHandler.re() {
 
         handler<IllegalStateException> {
@@ -18,10 +24,6 @@ class ErrorHandler {
 
         handler<AnswerCallbackQueryException> {
             telegramContext.answerCallbackQuery(throwable.message?: "未知错误消息", throwable.showAlert)
-        }
-
-        abilityHandler<IllegalStateException> {
-            abilityContext.sendMessage(throwable.toString())
         }
 
         handler<IllegalArgumentException> {

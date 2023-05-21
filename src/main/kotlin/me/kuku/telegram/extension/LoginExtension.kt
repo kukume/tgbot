@@ -39,7 +39,8 @@ class LoginExtension(
     private val smZdmService: SmZdmService,
     private val aliDriverService: AliDriverService,
     private val leiShenService: LeiShenService,
-    private val youPinService: YouPinService
+    private val youPinService: YouPinService,
+    private val qqService: QqService
 ) {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -62,6 +63,7 @@ class LoginExtension(
         val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriverLogin")
         val leiShenButton = inlineKeyboardButton("雷神加速器", "leiShenLogin")
         val youPingButton = inlineKeyboardButton("悠悠有品", "youPingLogin")
+        val qqLoginButton = inlineKeyboardButton("qq", "qqLogin")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -72,7 +74,7 @@ class LoginExtension(
             arrayOf(twitterButton, pixivButton),
             arrayOf(buffButton, smZdmButton),
             arrayOf(aliDriverButton, leiShenButton),
-            arrayOf(youPingButton)
+            arrayOf(youPingButton, qqLoginButton)
         )
     }
 
@@ -749,6 +751,27 @@ class LoginExtension(
             youPinEntity.userid = userInfo.userid
             youPinService.save(youPinEntity)
             editMessageText("绑定悠悠有品成功")
+        }
+    }
+
+    fun TelegramSubscribe.qqLogin() {
+        callback("qqLogin") {
+            editMessageText("请选择qq的登陆方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用cookie登陆", "qqCookieLogin")),
+            ))
+        }
+        callback("qqCookieLogin") {
+            editMessageText("请发送qq的cookie的域名")
+            val domain = nextMessage(errMessage = "您发送的qq的域名有误，请重新发送") { text().endsWith("qq.com") }.text()
+            editMessageText("请发送对应域名的qq的cookie")
+            val cookie = nextMessage().text()
+            val entity = qqService.findByTgIdAndDomain(tgId, domain) ?: QqEntity().also {
+                it.tgId = tgId
+                it.domain = domain
+            }
+            entity.cookie = cookie
+            qqService.save(entity)
+            editMessageText("绑定qq成功")
         }
     }
 

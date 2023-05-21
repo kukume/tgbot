@@ -78,7 +78,12 @@ class AbilitySubscriber {
             if (privacy == Privacy.CREATOR && config.creatorId != message.from().id()) return
             val input = it.input
             if (input >= messageSplit.size) {
-                bot.execute(SendMessage(message.chat().id(), "Sorry, this feature requires $input additional input"))
+                val sendMessage =
+                    SendMessage(message.chat().id(), "Sorry, this feature requires $input additional input")
+                message.messageThreadId()?.let { threadId ->
+                    sendMessage.messageThreadId(threadId)
+                }
+                bot.execute(sendMessage)
             } else {
                 val abilityContext = AbilityContext(bot, update)
                 invokeAbility(abilityContext, it.block)

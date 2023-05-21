@@ -9,6 +9,7 @@ import com.pengrad.telegrambot.model.request.InputMedia
 import com.pengrad.telegrambot.model.request.Keyboard
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.*
+import com.pengrad.telegrambot.response.SendResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -19,7 +20,6 @@ import org.springframework.stereotype.Service
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-import kotlin.collections.Map
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -28,8 +28,9 @@ abstract class Context {
     abstract val tgId: Long
     abstract val chatId: Long
     abstract val bot: TelegramBot
+    abstract val message: Message
 
-    fun sendMessage(text: String, replyKeyboard: Keyboard? = null, parseMode: ParseMode? = null) {
+    fun sendMessage(text: String, replyKeyboard: Keyboard? = null, parseMode: ParseMode? = null): SendResponse {
         val sendMessage = SendMessage(chatId, text)
         replyKeyboard?.let {
             sendMessage.replyMarkup(replyKeyboard)
@@ -37,13 +38,26 @@ abstract class Context {
         parseMode?.let {
             sendMessage.parseMode(parseMode)
         }
-        bot.execute(sendMessage)
+        message.messageThreadId()?.let {
+            sendMessage.messageThreadId(it)
+        }
+        return bot.execute(sendMessage)
+    }
+
+    fun Message.delete(timeout: Long = 0) {
+        if (timeout > 0) {
+            JobManager.delay(timeout) {
+                bot.execute(DeleteMessage(chatId, this@delete.messageId()))
+            }
+        } else {
+            bot.execute(DeleteMessage(chatId, this.messageId()))
+        }
     }
 }
 
 class AbilityContext(override val bot: TelegramBot, val update: Update): Context() {
 
-    val message: Message = update.message()
+    override val message: Message = update.message()
 
     override val tgId: Long = message.from().id()
 
