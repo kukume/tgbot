@@ -42,10 +42,13 @@ class ToolExtension(
             val bytes = OkHttpKtUtils.getBytes(url)
             if (bytes.size > 1024 * 10 * 1024) error("图片大于10M，发送失败")
             val sendPhoto = SendPhoto(chatId, bytes)
+            message.messageThreadId()?.let {
+                sendPhoto.messageThreadId(it)
+            }
             bot.execute(sendPhoto)
         }
         sub("loliconmulti", locality = Locality.ALL) {
-            loLiConMulti(chatId.toString(), bot, this)
+            loLiConMulti(chatId.toString(), bot, this, message.messageThreadId())
         }
         sub("tool") {
             sendMessage("请选择小工具", toolKeyboardMarkup())
@@ -73,7 +76,7 @@ class ToolExtension(
         )
     }
 
-    private suspend fun loLiConMulti(chatId: String, bot: TelegramBot, abilityContext: AbilityContext) {
+    private suspend fun loLiConMulti(chatId: String, bot: TelegramBot, abilityContext: AbilityContext, messageThreadId: Int? = null) {
         val r18 = kotlin.runCatching {
             if (abilityContext.firstArg().lowercase() == "r18") 1 else 0
         }.getOrDefault(0)
@@ -89,6 +92,9 @@ class ToolExtension(
             inputMediaList.add(mediaPhoto)
         }
         val sendMediaGroup = SendMediaGroup(chatId, *inputMediaList.toTypedArray())
+        messageThreadId?.let {
+            sendMediaGroup.messageThreadId(it)
+        }
         bot.execute(sendMediaGroup)
     }
 

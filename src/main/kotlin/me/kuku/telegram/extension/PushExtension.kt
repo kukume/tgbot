@@ -125,7 +125,9 @@ class PushController(
                 val videoMessage = messages.find { it.type == PushBody.Type.VIDEO }
                 if (videoMessage != null) {
                     val sendVideo = SendVideo(chatId, client.get(videoMessage.content).body<ByteArray>())
-                    sendVideo.messageThreadId(messageThreadId)
+                    messageThreadId?.let {
+                        sendVideo.messageThreadId(it)
+                    }
                     sendVideo.caption(sb.toString())
                     telegramBot.execute(sendVideo)
                     call.respond("""{"message": "success"}""")
@@ -134,8 +136,10 @@ class PushController(
                 val fileMessage = messages.find { it.type == PushBody.Type.FILE }
                 if (fileMessage != null) {
                     val sendDocument = SendDocument(chatId, client.get(fileMessage.content).body<ByteArray>())
-                    sendDocument.messageThreadId(messageThreadId)
-                        .caption(sb.toString())
+                    messageThreadId?.let {
+                        sendDocument.messageThreadId(it)
+                    }
+                    sendDocument.caption(sb.toString())
                     telegramBot.execute(sendDocument)
                     call.respond("""{"message": "success"}""")
                     return@post
@@ -153,7 +157,7 @@ class PushController(
 
 class PushBody {
     var chatId: Long = 0
-    var messageThreadId: Int = 0
+    var messageThreadId: Int? = 0
     var message: MutableList<Message> = mutableListOf()
 
     class Message {

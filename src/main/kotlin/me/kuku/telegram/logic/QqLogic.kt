@@ -26,7 +26,7 @@ class QqLogic(
                 val jsonNode = client.get("http://192.168.1.237:5462/auth?domain=$domain").body<JsonNode>()
                 val qq = jsonNode["qq"].asLong()
                 val sKey = jsonNode["skey"].asText()
-                val psKey = jsonNode["psKey"][domain].asText()
+                val psKey = jsonNode["psKey"].asText()
                 qqEntity = QqEntity()
                 qqEntity!!.cookie = "uin=o${qq}; skey=${sKey}; p_uin=o${qq}; p_skey=${psKey};"
             }
