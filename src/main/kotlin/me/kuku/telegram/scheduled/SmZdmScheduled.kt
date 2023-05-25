@@ -27,7 +27,8 @@ class SmZdmScheduled(
                 logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"
-                logEntity.sendFailMessage(telegramBot)
+                logEntity.errReason = it.message ?: "未知异常原因"
+                logEntity.sendFailMessage(telegramBot, it.message)
             }
             logService.save(logEntity)
         }

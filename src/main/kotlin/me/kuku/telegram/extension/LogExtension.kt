@@ -18,7 +18,10 @@ class LogExtension(
         val logList = logService.findByCreateTimeBetweenAndTgId(before, after, tgId)
         val list = mutableListOf<Array<InlineKeyboardButton>>()
         for (logEntity in logList) {
-            val single = arrayOf(InlineKeyboardButton("${logEntity.type.value} - ${logEntity.text}").callbackData("logNone"))
+            val button = InlineKeyboardButton("${logEntity.type.value} - ${logEntity.text}")
+            if (logEntity.success()) button.callbackData("logSuccess")
+            else button.callbackData("logErrReason-${logEntity.id}")
+            val single = arrayOf(button)
             list.add(single)
         }
         if (list.isEmpty())
@@ -36,7 +39,7 @@ class LogExtension(
     fun AbilitySubscriber.logShow() {
         sub("log") {
             val before = LocalDate.now().atTime(0, 0)
-            sendMessage("${DateTimeFormatterUtils.format(before, "yyyy-MM-dd")}的自动签到日志",
+            sendMessage("${DateTimeFormatterUtils.format(before, "yyyy-MM-dd")}的自动签到日志，点击可查看异常原因",
                 replyMarkup(before, before.plusDays(1), tgId))
         }
     }
@@ -49,8 +52,18 @@ class LogExtension(
             editMessageText("${before}的自动签到日志", replyMarkup(beforeTime, beforeTime.plusDays(1), tgId),
                 returnButton = false)
         }
+        callback("logSuccess") {
+            answerCallbackQuery("执行成功了，没有异常原因", showAlert = true)
+        }
         callback("logNone") {
             answerCallbackQuery("这是给你看的，不是给你点的")
+        }
+        callbackStartsWith("logErrReason-") {
+            val id = query.data().substring(13)
+            val logEntity = logService.findById(id)!!
+            val reason = logEntity.errReason
+            val errReason = reason.ifEmpty { "没有记录异常原因，请手动执行重新获取" }
+            answerCallbackQuery(errReason, showAlert = true)
         }
     }
 

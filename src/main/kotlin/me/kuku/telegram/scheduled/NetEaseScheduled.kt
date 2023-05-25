@@ -29,12 +29,14 @@ class NetEaseScheduled(
                 val result = NetEaseLogic.sign(netEaseEntity)
                 if (result.failure()) {
                     logEntity.text = "失败"
+                    logEntity.errReason = result.message
                     logEntity.sendFailMessage(telegramBot)
                 } else {
                     logEntity.text = "成功"
                 }
             }.onFailure {
                 logEntity.text = "失败"
+                logEntity.errReason = it.message ?: "未知异常原因"
                 logEntity.sendFailMessage(telegramBot)
             }
             logService.save(logEntity)
@@ -51,6 +53,7 @@ class NetEaseScheduled(
             }
             kotlin.runCatching {
                 var b = false
+                var errorReason: String? = null
                 for (i in 0..1) {
                     val result = NetEaseLogic.musicianSign(netEaseEntity)
                     if (result.success()) {
@@ -62,17 +65,21 @@ class NetEaseScheduled(
                         delay(3000)
                         NetEaseLogic.myMusicComment(netEaseEntity)
                         delay(1000 * 60)
+                    } else {
+                        errorReason = result.message
                     }
                 }
                 if (b) {
                     logEntity.text = "成功"
                 } else {
                     logEntity.text = "失败"
-                    logEntity.sendFailMessage(telegramBot)
+                    logEntity.errReason = errorReason ?: ""
+                    logEntity.sendFailMessage(telegramBot, errorReason)
                 }
             }.onFailure {
                 logEntity.text = "失败"
-                logEntity.sendFailMessage(telegramBot)
+                logEntity.errReason = it.message ?: "未知异常原因"
+                logEntity.sendFailMessage(telegramBot, it.message)
             }
             logService.save(logEntity)
         }
