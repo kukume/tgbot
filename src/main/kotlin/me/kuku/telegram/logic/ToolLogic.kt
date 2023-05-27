@@ -56,8 +56,14 @@ class ToolLogic {
         """.trimIndent()
     }
 
-    suspend fun saucenao(url: String): List<SaucenaoResult> {
-        val urlJsonNode = OkHttpKtUtils.getJson("https://saucenao.com/search.php?output_type=2&numres=16&url=${url.toUrlEncode()}&api_key=${"TW1GbE5qUTVNalF3TkRObVltVmtOemxrTkRVM1lUUm1OVEUzTmpZNE5XRXdOR1UyWlRRM1lnPT0=".base64Decode().toString(Charset.defaultCharset()).base64Decode().toString(Charset.defaultCharset())}")
+    suspend fun saucenao(byteArray: ByteArray): List<SaucenaoResult> {
+        val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+            .addFormDataPart("url", "Paste Image URL")
+            .addFormDataPart("output_type", "2")
+            .addFormDataPart("api_key", "WkRRd05qWTFORGhpTTJZd05UaGtaalEwWlRaak1EUXpaamsxTjJOa01HSXpZMlk0TXprMk53PT0=".base64Decode().toString(Charset.defaultCharset()).base64Decode().toString(Charset.defaultCharset()))
+            .addFormDataPart("file", "demo.jpg", OkUtils.streamBody(byteArray))
+            .build()
+        val urlJsonNode = OkHttpKtUtils.postJson("https://saucenao.com/search.php", body)
         if (urlJsonNode.get("header").getInteger("status") != 0) error(urlJsonNode.get("header").getString("message"))
         val jsonList = urlJsonNode.get("results")
         val list = mutableListOf<SaucenaoResult>()
@@ -83,13 +89,6 @@ class ToolLogic {
             })
         }
         return list
-    }
-
-    suspend fun upload(url: String): String {
-        val jsonNode = OkHttpKtUtils.postJson("https://api.kukuqaq.com/upload", MultipartBody.Builder().setType(MultipartBody.FORM)
-            .addFormDataPart("type", "1")
-            .addFormDataPart("file", "${MyUtils.randomLetter(6)}.jpg", OkUtils.streamBody(OkHttpKtUtils.getBytes(url))).build())
-        return jsonNode["url"]?.asText() ?: error(jsonNode["message"].asText())
     }
 
     suspend fun positiveEnergy(date: String): File {

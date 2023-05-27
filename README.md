@@ -31,9 +31,12 @@ kuku:
     proxyPort: 0
     # 代理类型，可选 DIRECT（不设置代理）、HTTP、SOCKS
     proxyType: DIRECT
-    # 自建的tg服务器的地址（包含http://或者https://），如果填了，
-    # 上传文件到机器人的功能均会失效，如果不填，动态推送将不能推送50M以上的视频
-    url: 
+    # 自建的api服务器的地址（包含http://或者https://），如果不填，动态推送将不能推送50M以上的视频
+    url:
+    # 填写自建api服务器的配置目录，该机器人程序和自建api必须在一台服务器上
+    # 如果是https://www.kuku.me/archives/41/的搭建api，且docker-compose.yml在/root/telegram-bot-api目录下
+    # 该参数为 /root/telegram-bot-api/data
+    localPath:
 ```
 
 ## Features

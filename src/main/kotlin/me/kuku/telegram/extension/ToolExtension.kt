@@ -6,6 +6,7 @@ import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.InputMediaPhoto
 import com.pengrad.telegrambot.request.GetFile
 import com.pengrad.telegrambot.request.SendAudio
+import com.pengrad.telegrambot.request.SendDocument
 import com.pengrad.telegrambot.request.SendMediaGroup
 import com.pengrad.telegrambot.request.SendPhoto
 import kotlinx.coroutines.delay
@@ -40,12 +41,19 @@ class ToolExtension(
             val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?r18=$r18")
             val url = jsonNode["data"][0]["urls"]["original"].asText()
             val bytes = OkHttpKtUtils.getBytes(url)
-            if (bytes.size > 1024 * 10 * 1024) error("图片大于10M，发送失败")
-            val sendPhoto = SendPhoto(chatId, bytes)
-            message.messageThreadId()?.let {
-                sendPhoto.messageThreadId(it)
+            if (bytes.size > 1024 * 10 * 1024) {
+                val sendDocument = SendDocument(chatId, bytes)
+                message.messageThreadId()?.let {
+                    sendDocument.messageThreadId(it)
+                }
+                bot.execute(sendDocument)
+            } else {
+                val sendPhoto = SendPhoto(chatId, bytes)
+                message.messageThreadId()?.let {
+                    sendPhoto.messageThreadId(it)
+                }
+                bot.execute(sendPhoto)
             }
-            bot.execute(sendPhoto)
         }
         sub("loliconmulti", locality = Locality.ALL) {
             loLiConMulti(chatId.toString(), bot, this, message.messageThreadId())
@@ -139,9 +147,7 @@ class ToolExtension(
             val photo = photoList.last()
             val getFile = GetFile(photo.fileId())
             val file = bot.execute(getFile).file()
-            val url = "https://api.telegram.org/file/bot${telegramBot.token}/${file.filePath()}"
-            val newUrl = toolLogic.upload(url)
-            val list = toolLogic.saucenao(newUrl)
+            val list = toolLogic.saucenao(file.byteArray())
             if (list.isEmpty()) error("未找到结果")
             val result = list[0]
             editMessageText("""

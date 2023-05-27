@@ -124,6 +124,7 @@ class TelegramConfig {
     var proxyPort: Int = 0
     var proxyType: Proxy.Type = Proxy.Type.DIRECT
     var url: String = ""
+    var localPath: String = ""
 
     @PostConstruct
     fun dockerInit() {
@@ -149,6 +150,7 @@ class TelegramConfig {
                     "KUKU_TELEGRAM_PROXY_PORT" -> proxyPort = value.toInt()
                     "KUKU_TELEGRAM_PROXY_TYPE" -> proxyType = Proxy.Type.valueOf(value.uppercase())
                     "KUKU_TELEGRAM_URL" -> url = value
+                    "KUKU_LOCAL_PATH" -> localPath = value
                 }
             }
         }

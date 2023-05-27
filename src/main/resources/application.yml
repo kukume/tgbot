@@ -16,6 +16,7 @@ kuku:
     token:
     creatorId: 0
     proxyHost:
-    proxyPort:
+    proxyPort: 0
     proxyType: direct
     url:
+    localPath:
