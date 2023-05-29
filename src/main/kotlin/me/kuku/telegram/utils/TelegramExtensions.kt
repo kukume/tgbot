@@ -53,7 +53,7 @@ suspend fun File.byteArray(): ByteArray {
     return if (telegramConfig.url.isNotEmpty()) {
         var localPath = telegramConfig.localPath
         if (localPath.isEmpty()) error("获取文件失败，localPath未设置")
-        val newPath = filePath.substring(26)
+        val newPath = if (localPath == "/") filePath.substring(1) else filePath.substring(26)
         if (localPath.last() != '/') localPath = "$localPath/"
         val file = java.io.File(localPath + newPath)
         if (!file.exists()) error("获取文件失败，localPath设置有误")

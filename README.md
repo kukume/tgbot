@@ -36,6 +36,7 @@ kuku:
     # 填写自建api服务器的配置目录，该机器人程序和自建api必须在一台服务器上
     # 如果是https://www.kuku.me/archives/41/的搭建api，且docker-compose.yml在/root/telegram-bot-api目录下
     # 该参数为 /root/telegram-bot-api/data
+    # 如果不是使用docker，该参数为 /
     localPath:
 ```
 
