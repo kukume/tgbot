@@ -26,7 +26,8 @@ class ManagerExtension(
     private val douYinService: DouYinService,
     private val smZdmService: SmZdmService,
     private val aliDriverService: AliDriverService,
-    private val leiShenService: LeiShenService
+    private val leiShenService: LeiShenService,
+    private val nodeSeekService: NodeSeekService
 ) {
 
     private fun managerKeyboardMarkup(): InlineKeyboardMarkup {
@@ -46,6 +47,7 @@ class ManagerExtension(
         val smZdmButton = InlineKeyboardButton("什么值得买").callbackData("smZdmManager")
         val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverManager")
         val leiShen = inlineKeyboardButton("雷神加速器", "leiShenManager")
+        val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekManager")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -54,7 +56,8 @@ class ManagerExtension(
             arrayOf(xiaomiStepButton, weiboButton),
             arrayOf(twitterButton, pixivButton),
             arrayOf(douYinButton, smZdmButton),
-            arrayOf(aliDriver, leiShen)
+            arrayOf(aliDriver, leiShen),
+            arrayOf(nodeSeek)
         )
     }
 
@@ -455,6 +458,36 @@ class ManagerExtension(
                 雷神加速器，当前状态：
                 未暂停时间提醒：${leiShenEntity.status.str()}
                 时间状态：${if (userInfo.pauseStatusId == 1) "正在暂停中" else "没有在暂停哦"}
+            """.trimIndent(), markup, top = true)
+        }
+    }
+
+    fun TelegramSubscribe.nodeSeekManager() {
+        before { set(nodeSeekService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定NodeSeek账号")) }
+        callback("nodeSeekManager") {}
+        callback("nodeSeekOpenRandom") { firstArg<NodeSeekEntity>().sign = NodeSeekEntity.Sign.Random }
+        callback("nodeSeekOpenFix") { firstArg<NodeSeekEntity>().sign = NodeSeekEntity.Sign.Fix }
+        callback("nodeSeekClose") { firstArg<NodeSeekEntity>().sign = NodeSeekEntity.Sign.None }
+        callback("nodeSeekPushOpen") { firstArg<NodeSeekEntity>().push = Status.ON }
+        callback("nodeSeekPushClose") { firstArg<NodeSeekEntity>().push = Status.OFF }
+        after {
+            val nodeSeekEntity: NodeSeekEntity = firstArg()
+            nodeSeekService.save(nodeSeekEntity)
+            val markup = InlineKeyboardMarkup(
+                arrayOf(
+                    inlineKeyboardButton("自动签到（随机）", "nodeSeekOpenRandom"),
+                    inlineKeyboardButton("自动签到（固定）", "nodeSeekOpenFix"),
+                    inlineKeyboardButton("自动签到（关闭）", "nodeSeekClose")
+                ),
+                arrayOf(
+                    inlineKeyboardButton("新帖推送（开启）", "nodeSeekPushOpen"),
+                    inlineKeyboardButton("新帖推送（关闭）", "nodeSeekPushClose"),
+                )
+            )
+            editMessageText("""
+                NodeSeek，当前状态：
+                自动签到：${nodeSeekEntity.sign.value}
+                新帖推送：${nodeSeekEntity.push.str()}
             """.trimIndent(), markup, top = true)
         }
     }

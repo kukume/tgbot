@@ -111,7 +111,7 @@ class DouYuScheduled(
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(telegramBot, it.message)
+                logEntity.sendFailMessage(it.message)
             }
             logService.save(logEntity)
         }

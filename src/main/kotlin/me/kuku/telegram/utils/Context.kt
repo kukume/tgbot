@@ -10,9 +10,7 @@ import com.pengrad.telegrambot.model.request.Keyboard
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.*
 import com.pengrad.telegrambot.response.SendResponse
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.*
 import me.kuku.utils.JobManager
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -22,7 +20,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 abstract class Context {
     abstract val tgId: Long
@@ -297,11 +294,12 @@ private data class NextMessageValue(val continuation: Continuation<Message>, val
 
 private val contextSessionCacheMap = ConcurrentHashMap<String, NextMessageValue>()
 
-private suspend fun waitNextMessageCommon(code: String, maxTime: Long, errMessage: String, lastMessage: List<LastMessage>, filter: FilterMessage): Message {
+private suspend fun waitNextMessageCommon(code: String, maxTime: Long, errMessage: String, lastMessage: List<LastMessage>,
+                                          filter: FilterMessage): Message {
     return withContext(Dispatchers.IO) {
         try {
             withTimeout(maxTime){
-                val msg = suspendCoroutine {
+                val msg = suspendCancellableCoroutine {
                     val value = NextMessageValue(it, errMessage, lastMessage, filter)
                     contextSessionCacheMap.merge(code, value) { _, _ ->
                         error("Account $code was still waiting.")

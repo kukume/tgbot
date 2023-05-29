@@ -136,6 +136,7 @@ object YouPinLogic {
             setJsonBody(body)
             youPinEntity.appendHeader()
         }.body<JsonNode>()
+        if (!jsonNode.hasNonNull("Data")) error(jsonNode["Msg"].asText())
         return jsonNode["Data"].convertValue()
     }
 

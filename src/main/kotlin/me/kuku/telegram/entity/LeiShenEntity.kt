@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional
 class LeiShenEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var username: String = ""
     var password: String = ""
     var accountToken: String = ""

@@ -1,6 +1,5 @@
 package me.kuku.telegram.scheduled
 
-import com.pengrad.telegrambot.TelegramBot
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.NetEaseLogic
@@ -10,8 +9,7 @@ import org.springframework.stereotype.Component
 @Component
 class NetEaseScheduled(
     private val netEaseService: NetEaseService,
-    private val logService: LogService,
-    private val telegramBot: TelegramBot
+    private val logService: LogService
 ) {
 
     @Scheduled(cron = "0 12 7 * * ?")
@@ -30,14 +28,14 @@ class NetEaseScheduled(
                 if (result.failure()) {
                     logEntity.text = "失败"
                     logEntity.errReason = result.message
-                    logEntity.sendFailMessage(telegramBot)
+                    logEntity.sendFailMessage(result.message)
                 } else {
                     logEntity.text = "成功"
                 }
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(telegramBot)
+                logEntity.sendFailMessage(it.message)
             }
             logService.save(logEntity)
         }
@@ -74,12 +72,12 @@ class NetEaseScheduled(
                 } else {
                     logEntity.text = "失败"
                     logEntity.errReason = errorReason ?: ""
-                    logEntity.sendFailMessage(telegramBot, errorReason)
+                    logEntity.sendFailMessage(errorReason)
                 }
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(telegramBot, it.message)
+                logEntity.sendFailMessage(it.message)
             }
             logService.save(logEntity)
         }

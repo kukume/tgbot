@@ -23,8 +23,12 @@ class YouPinScheduled(
         for (entity in youPinEntityList) {
             for (monitor in entity.monitors.filter { it.type == YouPinEntity.Monitor.Type.Push }) {
                 delay(3000)
-                val market = YouPinLogic.market(entity, monitor.templateId, 1,
-                    minAbrade = monitor.minAbrade, maxAbrade = monitor.maxAbrade)
+                val market = try {
+                    YouPinLogic.market(entity, monitor.templateId, 1,
+                        minAbrade = monitor.minAbrade, maxAbrade = monitor.maxAbrade)
+                } catch (e: Exception) {
+                    continue
+                }
                 val list = market.commodities ?: continue
                 if (list.isNotEmpty()) {
                     val commodity = list[0]

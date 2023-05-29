@@ -1,6 +1,5 @@
 package me.kuku.telegram.scheduled
 
-import com.pengrad.telegrambot.TelegramBot
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.AliDriverLogic
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Component
 @Component
 class AliDriverScheduled(
     private val aliDriverService: AliDriverService,
-    private val telegramBot: TelegramBot,
     private val logService: LogService
 ) {
 
@@ -31,7 +29,7 @@ class AliDriverScheduled(
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(telegramBot, it.message)
+                logEntity.sendFailMessage(it.message)
             }
             logService.save(logEntity)
         }

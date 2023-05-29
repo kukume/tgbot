@@ -40,7 +40,8 @@ class LoginExtension(
     private val aliDriverService: AliDriverService,
     private val leiShenService: LeiShenService,
     private val youPinService: YouPinService,
-    private val qqService: QqService
+    private val qqService: QqService,
+    private val nodeSeekService: NodeSeekService
 ) {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -64,6 +65,7 @@ class LoginExtension(
         val leiShenButton = inlineKeyboardButton("雷神加速器", "leiShenLogin")
         val youPingButton = inlineKeyboardButton("悠悠有品", "youPingLogin")
         val qqLoginButton = inlineKeyboardButton("qq", "qqLogin")
+        val nodeSeekButton = inlineKeyboardButton("NodeSeek", "nodeSeekLogin")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -74,7 +76,8 @@ class LoginExtension(
             arrayOf(twitterButton, pixivButton),
             arrayOf(buffButton, smZdmButton),
             arrayOf(aliDriverButton, leiShenButton),
-            arrayOf(youPingButton, qqLoginButton)
+            arrayOf(youPingButton, qqLoginButton),
+            arrayOf(nodeSeekButton)
         )
     }
 
@@ -772,6 +775,34 @@ class LoginExtension(
             entity.cookie = cookie
             qqService.save(entity)
             editMessageText("绑定qq成功")
+        }
+    }
+
+    fun TelegramSubscribe.nodeSeekLogin() {
+        callback("nodeSeekLogin") {
+            editMessageText("请选择NodeSeek的登陆方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用cookie登陆", "nodeSeekCookieLogin")),
+                arrayOf(inlineKeyboardButton("使用账号密码登陆", "nodeSeekPasswordLogin")),
+            ))
+        }
+        callback("nodeSeekCookieLogin") {
+            editMessageText("请发送cookie，仅提供session即可，session=xxx; ")
+            val cookie = nextMessage().text()
+            val entity = nodeSeekService.findByTgId(tgId) ?: NodeSeekEntity().init()
+            entity.cookie = cookie
+            nodeSeekService.save(entity)
+            editMessageText("绑定NodeSeek成功")
+        }
+        callback("nodeSeekPasswordLogin") {
+            editMessageText("请发送NodeSeek账号")
+            val username = nextMessage().text()
+            editMessageText("请发送NodeSeek密码")
+            val password = nextMessage().text()
+            val cookie = NodeSeekLogic.login(username, password)
+            val entity = nodeSeekService.findByTgId(tgId) ?: NodeSeekEntity().init()
+            entity.cookie = cookie
+            nodeSeekService.save(entity)
+            editMessageText("绑定NodeSeek成功")
         }
     }
 

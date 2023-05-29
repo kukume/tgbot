@@ -1,6 +1,5 @@
 package me.kuku.telegram.scheduled
 
-import com.pengrad.telegrambot.TelegramBot
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.SmZdmLogic
 import org.springframework.scheduling.annotation.Scheduled
@@ -9,7 +8,6 @@ import org.springframework.stereotype.Component
 @Component
 class SmZdmScheduled(
     private val smZdmService: SmZdmService,
-    private val telegramBot: TelegramBot,
     private val logService: LogService
 ) {
 
@@ -28,7 +26,7 @@ class SmZdmScheduled(
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(telegramBot, it.message)
+                logEntity.sendFailMessage(it.message)
             }
             logService.save(logEntity)
         }

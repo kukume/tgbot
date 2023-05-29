@@ -1,6 +1,5 @@
 package me.kuku.telegram.scheduled
 
-import com.pengrad.telegrambot.TelegramBot
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.LeXinStepLogic
@@ -12,8 +11,7 @@ import org.springframework.stereotype.Component
 @Component
 class StepScheduled(
     private val stepService: StepService,
-    private val logService: LogService,
-    private val telegramBot: TelegramBot
+    private val logService: LogService
 ) {
 
     @Scheduled(cron = "0 12 5 * * ?")
@@ -35,7 +33,7 @@ class StepScheduled(
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(telegramBot, it.message)
+                logEntity.sendFailMessage(it.message)
             }
             logService.save(logEntity)
             delay(3000)

@@ -23,7 +23,8 @@ class ExecExtension(
     private val douYuService: DouYuService,
     private val douYuLogic: DouYuLogic,
     private val smZdmService: SmZdmService,
-    private val aliDriverService: AliDriverService
+    private val aliDriverService: AliDriverService,
+    private val nodeSeekService: NodeSeekService
 ) {
 
     private fun execKeyboardMarkup(): InlineKeyboardMarkup {
@@ -38,13 +39,14 @@ class ExecExtension(
         val douYuButton = InlineKeyboardButton("斗鱼").callbackData("douYuExec")
         val smZdmButton = InlineKeyboardButton("什么值得买").callbackData("smZdmExec")
         val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverExec")
+        val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekExec")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(hostLocButton, kuGouButton),
             arrayOf(miHoYoButton, netEaseButton),
             arrayOf(stepButton, weiboButton),
             arrayOf(douYuButton, smZdmButton),
-            arrayOf(aliDriver)
+            arrayOf(aliDriver, nodeSeek)
         )
     }
 
@@ -277,6 +279,23 @@ class ExecExtension(
             val day = nextMessage().text().toIntOrNull() ?: error("错误，不为数字")
             val result = AliDriverLogic.receive(firstArg(), day)
             editMessageText(result)
+        }
+    }
+
+    fun TelegramSubscribe.nodeSeekExec() {
+        before { set(nodeSeekService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定NodeSeek账号")) }
+        callback("nodeSeekExec") {
+            editMessageText("NodeSeek", InlineKeyboardMarkup(
+                arrayOf(
+                    inlineKeyboardButton("签到-随机鸡腿", "nodeSeekSign-1"),
+                    inlineKeyboardButton("签到-固定鸡腿", "nodeSeekSign-2")
+                )
+            ))
+        }
+        callbackStartsWith("nodeSeekSign-") {
+            val random = query.data().split("-")[1].toInt() == 1
+            NodeSeekLogic.sign(firstArg(), random)
+            editMessageText("NodeSeek签到成功")
         }
     }
 

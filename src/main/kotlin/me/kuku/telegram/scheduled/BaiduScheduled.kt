@@ -1,6 +1,5 @@
 package me.kuku.telegram.scheduled
 
-import com.pengrad.telegrambot.TelegramBot
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.BaiduLogic
@@ -11,8 +10,7 @@ import org.springframework.stereotype.Component
 class BaiduScheduled(
     private val baiduService: BaiduService,
     private val baiduLogic: BaiduLogic,
-    private val logService: LogService,
-    private val telegramBot: TelegramBot
+    private val logService: LogService
 ) {
 
     @Scheduled(cron = "0 41 2 * * ?")
@@ -38,7 +36,7 @@ class BaiduScheduled(
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(telegramBot, it.message)
+                logEntity.sendFailMessage(it.message)
             }
             logService.save(logEntity)
             delay(3000)

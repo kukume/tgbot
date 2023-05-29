@@ -24,7 +24,7 @@ dependencies {
     implementation("com.github.pengrad:java-telegram-bot-api:6.7.0")
     implementation("me.kuku:utils:2.3.0.0")
     implementation("me.kuku:ktor-spring-boot-starter:2.3.0.0")
-    implementation("org.jsoup:jsoup:1.15.3")
+    implementation("org.jsoup:jsoup:1.16.1")
     val ociVersion = "3.11.0"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
