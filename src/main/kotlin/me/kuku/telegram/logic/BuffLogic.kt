@@ -14,15 +14,17 @@ import java.lang.IllegalStateException
 
 object BuffLogic {
 
+    private const val api = "https://api.jpa.cc"
+
     suspend fun login1(phone: String) {
-        val jsonNode = client.get("https://api.kukuqaq.com/buff/login?phone=$phone").body<JsonNode>()
+        val jsonNode = client.get("$api/buff/login?phone=$phone").body<JsonNode>()
         if (!jsonNode["success"].asBoolean()) error(jsonNode["message"].asText())
-        val sliderJsonNode = client.get("https://api.kukuqaq.com/buff/slider?phone=$phone").body<JsonNode>()
+        val sliderJsonNode = client.get("$api/buff/slider?phone=$phone").body<JsonNode>()
         if (!sliderJsonNode["success"].asBoolean()) error(sliderJsonNode["message"].asText())
     }
 
     suspend fun login2(phone: String, code: String): BuffEntity {
-        val jsonNode = client.get("https://api.kukuqaq.com/buff/code?phone=$phone&code=$code").body<JsonNode>()
+        val jsonNode = client.get("$api/buff/code?phone=$phone&code=$code").body<JsonNode>()
         if (jsonNode["success"]?.asBoolean() == false) error(jsonNode["message"].asText())
         val cookie = jsonNode["data"].asText()
         val csrf = OkUtils.cookie(cookie, "csrf_token") ?: error("cookie无效，请重新登陆")

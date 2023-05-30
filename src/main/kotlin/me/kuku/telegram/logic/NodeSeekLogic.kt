@@ -8,7 +8,7 @@ import me.kuku.utils.*
 
 object NodeSeekLogic {
 
-    private const val api = "https://api.kukuqaq.com"
+    private const val api = "https://api.jpa.cc"
 
     suspend fun sign(entity: NodeSeekEntity, random: Boolean = false) {
         val jsonNode = client.get("$api/nodeseek/sign?cookie=${entity.cookie.toUrlEncode()}&random=$random")

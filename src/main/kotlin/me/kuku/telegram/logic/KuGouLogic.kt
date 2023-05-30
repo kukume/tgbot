@@ -122,7 +122,7 @@ class KuGouLogic {
             "srcappid" to "2919"
         )
         val preJsonNode = OkHttpKtUtils.postJson(
-            "https://api.kukuqaq.com/exec/kuGou",
+            "https://api.jpa.cc/exec/kuGou",
             mutableMapOf("phone" to phone, "time" to time.toString())
         )
         val params = preJsonNode.getString("params")

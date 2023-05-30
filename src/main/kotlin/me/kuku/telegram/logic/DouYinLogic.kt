@@ -11,8 +11,10 @@ import okhttp3.Response
 
 object DouYinLogic {
 
+    private const val api = "https://api.jpa.cc"
+
     private suspend fun request(url: String, cookie: String = ""): Response {
-        val jsonNode = OkHttpKtUtils.postJson("https://api.kukuqaq.com/exec/douYin", mapOf("url" to url))
+        val jsonNode = OkHttpKtUtils.postJson("$api/exec/douYin", mapOf("url" to url))
         val newUrl = jsonNode["url"].asText()
         val userAgent = jsonNode["userAgent"].asText()
         return OkHttpKtUtils.get(newUrl, mapOf("user-agent" to userAgent, "referer" to "https://www.douyin.com/user", "cookie" to cookie))
@@ -27,7 +29,7 @@ object DouYinLogic {
         val response = OkHttpKtUtils.get("https://www.douyin.com").apply { close() }
         var cookie = OkUtils.cookie(response)
         val nonce = OkUtils.cookie(cookie, "__ac_nonce")!!
-        val signJsonNode = OkHttpKtUtils.postJson("https://api.kukuqaq.com/exec/douYinSign", mapOf("nonce" to nonce))
+        val signJsonNode = OkHttpKtUtils.postJson("$api/exec/douYinSign", mapOf("nonce" to nonce))
         val sign = signJsonNode["sign"].asText()
         cookie += "__ac_signature=$sign; "
         val ssResponse = OkHttpKtUtils.get("https://www.douyin.com", OkUtils.cookie(cookie)).apply { close() }
