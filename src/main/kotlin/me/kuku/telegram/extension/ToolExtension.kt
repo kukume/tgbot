@@ -4,13 +4,13 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.InputMediaPhoto
-import com.pengrad.telegrambot.request.GetFile
-import com.pengrad.telegrambot.request.SendAudio
-import com.pengrad.telegrambot.request.SendDocument
-import com.pengrad.telegrambot.request.SendMediaGroup
-import com.pengrad.telegrambot.request.SendPhoto
+import com.pengrad.telegrambot.request.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
+import me.kuku.telegram.entity.BiliBiliService
+import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.ToolLogic
 import me.kuku.telegram.logic.YgoLogic
 import me.kuku.telegram.utils.*
@@ -20,9 +20,11 @@ import org.springframework.stereotype.Service
 @Service
 class ToolExtension(
     private val ygoLogic: YgoLogic,
-    private val telegramBot: TelegramBot,
-    private val toolLogic: ToolLogic
+    private val toolLogic: ToolLogic,
+    private val biliBiliService: BiliBiliService
 ) {
+
+    private val mutex = Mutex()
 
     fun AbilitySubscriber.queryYgoCard() {
         sub("ygo", 1) {
@@ -60,6 +62,22 @@ class ToolExtension(
         }
         sub("tool") {
             sendMessage("请选择小工具", toolKeyboardMarkup())
+        }
+        sub("bv", input = 1) {
+            mutex.withLock {
+                val biliBiliEntity = biliBiliService.findByTgId(tgId)
+                    ?: errorAnswerCallbackQuery("未绑定哔哩哔哩，无法获取视频")
+                val bvId = firstArg()
+                val file = BiliBiliLogic.videoByBvId(biliBiliEntity, bvId)
+                if (file.length() > 1024 * 1024 * 1024 * 2L) {
+                    sendMessage("该视频大于2G，无法发送")
+                } else {
+                    val sendVideo =
+                        SendVideo(tgId, file).caption(bvId)
+                    bot.execute(sendVideo)
+                }
+                file.delete()
+            }
         }
     }
 
