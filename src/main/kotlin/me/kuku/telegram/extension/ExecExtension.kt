@@ -85,7 +85,7 @@ class ExecExtension(
         callback("biliBiliExec") {
             val biliBiliSignButton = InlineKeyboardButton("签到").callbackData("biliBiliSign")
             val markup = InlineKeyboardMarkup(arrayOf(biliBiliSignButton))
-            editMessageText("哔哩哔哩", markup)
+            editMessageText("哔哩哔哩\n如出现请求失败为cookie失效，请重新登陆哔哩哔哩", markup)
         }
         callback("biliBiliSign") {
             val biliBiliEntity = firstArg<BiliBiliEntity>()

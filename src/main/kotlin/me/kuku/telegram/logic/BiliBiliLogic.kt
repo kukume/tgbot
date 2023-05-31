@@ -379,7 +379,7 @@ object BiliBiliLogic {
     suspend fun report(biliBiliEntity: BiliBiliEntity, aid: String, cid: String, proGRes: Int): String {
         val map = mapOf("aid" to aid, "cid" to cid, "progres" to proGRes.toString(),
             "csrf" to biliBiliEntity.token)
-        val jsonNode = OkHttpKtUtils.postJson("http://api.bilibili.com/x/v2/history/report", map,
+        val jsonNode = OkHttpKtUtils.postJson("https://api.bilibili.com/x/v2/history/report", map,
             OkUtils.cookie(biliBiliEntity.cookie))
         return if (jsonNode.getInteger("code") == 0) "成功"
         else error(jsonNode.getString("message"))
