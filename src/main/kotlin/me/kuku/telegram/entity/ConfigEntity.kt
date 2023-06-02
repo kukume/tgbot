@@ -17,11 +17,13 @@ class ConfigEntity {
     // 正能量推送
     var positiveEnergy: Status = Status.OFF
     var rrOcrKey: String = ""
+    var v2exPush: Status = Status.OFF
 }
 
 interface ConfigRepository: ReactiveMongoRepository<ConfigEntity, String> {
     fun findByTgId(tgId: Long): Mono<ConfigEntity>
     fun findByPositiveEnergy(positiveEnergy: Status): Flux<ConfigEntity>
+    fun findByV2exPush(v2exPush: Status): Flux<ConfigEntity>
 }
 
 @Service
@@ -36,5 +38,6 @@ class ConfigService(
     suspend fun findAll(): List<ConfigEntity> = configRepository.findAll().collectList().awaitSingle()
 
     suspend fun findByPositiveEnergy(positiveEnergy: Status): List<ConfigEntity> = configRepository.findByPositiveEnergy(positiveEnergy).collectList().awaitSingle()
+    suspend fun findByV2exPush(v2exPush: Status): List<ConfigEntity> = configRepository.findByV2exPush(v2exPush).collectList().awaitSingle()
 
 }
