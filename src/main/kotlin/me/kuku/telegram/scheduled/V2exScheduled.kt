@@ -30,8 +30,8 @@ class V2exScheduled(
             }
         }
         v2exId = list[0].id
+        val pushList = configService.findByV2exPush(Status.ON)
         for (v2exTopic in newList) {
-            val pushList = configService.findByV2exPush(Status.ON)
             for (configEntity in pushList) {
                 val str = """
                     #v2ex新帖推送

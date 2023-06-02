@@ -39,7 +39,7 @@ class NodeSeekScheduled(
     private var nodeSeekId = 0
 
     @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
-    suspend fun locPush() {
+    suspend fun push() {
         val list = NodeSeekLogic.post()
         if (list.isEmpty()) return
         val newList = mutableListOf<NodeSeekPost>()
@@ -50,8 +50,8 @@ class NodeSeekScheduled(
             }
         }
         nodeSeekId = list[0].id()
+        val nodeSeekList = nodeSeekService.findByPush(Status.ON)
         for (nodeSeekPost in newList) {
-            val nodeSeekList = nodeSeekService.findByPush(Status.ON)
             for (entity in nodeSeekList) {
                 val str = """
                     #NodeSeek新帖推送

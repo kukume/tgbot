@@ -32,22 +32,24 @@ class QqExtension(
 
     fun AbilitySubscriber.groupEssence() {
         sub("essence", locality = Locality.ALL) {
-            kotlin.runCatching {
-                val inlineKeyboardMarkup = essence(tgId,
-                    firstArg().toLongOrNull() ?: error("错误的群号"), 0)
-                val sendResponse =
-                    sendMessage("当前页数为0\n请选择精华消息以同步到本会话，2分钟后本消息以及指令消息删除，无论您是否操作", inlineKeyboardMarkup)
-                val messageId = sendResponse.message().messageId()
-                delay(1000 * 60 * 2)
-                val deleteMessage = DeleteMessage(chatId, messageId)
-                bot.execute(deleteMessage)
-                message.delete()
-            }.onFailure {
+            val firstArg = try {
+                firstArg()
+            } catch (e: IllegalStateException) {
                 sendMessage("""
                     /addEssence {group} - 添加群精华监控
                     /deleteEssence {group} - 删除群精华监控
                 """.trimIndent())
+                return@sub
             }
+            val inlineKeyboardMarkup = essence(tgId,
+                firstArg.toLongOrNull() ?: error("错误的群号"), 0)
+            val sendResponse =
+                sendMessage("当前页数为0\n请选择精华消息以同步到本会话，2分钟后本消息以及指令消息删除，无论您是否操作", inlineKeyboardMarkup)
+            val messageId = sendResponse.message().messageId()
+            delay(1000 * 60 * 2)
+            val deleteMessage = DeleteMessage(chatId, messageId)
+            bot.execute(deleteMessage)
+            message.delete()
         }
         sub("addEssence", input = 1, locality = Locality.ALL) {
             val group = firstArg().toLongOrNull() ?: error("群号不符合规范")

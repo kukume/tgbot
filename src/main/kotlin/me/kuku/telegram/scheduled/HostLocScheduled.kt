@@ -30,9 +30,9 @@ class HostLocScheduled(
             }
         }
         locId = list[0].id
+        val hostLocList = hostLocService.findByPush(Status.ON)
         for (hostLocPost in newList) {
             delay(3000)
-            val hostLocList = hostLocService.findByPush(Status.ON)
             for (hostLocEntity in hostLocList) {
                 val str = """
                     #HostLoc新帖推送
