@@ -20,7 +20,7 @@ object MiHoYoLogic {
         val mmtKey = dataJsonNode.getString("mmt_key")
         val jsonNode = OkHttpKtUtils.postJson("https://api.kukuqaq.com/geetest",
             mapOf("challenge" to challenge, "gt" to gt, "referer" to "https://bbs.mihoyo.com/ys/"))
-        if (!jsonNode.contains("code")) return CommonResult.failure("验证码识别失败，请重试")
+        if (jsonNode.contains("code")) return CommonResult.failure("验证码识别失败，请重试")
         val cha = jsonNode.getString("challenge")
         val validate = jsonNode.getString("validate")
         val rsaKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDvekdPMHN3AYhm/vktJT+YJr7cI5DcsNKqdsx5DZX0gDuWFuIjzdwButrIYPNmRJ1G8ybDIF7oDW2eEpm5sMbL9zs9ExXCdvqrn51qELbqj0XxtMTIpaCHFSI50PfPpTFV9Xt/hmyVwokoOXFlAEgCn+QCgGs52bFoYMtyi+xEQIDAQAB"

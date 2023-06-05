@@ -51,7 +51,7 @@ class LoginExtension(
         val hostLocButton = InlineKeyboardButton("HostLoc").callbackData("hostLocLogin")
         val huYaButton = InlineKeyboardButton("虎牙").callbackData("huYaLogin")
         val kuGouButton = InlineKeyboardButton("酷狗").callbackData("kuGouLogin")
-        val miHoYoButton = InlineKeyboardButton("米忽悠").callbackData("miHoYoLogin")
+        val miHoYoButton = InlineKeyboardButton("米哈游").callbackData("miHoYoLogin")
         val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseLogin")
         val xiaomiStepButton = InlineKeyboardButton("小米运动").callbackData("xiaomiStepLogin")
         val leXinStepButton = InlineKeyboardButton("乐心运动").callbackData("leXinStepLogin")
@@ -297,6 +297,12 @@ class LoginExtension(
 
     fun TelegramSubscribe.miHoYoLogin(){
         callback("miHoYoLogin") {
+            editMessageText("请选择登录米哈游的方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用cookie登录", "miHoYoCookieLogin")),
+                arrayOf(inlineKeyboardButton("使用账号密码登录", "miHoYoAccountLogin"))
+            ))
+        }
+        callback("miHoYoCookieLogin") {
             editMessageText("请发送米哈游的cookie")
             val cookie = nextMessage().text()
             val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().also {
@@ -305,6 +311,21 @@ class LoginExtension(
             newEntity.cookie = cookie
             miHoYoService.save(newEntity)
             editMessageText("绑定米哈游成功")
+        }
+        callback("miHoYoAccountLogin") {
+            editMessageText("请发送账号")
+            val account = nextMessage().text()
+            editMessageText("请发送密码")
+            val password = nextMessage().text()
+            val result = MiHoYoLogic.login(account, password)
+            if (result.success()) {
+                val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().also {
+                    it.tgId = tgId
+                }
+                newEntity.cookie = result.data().cookie
+                miHoYoService.save(newEntity)
+                editMessageText("绑定米哈游成功")
+            } else editMessageText(result.message)
         }
     }
 
