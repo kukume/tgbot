@@ -53,8 +53,7 @@ class LoginExtension(
         val kuGouButton = InlineKeyboardButton("酷狗").callbackData("kuGouLogin")
         val miHoYoButton = InlineKeyboardButton("米哈游").callbackData("miHoYoLogin")
         val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseLogin")
-        val xiaomiStepButton = InlineKeyboardButton("小米运动").callbackData("xiaomiStepLogin")
-        val leXinStepButton = InlineKeyboardButton("乐心运动").callbackData("leXinStepLogin")
+        val stepButton = InlineKeyboardButton("刷步数").callbackData("stepLogin")
         val weiboStepButton = InlineKeyboardButton("微博").callbackData("weiboLogin")
         val douYinButton = InlineKeyboardButton("抖音").callbackData("douYinLogin")
         val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterLogin")
@@ -71,13 +70,12 @@ class LoginExtension(
             arrayOf(douYuButton, hostLocButton),
             arrayOf(huYaButton, kuGouButton),
             arrayOf(miHoYoButton, netEaseButton),
-            arrayOf(xiaomiStepButton, leXinStepButton),
-            arrayOf(weiboStepButton, douYinButton),
+            arrayOf(stepButton, weiboStepButton),
+            arrayOf(nodeSeekButton, douYinButton),
             arrayOf(twitterButton, pixivButton),
             arrayOf(buffButton, smZdmButton),
             arrayOf(aliDriverButton, leiShenButton),
-            arrayOf(youPingButton, qqLoginButton),
-            arrayOf(nodeSeekButton)
+            arrayOf(youPingButton, qqLoginButton)
         )
     }
 
@@ -90,6 +88,11 @@ class LoginExtension(
 
     fun TelegramSubscribe.baiduLogin() {
         callback("baiduLogin") {
+            editMessageText("请选择百度登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用百度系app扫码登录", "baiduQrcodeLogin"))
+            ))
+        }
+        callback("baiduQrcodeLogin") {
             val qrcode = baiduLogic.getQrcode()
             var photoMessage: Message?
             OkHttpKtUtils.getBytes(qrcode.image).let {
@@ -122,6 +125,11 @@ class LoginExtension(
 
     fun TelegramSubscribe.biliBiliLogin() {
         callback("biliBiliLogin") {
+            editMessageText("请选择哔哩哔哩登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用哔哩哔哩app扫码登录", "biliBiliQrcodeLogin"))
+            ))
+        }
+        callback("biliBiliQrcodeLogin") {
             val qrCodeUrl = BiliBiliLogic.loginByQr1()
             var photoMessage: Message?
             OkHttpKtUtils.getBytes("https://api.kukuqaq.com/qrcode?text=${qrCodeUrl.toUrlEncode()}").let {
@@ -215,6 +223,11 @@ class LoginExtension(
 
     fun TelegramSubscribe.hostLocLogin() {
         callback("hostLocLogin") {
+            editMessageText("请选择HostLoc登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用账号密码登录", "hostLocPasswordLogin"))
+            ))
+        }
+        callback("hostLocPasswordLogin") {
             editMessageText("请发送HostLoc账号")
             val accountMessage = nextMessage()
             val account = accountMessage.text()
@@ -231,6 +244,11 @@ class LoginExtension(
 
     fun TelegramSubscribe.huYaLogin() {
         callback("huYaLogin") {
+            editMessageText("请选择虎牙登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用虎牙app扫码登录", "huyaQrcodeLogin"))
+            ))
+        }
+        callback("huyaQrcodeLogin") {
             val qrcode = huYaLogic.getQrcode()
             val photoMessage: Message?
             OkHttpKtUtils.getBytes(qrcode.url).let {
@@ -270,6 +288,11 @@ class LoginExtension(
 
     fun TelegramSubscribe.kuGouLogin() {
         callback("kuGouLogin") {
+            editMessageText("请选择酷狗登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用手机验证码登录", "kuGouPhoneCaptchaLogin"))
+            ))
+        }
+        callback("kuGouPhoneCaptchaLogin") {
             editMessageText("请发送酷狗登录的手机号")
             val phone = nextMessage().text()
             val kuGouEntity = kuGouService.findByTgId(tgId) ?: KuGouEntity().also {
@@ -400,7 +423,22 @@ class LoginExtension(
     }
 
     fun TelegramSubscribe.xiaomiStepLogin() {
+        callback("stepLogin") {
+            editMessageText("""
+                请选择刷步数登录类别，其中
+                小米运动：是小米运动app的账号，不是小米账号
+                乐心运动：需要绑定乐心手环才可以刷步数
+            """.trimIndent(), InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("小米运动", "xiaomiStepLogin")),
+                arrayOf(inlineKeyboardButton("乐心运动", "leXinStepLogin")),
+            ))
+        }
         callback("xiaomiStepLogin") {
+            editMessageText("请选择小米运动登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用账号密码登录", "xiaomiStepPasswordLogin"))
+            ))
+        }
+        callback("xiaomiStepPasswordLogin") {
             editMessageText("请发送小米运动手机号")
             val phone = nextMessage().text()
             editMessageText("请发送小米运动密码")
@@ -417,6 +455,11 @@ class LoginExtension(
             } else editMessageText("绑定小米运动失败，${result.message}")
         }
         callback("leXinStepLogin") {
+            editMessageText("请选择乐心运动登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用账号密码登录", "leXinStepPasswordLogin"))
+            ))
+        }
+        callback("leXinStepPasswordLogin") {
             editMessageText("请发送乐心运动手机号")
             val phone = nextMessage().text()
             editMessageText("请发送乐心运动密码")
@@ -439,6 +482,11 @@ class LoginExtension(
 
     fun TelegramSubscribe.weiboLogin() {
         callback("weiboLogin") {
+            editMessageText("请选择微博登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用账号密码登录", "weiboPasswordLogin"))
+            ))
+        }
+        callback("weiboPasswordLogin") {
             editMessageText("请发送微博账号")
             val account = nextMessage().text()
             editMessageText("请发送微博密码")
@@ -457,6 +505,11 @@ class LoginExtension(
 
     fun TelegramSubscribe.douYinLogin() {
         callback("douYinLogin") {
+            editMessageText("请选择抖音登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用抖音app扫码登录", "douYinQrcodeLogin"))
+            ))
+        }
+        callback("douYinQrcodeLogin") {
             val qrcode = DouYinLogic.qrcode()
             var photoMessage: Message?
             qrcode.baseImage.base64Decode().let {
@@ -694,6 +747,11 @@ class LoginExtension(
 
     fun TelegramSubscribe.aliDriver() {
         callback("aliDriverLogin") {
+            editMessageText("请选择阿里云盘登录方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用阿里云盘app扫码登录", "aliDriveQrcodeLogin"))
+            ))
+        }
+        callback("aliDriveQrcodeLogin") {
             val qrcode = AliDriverLogic.login1()
             var photoMessage: Message?
             client.get("https://api.kukuqaq.com/qrcode?text=${qrcode.qrcodeUrl.toUrlEncode()}").body<ByteArray>().let {
@@ -730,6 +788,11 @@ class LoginExtension(
 
     fun TelegramSubscribe.leiShenLogin() {
         callback("leiShenLogin") {
+            editMessageText("请选择雷神加速器登录方式\n使用账号密码登录会记录账号密码以自动更新cookie", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用账号密码登录", "leiShenPasswordLogin"))
+            ))
+        }
+        callback("leiShenPasswordLogin") {
             editMessageText("请发送手机号")
             val phone = nextMessage().text()
             editMessageText("请发送密码")
