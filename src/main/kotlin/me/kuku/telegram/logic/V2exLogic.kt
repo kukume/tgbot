@@ -56,7 +56,7 @@ class V2exTopic {
         var root: Boolean = false
         var id: Int = 0
         @JsonProperty("parent_node_name")
-        var parentNodeName: String = ""
+        var parentNodeName: String? = ""
     }
 
     class Member {
