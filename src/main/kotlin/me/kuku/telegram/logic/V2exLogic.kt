@@ -45,8 +45,8 @@ class V2exTopic {
         var title: String = ""
         var url: String = ""
         var topics: Int = 0
-        var footer: String = ""
-        var header: String = ""
+        var footer: String? = ""
+        var header: String? = ""
         @JsonProperty("title_alternative")
         var titleAlternative: String = ""
         @JsonProperty("avatar_mini")
