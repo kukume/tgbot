@@ -63,6 +63,14 @@ class ToolExtension(
         sub("tool") {
             sendMessage("请选择小工具", toolKeyboardMarkup())
         }
+        sub("info", locality = Locality.ALL) {
+            val id = message.chat().id()
+            val messageThreadId = message.messageThreadId()
+            sendMessage("""
+                chatId: $id
+                messageThreadId: $messageThreadId
+            """.trimIndent())
+        }
         sub("bv", input = 1) {
             mutex.withLock {
                 val biliBiliEntity = biliBiliService.findByTgId(tgId)
