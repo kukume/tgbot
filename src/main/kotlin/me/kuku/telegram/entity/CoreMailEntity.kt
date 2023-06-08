@@ -16,6 +16,9 @@ class CoreMailEntity: BaseEntity() {
     var cookie: String = ""
     var sid: String = ""
     var type: Type = Type.XT5
+    var secret: String = ""
+    var token: String = ""
+    var tokenExpire: Long = 0
 
     enum class Type {
         XT5, XT3

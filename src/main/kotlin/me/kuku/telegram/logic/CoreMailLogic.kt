@@ -9,6 +9,7 @@ import me.kuku.telegram.entity.CoreMailService
 import me.kuku.utils.*
 import org.jsoup.Jsoup
 import org.springframework.stereotype.Service
+import java.security.MessageDigest
 
 @Service
 class CoreMailLogic(
@@ -39,6 +40,13 @@ class CoreMailLogic(
         return entity
     }
 
+    private fun sha(inStr: String): String {
+        val sha = MessageDigest.getInstance("SHA")
+        val byteArray = inStr.toByteArray()
+        val md5Bytes = sha.digest(byteArray)
+        return md5Bytes.base64Encode()
+    }
+
 
     suspend fun loginByXt5(entity: CoreMailEntity): CoreMailEntity {
         val url = entity.url
@@ -62,9 +70,16 @@ class CoreMailLogic(
                 append("nodetect", "false")
                 append("destURL", "")
                 append("supportLoginDevice", "true")
-                append("accessToken", "")
-                append("timestamp", "")
-                append("signature", "")
+                if (entity.token.isNotEmpty()) {
+                    append("accessToken", entity.token)
+                    val timestamp = System.currentTimeMillis() / 1000
+                    append("timestamp", timestamp.toString())
+                    append("signature", sha("accessToken=${entity.token.toUrlEncode()}&timestamp=$timestamp&secret=${entity.secret.toUrlEncode()}"))
+                } else {
+                    append("accessToken", "")
+                    append("timestamp", "")
+                    append("signature", "")
+                }
                 append("nonce", "")
                 append("device", """{"uuid":"webmail_windows","imie":"webmail_windows","friendlyName":"chrome 114","model":"windows","os":"windows","osLanguage":"zh-CN","deviceType":"Webmail"}""")
                 append("supportDynamicPwd", "true")
@@ -91,7 +106,13 @@ class CoreMailLogic(
         } else {
             entity.cookie = cookie
             val getSid = MyUtils.regex("sid=", "\";", html)!!
+            val secret = MyUtils.regex("secret = \"", "\";", html)!!
+            val token = MyUtils.regex("token = \"", "\";", html)!!
+            val tokenPreservePeriod = MyUtils.regex("tokenPreservePeriod = ", ";", html)!!.toLong() * 1000
             entity.sid = getSid
+            if (secret.isNotEmpty()) entity.secret = secret
+            if (token.isNotEmpty()) entity.token = token
+            entity.tokenExpire = System.currentTimeMillis() + tokenPreservePeriod
             coreMailService.save(entity)
             return entity
         }
@@ -128,6 +149,13 @@ class CoreMailLogic(
 
     fun JsonNode.check() {
         if (this["code"].asText() != "S_OK") error("出错了。")
+    }
+
+    suspend fun changeAlias(entity: CoreMailEntity, prefix: String) {
+        when (entity.type) {
+            CoreMailEntity.Type.XT5 -> changeAliasByXt5(entity, prefix)
+            CoreMailEntity.Type.XT3 -> changeAliasByXt3(entity, prefix)
+        }
     }
 
     suspend fun changeAliasByXt5(entity: CoreMailEntity, prefix: String) {
@@ -169,6 +197,94 @@ class CoreMailLogic(
         return listOf()
     }
 
+    suspend fun queryForward(entity: CoreMailEntity): CoreMailForward {
+        return when (entity.type) {
+            CoreMailEntity.Type.XT5 -> queryForwardByXt5(entity)
+            CoreMailEntity.Type.XT3 -> queryForwardByXt3(entity)
+        }
+    }
+
+    suspend fun queryForwardByXt5(entity: CoreMailEntity): CoreMailForward {
+        val jsonNode = client.post("${entity.url}/coremail/s/json?sid=${entity.sid}&func=user%3AgetAttrs") {
+            setBody("""
+                {"optionalAttrIds":["forwardactive",
+                "keeplocal",
+                "forwarddes"]}
+            """.trimIndent())
+            contentType(ContentType("text", "x-json"))
+            headers { entity.appendHeaders() }
+        }.bodyAsText().toJsonNode()
+        jsonNode.check()
+        val coreMailForward = CoreMailForward()
+        val va = jsonNode["var"]
+        coreMailForward.active = va["forwardactive"].asInt() == 1
+        coreMailForward.emails = va["forwarddes"].asText().split(",")
+        coreMailForward.keepLocal = va["keeplocal"].asInt() == 1
+        return coreMailForward
+    }
+
+    suspend fun queryForwardByXt3(entity: CoreMailEntity): CoreMailForward {
+        error("暂不支持")
+    }
+
+    private suspend fun setAttr(entity: CoreMailEntity, json: String) {
+        val jsonNode = client.post("${entity.url}/coremail/s/json?func=user%3AsetAttrs&sid=${entity.sid}") {
+            setBody(json)
+            contentType(ContentType("text", "x-json"))
+            headers { entity.appendHeaders() }
+        }.bodyAsText().toJsonNode()
+        jsonNode.check()
+    }
+
+    suspend fun changeForwardEmail(entity: CoreMailEntity, emails: String) {
+        return when (entity.type) {
+            CoreMailEntity.Type.XT5 -> changeForwardEmailByXt5(entity, emails)
+            CoreMailEntity.Type.XT3 -> changeForwardEmailByXt3(entity, emails)
+        }
+    }
+
+    suspend fun changeForwardEmailByXt5(entity: CoreMailEntity, emails: String) {
+        setAttr(entity, """{"attrs":{"forwarddes":"$emails"}}""")
+    }
+
+    suspend fun changeForwardEmailByXt3(entity: CoreMailEntity, emails: String) {
+    }
+
+    suspend fun openForward(entity: CoreMailEntity) {
+        return when (entity.type) {
+            CoreMailEntity.Type.XT5 -> openForwardByXt5(entity)
+            CoreMailEntity.Type.XT3 -> openForwardByXt3(entity)
+        }
+    }
+
+    suspend fun openForwardByXt5(entity: CoreMailEntity) {
+        setAttr(entity, """{"attrs":{"forwardactive":1,"keeplocal":1}}""")
+    }
+
+    suspend fun openForwardByXt3(entity: CoreMailEntity) {
+    }
+
+    suspend fun closeForward(entity: CoreMailEntity) {
+        return when (entity.type) {
+            CoreMailEntity.Type.XT5 -> closeForwardByXt5(entity)
+            CoreMailEntity.Type.XT3 -> closeForwardByXt3(entity)
+        }
+    }
+
+    suspend fun closeForwardByXt5(entity: CoreMailEntity) {
+        setAttr(entity, """{"attrs":{"keeplocal":0,"forwardactive":0}}""")
+    }
+
+    suspend fun closeForwardByXt3(entity: CoreMailEntity) {
+    }
 
 
+
+}
+
+
+class CoreMailForward {
+    var active: Boolean = false
+    var emails: List<String> = listOf()
+    var keepLocal: Boolean = false
 }

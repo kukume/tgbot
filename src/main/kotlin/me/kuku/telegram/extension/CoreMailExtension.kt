@@ -2,12 +2,14 @@ package me.kuku.telegram.extension
 
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
+import com.pengrad.telegrambot.model.request.ParseMode
 import me.kuku.telegram.entity.CoreMailEntity
 import me.kuku.telegram.entity.CoreMailService
 import me.kuku.telegram.logic.CoreMailLogic
 import me.kuku.telegram.utils.AbilitySubscriber
 import me.kuku.telegram.utils.TelegramSubscribe
 import me.kuku.telegram.utils.inlineKeyboardButton
+import me.kuku.utils.MyUtils
 import org.springframework.stereotype.Component
 
 @Component
@@ -84,7 +86,7 @@ class CoreMailExtension(
                 arrayOf(inlineKeyboardButton("编辑用户名", "coreMailEditUsername-${entity.id}")),
                 arrayOf(inlineKeyboardButton("编辑密码", "coreMailEditPassword-${entity.id}")),
                 arrayOf(inlineKeyboardButton("删除", "coreMailDelete-${entity.id}"))
-            ))
+            ), refreshReturn = true)
         }
         callbackStartsWith("coreMailEditUrl") {
             editMessageText("请发送更改后的url")
@@ -127,24 +129,44 @@ class CoreMailExtension(
 
         callbackStartsWith("coreMailManager-") {
             val entity = firstArg<CoreMailEntity>()
-            coreMailLogic.login(entity)
+            val sb = StringBuilder()
+            val aliasList = coreMailLogic.alias(entity)
+            aliasList.forEach { sb.append("`$it`").append("、") }
+            val sbb = StringBuilder()
+            coreMailLogic.queryForward(entity).emails.forEach { sbb.append("`$it`").append("、") }
             editMessageText("""
+                不会自动更新cookie，如cookie失效，请手动刷新cookie
                 请选择操作方式：
-                别名：${coreMailLogic.alias(entity).joinToString(", ")}
+                别名：${sb.removeSuffix("、")}
+                自动转发：${sbb.removeSuffix("、")}
             """.trimIndent(), InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("刷新cookie", "coreMailRefreshCookie-${entity.id}")),
                 arrayOf(inlineKeyboardButton("更新别名", "coreMailEditAlias-${entity.id}"))
-            ), refreshReturn = true)
+            ), refreshReturn = true, parseMode = ParseMode.Markdown)
         }
-        callbackStartsWith("coreMailEditAlias") {
+        callbackStartsWith("coreMailRefreshCookie-") {
+            coreMailLogic.login(firstArg())
+            editMessageText("刷新cookie成功")
+        }
+        callbackStartsWith("coreMailEditAlias-") {
+            val entity = firstArg<CoreMailEntity>()
+            editMessageText("请选择更新别名的方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("自定义", "coreMailEditAliasCustom-${entity.id}")),
+                arrayOf(inlineKeyboardButton("随机", "coreMailEditAliasRandom-${entity.id}"))
+            ))
+        }
+        callbackStartsWith("coreMailEditAliasCustom-") {
             editMessageText("请发送更新后的别名")
             val alias = nextMessage().text()
             val entity = firstArg<CoreMailEntity>()
-            if (entity.type == CoreMailEntity.Type.XT5) {
-                coreMailLogic.changeAliasByXt5(entity, alias)
-            } else if (entity.type == CoreMailEntity.Type.XT3) {
-                coreMailLogic.changeAliasByXt3(entity, alias)
-            }
-            editMessageText("更新别名成功")
+            coreMailLogic.changeAlias(entity, alias)
+            editMessageText("更新别名成功，新别名为`$alias@${entity.suffix}`", refreshReturn = true, goBackStep = 2, parseMode = ParseMode.Markdown)
+        }
+        callbackStartsWith("coreMailEditAliasRandom-") {
+            val entity = firstArg<CoreMailEntity>()
+            val alias = MyUtils.randomLetterLower(6)
+            coreMailLogic.changeAlias(entity, alias)
+            editMessageText("更新别名成功，新别名为`$alias@${entity.suffix}`", refreshReturn = true, goBackStep = 2, parseMode = ParseMode.Markdown)
         }
     }
 
