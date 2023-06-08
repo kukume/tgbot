@@ -129,18 +129,17 @@ class CoreMailExtension(
 
         callbackStartsWith("coreMailManager-") {
             val entity = firstArg<CoreMailEntity>()
+            coreMailLogic.login(firstArg())
             val sb = StringBuilder()
             val aliasList = coreMailLogic.alias(entity)
             aliasList.forEach { sb.append("`$it`").append("、") }
             val sbb = StringBuilder()
             coreMailLogic.queryForward(entity).emails.forEach { sbb.append("`$it`").append("、") }
             editMessageText("""
-                不会自动更新cookie，如cookie失效，请手动刷新cookie
                 请选择操作方式：
                 别名：${sb.removeSuffix("、")}
                 自动转发：${sbb.removeSuffix("、")}
             """.trimIndent(), InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("刷新cookie", "coreMailRefreshCookie-${entity.id}")),
                 arrayOf(inlineKeyboardButton("更新别名", "coreMailEditAlias-${entity.id}"))
             ), refreshReturn = true, parseMode = ParseMode.Markdown)
         }

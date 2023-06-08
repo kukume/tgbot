@@ -148,7 +148,8 @@ class CoreMailLogic(
     }
 
     fun JsonNode.check() {
-        if (this["code"].asText() != "S_OK") error("出错了。")
+        val code = this["code"].asText()
+        if (code != "S_OK") error(code)
     }
 
     suspend fun changeAlias(entity: CoreMailEntity, prefix: String) {
