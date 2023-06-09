@@ -26,7 +26,6 @@ class DeleteExtension(
     private val aliDriverService: AliDriverService,
     private val leiShenService: LeiShenService,
     private val youPinService: YouPinService,
-    private val qqService: QqService,
     private val nodeSeekService: NodeSeekService
 ) {
 
@@ -49,7 +48,6 @@ class DeleteExtension(
         val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriveDelete")
         val leiShenDelete = inlineKeyboardButton("雷神加速器", "leiShenDelete")
         val youPinDelete = inlineKeyboardButton("悠悠有品", "youPinDelete")
-        val qqDelete = inlineKeyboardButton("qq", "qqDelete")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekDelete")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
@@ -61,7 +59,7 @@ class DeleteExtension(
             arrayOf(pixivButton, buffButton),
             arrayOf(smZdmButton, aliDriverButton),
             arrayOf(leiShenDelete, youPinDelete),
-            arrayOf(qqDelete, nodeSeek)
+            arrayOf(nodeSeek)
         )
     }
 
@@ -143,10 +141,6 @@ class DeleteExtension(
         callback("youPinDelete") {
             youPinService.deleteByTgId(tgId)
             editMessageText("删除悠悠有品成功")
-        }
-        callback("qqDelete") {
-            qqService.deleteByTgId(tgId)
-            editMessageText("删除qq成功")
         }
         callback("nodeSeekDelete") {
             nodeSeekService.deleteByTgId(tgId)

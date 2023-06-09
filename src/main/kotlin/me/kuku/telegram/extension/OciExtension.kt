@@ -49,10 +49,14 @@ class OciExtension(
 
     }
 
-    private val bindCache = cacheManager.createCache("bindOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, OciEntity::class.java,
-        ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
-    private val selectCache = cacheManager.createCache("selectOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, OciCache::class.java,
-        ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+    private val bindCache by lazy {
+        cacheManager.createCache("bindOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, OciEntity::class.java,
+            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+    }
+    private val selectCache by lazy {
+        cacheManager.createCache("selectOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, OciCache::class.java,
+            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+    }
 
     private fun regionButton(): Array<Array<InlineKeyboardButton>> {
         val regions = Region.values()
@@ -164,8 +168,10 @@ class OciExtension(
         }
     }
 
-    private val chooseCache = cacheManager.createCache("chooseOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.java, String::class.java,
-        ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+    private val chooseCache by lazy {
+        cacheManager.createCache("chooseOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.java, String::class.java,
+            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+    }
 
     fun TelegramSubscribe.operate() {
         before { set(selectCache[tgId] ?: error("缓存不存在，请重新发送指令后选择")) }
@@ -276,8 +282,10 @@ class OciExtension(
 
     }
 
-    private val securityListCache = cacheManager.createCache("selectsecurityList", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, String::class.java,
-        ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+    private val securityListCache by lazy {
+        cacheManager.createCache("selectsecurityList", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, String::class.java,
+            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+    }
 
     fun TelegramSubscribe.operateInstance() {
         before {

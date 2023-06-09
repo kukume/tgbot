@@ -16,8 +16,13 @@ import kotlinx.coroutines.*
 import me.kuku.utils.JobManager
 import org.ehcache.CacheManager
 import org.ehcache.config.builders.CacheConfigurationBuilder
+import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder
 import org.ehcache.config.builders.ExpiryPolicyBuilder
 import org.ehcache.config.builders.ResourcePoolsBuilder
+import org.ehcache.event.CacheEventListener
+import org.ehcache.event.EventFiring
+import org.ehcache.event.EventOrdering
+import org.ehcache.event.EventType
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import java.time.Duration
@@ -77,10 +82,18 @@ typealias ReturnMessageAfter = TelegramContext.() -> Unit
 
 
 private val callbackHistory by lazy {
-    SpringUtils.getBean<CacheManager>().createCache("callbackHistory",
+    val cache = SpringUtils.getBean<CacheManager>().createCache("callbackHistory",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.javaObjectType, LinkedList::class.java,
             ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2)))
         )
+//    cache.runtimeConfiguration.registerCacheEventListener({
+//        val list = it.oldValue as LinkedList<History>
+//        val message = list.first.message!!
+//        val telegramBot = SpringUtils.getBean<TelegramBot>()
+//        val editMessageText = EditMessageText(message.chat().id(), message.messageId(), "该条消息已过期，请重新发送指令以进行操作")
+//        telegramBot.execute(editMessageText)
+//    }, EventOrdering.UNORDERED, EventFiring.ASYNCHRONOUS, EventType.EXPIRED)
+    cache
 }
 private val callbackAfter by lazy {
     SpringUtils.getBean<CacheManager>().createCache("callbackAfter",
