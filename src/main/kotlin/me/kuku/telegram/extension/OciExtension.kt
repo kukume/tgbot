@@ -49,9 +49,10 @@ class OciExtension(
 
     }
 
-    private val bindCache = cacheManager.getCache("bindOci", Long::class.javaObjectType, OciEntity::class.java)
-
-    private val selectCache = cacheManager.getCache("selectOci", Long::class.javaObjectType, OciCache::class.java)
+    private val bindCache = cacheManager.createCache("bindOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, OciEntity::class.java,
+        ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+    private val selectCache = cacheManager.createCache("selectOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, OciCache::class.java,
+        ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
 
     private fun regionButton(): Array<Array<InlineKeyboardButton>> {
         val regions = Region.values()
@@ -163,7 +164,8 @@ class OciExtension(
         }
     }
 
-    private val chooseCache = cacheManager.getCache("chooseOci", String::class.java, String::class.java)
+    private val chooseCache = cacheManager.createCache("chooseOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.java, String::class.java,
+        ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
 
     fun TelegramSubscribe.operate() {
         before { set(selectCache[tgId] ?: error("缓存不存在，请重新发送指令后选择")) }
@@ -351,7 +353,7 @@ class OciExtension(
             val createPublicIp =
                 OciLogic.createPublicIp(ociEntity, CreatePublicIpDetails.Lifetime.Ephemeral, privateIpList[0].id)
             val ipAddress = createPublicIp.ipAddress
-            editMessageText("更新ip成功，您的新ip为：$ipAddress", refreshReturn = true)
+            editMessageText("更新ip成功，您的新ip为：$ipAddress")
         }
         callbackStartsWith("ociQuerySecList-") {
             val ociEntity = firstArg<OciCache>().entity
@@ -414,14 +416,14 @@ class OciExtension(
                 text().toIntOrNull() != null
             }.text().toInt()
             OciLogic.updateSecurityList(ociEntity, id, protocol, source, min, max)
-            editMessageText("添加安全列表成功", refreshReturn = true)
+            editMessageText("添加安全列表成功")
         }
         callbackStartsWith("removeOciSecRule") {
             val ociEntity = firstArg<OciCache>().entity
             val id = securityListCache[tgId] ?: error("缓存不存在，请重新发送指令")
             val so = query.data().split("-")[1].toInt()
             OciLogic.updateSecurityList(ociEntity, id, so)
-            editMessageText("删除安全列表成功", refreshReturn = true)
+            editMessageText("删除安全列表成功")
         }
     }
 

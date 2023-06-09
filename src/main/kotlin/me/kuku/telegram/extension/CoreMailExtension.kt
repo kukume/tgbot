@@ -86,7 +86,7 @@ class CoreMailExtension(
                 arrayOf(inlineKeyboardButton("编辑用户名", "coreMailEditUsername-${entity.id}")),
                 arrayOf(inlineKeyboardButton("编辑密码", "coreMailEditPassword-${entity.id}")),
                 arrayOf(inlineKeyboardButton("删除", "coreMailDelete-${entity.id}"))
-            ), refreshReturn = true)
+            ))
         }
         callbackStartsWith("coreMailEditUrl") {
             editMessageText("请发送更改后的url")
@@ -96,7 +96,7 @@ class CoreMailExtension(
             val type = coreMailLogic.xt(entity)
             entity.type = type
             coreMailService.save(entity)
-            editMessageText("更改url成功", refreshReturn = true)
+            editMessageText("更改url成功")
         }
         callbackStartsWith("coreMailEditSuffix") {
             editMessageText("请发送更改后的邮箱后缀")
@@ -104,7 +104,7 @@ class CoreMailExtension(
             val entity = firstArg<CoreMailEntity>()
             entity.suffix = suffix
             coreMailService.save(entity)
-            editMessageText("更改邮箱后缀成功", refreshReturn = true)
+            editMessageText("更改邮箱后缀成功")
         }
         callbackStartsWith("coreMailEditUsername") {
             editMessageText("请发送更改后的用户名")
@@ -112,7 +112,7 @@ class CoreMailExtension(
             val entity = firstArg<CoreMailEntity>()
             entity.username = username
             coreMailService.save(entity)
-            editMessageText("更改用户名成功", refreshReturn = true)
+            editMessageText("更改用户名成功")
         }
         callbackStartsWith("coreMailEditPassword") {
             editMessageText("请发送更改后的密码")
@@ -120,11 +120,11 @@ class CoreMailExtension(
             val entity = firstArg<CoreMailEntity>()
             entity.password = password
             coreMailService.save(entity)
-            editMessageText("更改密码成功", refreshReturn = true)
+            editMessageText("更改密码成功")
         }
         callbackStartsWith("coreMailDelete") {
             coreMailService.deleteById(query.data().split("-")[1])
-            editMessageText("删除成功", refreshReturn = true, goBackStep = 2)
+            editMessageText("删除成功", goBackStep = 2)
         }
 
         callbackStartsWith("coreMailManager-") {
@@ -141,7 +141,7 @@ class CoreMailExtension(
                 自动转发：${sbb.removeSuffix("、")}
             """.trimIndent(), InlineKeyboardMarkup(
                 arrayOf(inlineKeyboardButton("更新别名", "coreMailEditAlias-${entity.id}"))
-            ), refreshReturn = true, parseMode = ParseMode.Markdown)
+            ), parseMode = ParseMode.Markdown)
         }
         callbackStartsWith("coreMailRefreshCookie-") {
             coreMailLogic.login(firstArg())
@@ -159,13 +159,13 @@ class CoreMailExtension(
             val alias = nextMessage().text()
             val entity = firstArg<CoreMailEntity>()
             coreMailLogic.changeAlias(entity, alias)
-            editMessageText("更新别名成功，新别名为`$alias@${entity.suffix}`", refreshReturn = true, goBackStep = 2, parseMode = ParseMode.Markdown)
+            editMessageText("更新别名成功，新别名为`$alias@${entity.suffix}`", goBackStep = 2, parseMode = ParseMode.Markdown)
         }
         callbackStartsWith("coreMailEditAliasRandom-") {
             val entity = firstArg<CoreMailEntity>()
             val alias = MyUtils.randomLetterLower(6)
             coreMailLogic.changeAlias(entity, alias)
-            editMessageText("更新别名成功，新别名为`$alias@${entity.suffix}`", refreshReturn = true, goBackStep = 2, parseMode = ParseMode.Markdown)
+            editMessageText("更新别名成功，新别名为`$alias@${entity.suffix}`", goBackStep = 2, parseMode = ParseMode.Markdown)
         }
     }
 

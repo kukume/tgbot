@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package me.kuku.telegram.utils
 
 import com.pengrad.telegrambot.TelegramBot
@@ -12,12 +14,15 @@ import com.pengrad.telegrambot.request.*
 import com.pengrad.telegrambot.response.SendResponse
 import kotlinx.coroutines.*
 import me.kuku.utils.JobManager
-import org.springframework.scheduling.annotation.Scheduled
+import org.ehcache.CacheManager
+import org.ehcache.config.builders.CacheConfigurationBuilder
+import org.ehcache.config.builders.ExpiryPolicyBuilder
+import org.ehcache.config.builders.ResourcePoolsBuilder
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 
@@ -68,21 +73,23 @@ class AbilityContext(override val bot: TelegramBot, val update: Update): Context
 
 }
 
-private val returnMessageCache = mutableListOf<ReturnMessageCache>()
-
 typealias ReturnMessageAfter = TelegramContext.() -> Unit
-private data class ReturnMessageCache(val query: String, val messageId: Int, val chatId: Long, val method: BaseRequest<*, *>,
-                                      val context: TelegramContext, val after: ReturnMessageAfter,
-                                      var expire: Long = System.currentTimeMillis() + 1000 * 120, var top: Boolean = false, var goBackStep: Int = 1) {
-    fun expire() = System.currentTimeMillis() > expire
+
+
+private val callbackHistory by lazy {
+    SpringUtils.getBean<CacheManager>().createCache("callbackHistory",
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.javaObjectType, LinkedList::class.java,
+            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2)))
+        )
+}
+private val callbackAfter by lazy {
+    SpringUtils.getBean<CacheManager>().createCache("callbackAfter",
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.javaObjectType, Any::class.java,
+            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2)))
+    )
 }
 
-
-
-private val callbackHistory = ConcurrentHashMap<String, LinkedList<History>>()
-private val callbackHistoryTimer = ConcurrentHashMap<String, Long>()
-
-private data class History(val message: Message, val data: String, var refreshReturn: Boolean)
+private data class History(var message: Message?, var data: String)
 
 private data class LastMessage(val text: String, val chatId: Long, val replyMarkup: InlineKeyboardMarkup, val messageId: Int)
 
@@ -115,32 +122,37 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
     }
 
     private fun addReturnButton(replyMarkup: InlineKeyboardMarkup, after: ReturnMessageAfter, top: Boolean,
-                                refreshReturn: Boolean, goBackStep: Int): InlineKeyboardMarkup {
+                                goBackStep: Int): InlineKeyboardMarkup {
         val data = query.data()
         val historyKey = "$tgId${message.messageId()}"
-        val history = callbackHistory.getOrDefault(historyKey, LinkedList())
-        callbackHistoryTimer[historyKey] = System.currentTimeMillis() + 1000 * 60 * 10
+        val history = callbackHistory.get(historyKey) as? LinkedList<History> ?: LinkedList()
+        val lastButton = message.replyMarkup().inlineKeyboard().last().last()
+        val lastCallbackData = lastButton.callbackData()
+        if (lastCallbackData == data && lastButton.text() == "返回" && history.find { it.data == lastCallbackData } == null) {
+            errorAnswerCallbackQuery("该返回按钮不可用，缓存已过期")
+        }
         if (history.isEmpty() || (history.last != null && history.last.data != data)) {
-            callbackHistory[historyKey] = history.also { it.addLast(History(message, data, refreshReturn)) }
-//            if (history.size > 10) history.removeFirst()
-        } else if (refreshReturn && !history.last.refreshReturn) {
-            history.last.refreshReturn = true
+            if (history.lastOrNull() == null) {
+                history.addLast(History(message, "return_${UUID.randomUUID()}"))
+            } else {
+                history.last.message = message
+            }
+            history.add(History(null, data))
+            callbackHistory.put(historyKey, history)
         }
-        val uuid = UUID.randomUUID().toString()
-        val key = if (refreshReturn) {
-            history.getOrNull(history.size - 2 - (goBackStep - 1))?.data
-                ?: errorAnswerCallbackQuery("缓存已过期，请重新发送指令后重试")
+        val key = if (top) {
+            history.first.data
         } else {
-            val temp = "return_$uuid"
-            val tempMessage = if (history.getOrNull(history.size - 2 - (goBackStep - 1))?.refreshReturn == true) {
-                history.getOrNull(history.size - 4 - (goBackStep - 1))?.message
-                    ?: errorAnswerCallbackQuery("缓存已过期，请重新发送指令后重试")
-            } else message
-            returnMessageCache.add(ReturnMessageCache(temp, message.messageId(), chatId,
-                EditMessageText(chatId, message.messageId(), tempMessage.text())
-                .replyMarkup(tempMessage.replyMarkup()), this, after, top = top, goBackStep = goBackStep))
-            temp
+            val hit = history.find { it.data == data }!!
+            if (hit != history.last) {
+                val index = history.indexOf(hit)
+                for (i in 0 until history.size - index - 1) history.removeLast()
+                history[index - 1].data
+            } else {
+                history[history.size - 2 - (goBackStep - 1)].data
+            }
         }
+        callbackAfter.put("$historyKey$key", after)
         val list = replyMarkup.inlineKeyboard().toMutableList()
         list.add(arrayOf(inlineKeyboardButton("返回", key)))
         return InlineKeyboardMarkup(*list.toTypedArray())
@@ -150,12 +162,11 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
                         parseMode: ParseMode? = null,
                         returnButton: Boolean = true,
                         top: Boolean = false,
-                        refreshReturn: Boolean = false,
                         goBackStep: Int = 1,
                         after: ReturnMessageAfter = {}) {
         val messageId = message.messageId()
         val markup = if (returnButton) {
-            addReturnButton(replyMarkup, after, top, refreshReturn, goBackStep)
+            addReturnButton(replyMarkup, after, top, goBackStep)
         } else replyMarkup
         val lastMessage = LastMessage(text, chatId, markup, messageId)
         lastMessageList.add(lastMessage)
@@ -168,11 +179,10 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
     fun editMessageMedia(media: InputMedia<*>, replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(),
                          returnButton: Boolean = true,
                          top: Boolean = false,
-                         refreshReturn: Boolean = false,
                          goBackStep: Int = 1,
                          after: ReturnMessageAfter = {}) {
         val markup = if (returnButton) {
-            addReturnButton(replyMarkup, after, top, refreshReturn, goBackStep)
+            addReturnButton(replyMarkup, after, top, goBackStep)
         } else replyMarkup
         val messageId = message.messageId()
         val editMessageMedia = EditMessageMedia(chatId, messageId, media)
@@ -218,72 +228,26 @@ class MonitorReturn(
         val mes = message()?.messageId()?: callbackQuery()?.message()?.messageId() ?: return
         val data = callbackQuery()?.data() ?: return
         val tgId = callbackQuery().from().id()
-        val delList = mutableListOf<ReturnMessageCache>()
-        for (cache in returnMessageCache) {
-            if (data == cache.query) {
-                val top = cache.top
-                val groupCacheList = returnMessageCache.filter { it.messageId == mes }
-                if (groupCacheList.isEmpty()) continue
-                val topCache = if (top) {
-                    delList.addAll(groupCacheList)
-                    groupCacheList[0]
-                } else {
-                    val confirmIndex = groupCacheList.indexOf(cache) - (cache.goBackStep - 1)
-                    delList.addAll(groupCacheList.subList(confirmIndex, groupCacheList.size))
-                    groupCacheList[confirmIndex]
-                }
-                callbackHistory["$tgId$mes"]?.removeLastOrNull()
-                val editMessageText = topCache.method
+        val key = "$tgId$mes$data"
+        if (data.startsWith("return_")) {
+            val returnKey = "$tgId$mes"
+            val list = callbackHistory.get(returnKey) as? LinkedList<History>
+            val first = list?.first
+            if (first?.data == data) {
+                val message = first.message!!
+                val editMessageText = EditMessageText(tgId, mes, message.text())
+                    .replyMarkup(message.replyMarkup())
                 telegramBot.execute(editMessageText)
-                cache.after.invoke(cache.context)
-                contextSessionCacheMap.remove(tgId.toString())
-                break
-            }
-            if (Objects.equals(cache.messageId, mes)) {
-                cache.expire = System.currentTimeMillis() + 1000 * 120
-            }
-        }
-        if (data.startsWith("return_") && delList.isEmpty()) {
-            val id = callbackQuery()?.id() ?: return
-            val find = returnMessageCache.find { it.query == id }
-            if (find == null) {
-                val answerCallbackQuery = AnswerCallbackQuery(id)
+            } else {
+                val answerCallbackQuery = AnswerCallbackQuery(callbackQuery().id())
                     .text("该条消息已过期，返回按钮不可用")
                 telegramBot.execute(answerCallbackQuery)
             }
+            callbackHistory.remove(returnKey)
         }
-        delList.forEach { returnMessageCache.remove(it) }
-    }
-
-//    fun TelegramSubscribe.re() {
-//        callbackStartsWith("return_") {
-//            val id = query.id
-//            val find = returnMessageCache.find { it.query == id }
-//            if (find == null) {
-//                answerCallbackQuery("该条消息已过期，返回按钮不可用")
-//            }
-//        }
-//    }
-
-    @Scheduled(fixedDelay = 10, timeUnit = TimeUnit.SECONDS)
-    fun clear() {
-        val deleteList = mutableListOf<ReturnMessageCache>()
-        for (cache in returnMessageCache) {
-            if (cache.expire()) {
-                deleteList.add(cache)
-            }
-        }
-        for (cache in deleteList) {
-            returnMessageCache.remove(cache)
-//            val editMessageText = EditMessageText.builder().text("该消息已过期，请重新发送指令")
-//                .chatId(cache.chatId).messageId(cache.messageId).build()
-//            telegramBot.execute(editMessageText)
-        }
-        val historyDeleteList = mutableListOf<String>()
-        for ((k, v) in callbackHistoryTimer) {
-            if (System.currentTimeMillis() > v) historyDeleteList.add(k)
-        }
-        historyDeleteList.forEach { callbackHistory.remove(it) }
+        contextSessionCacheMap.remove(tgId.toString())
+        val after = callbackAfter.get(key) as? ReturnMessageAfter
+        after?.invoke(TelegramContext(telegramBot, this@Update))
     }
 
 }
