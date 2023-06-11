@@ -139,6 +139,11 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
             } else callbackHistoryKey.add(historyKey)
             LinkedList()
         }
+        val lastButton = message.replyMarkup().inlineKeyboard().last().last()
+        val lastCallbackData = lastButton.callbackData()
+        if (lastCallbackData == data && lastButton.text() == "返回" && history.find { it.data == lastCallbackData } == null) {
+            errorAnswerCallbackQuery("该返回按钮不可用，缓存已过期")
+        }
         if (history.isEmpty() || (history.last != null && history.last.data != data)) {
             if (history.lastOrNull() == null) {
                 history.addLast(History(message, "return_${UUID.randomUUID()}"))
