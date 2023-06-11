@@ -19,6 +19,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder
 import org.ehcache.config.builders.ExpiryPolicyBuilder
 import org.ehcache.config.builders.ResourcePoolsBuilder
+import org.ehcache.core.Ehcache
 import org.ehcache.event.CacheEventListener
 import org.ehcache.event.EventFiring
 import org.ehcache.event.EventOrdering
@@ -82,19 +83,12 @@ typealias ReturnMessageAfter = TelegramContext.() -> Unit
 
 
 private val callbackHistory by lazy {
-    val cache = SpringUtils.getBean<CacheManager>().createCache("callbackHistory",
+    SpringUtils.getBean<CacheManager>().createCache("callbackHistory",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.javaObjectType, LinkedList::class.java,
             ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2)))
         )
-//    cache.runtimeConfiguration.registerCacheEventListener({
-//        val list = it.oldValue as LinkedList<History>
-//        val message = list.first.message!!
-//        val telegramBot = SpringUtils.getBean<TelegramBot>()
-//        val editMessageText = EditMessageText(message.chat().id(), message.messageId(), "该条消息已过期，请重新发送指令以进行操作")
-//        telegramBot.execute(editMessageText)
-//    }, EventOrdering.UNORDERED, EventFiring.ASYNCHRONOUS, EventType.EXPIRED)
-    cache
 }
+private val callbackHistoryKey = mutableSetOf<String>()
 private val callbackAfter by lazy {
     SpringUtils.getBean<CacheManager>().createCache("callbackAfter",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.javaObjectType, Any::class.java,
@@ -138,11 +132,12 @@ class TelegramContext(val bot: TelegramBot, val update: Update) {
                                 goBackStep: Int): InlineKeyboardMarkup {
         val data = query.data()
         val historyKey = "$tgId${message.messageId()}"
-        val history = callbackHistory.get(historyKey) as? LinkedList<History> ?: LinkedList()
-        val lastButton = message.replyMarkup().inlineKeyboard().last().last()
-        val lastCallbackData = lastButton.callbackData()
-        if (lastCallbackData == data && lastButton.text() == "返回" && history.find { it.data == lastCallbackData } == null) {
-            errorAnswerCallbackQuery("该返回按钮不可用，缓存已过期")
+        val history = callbackHistory.get(historyKey) as? LinkedList<History> ?: run {
+            if (callbackHistoryKey.contains(historyKey)) {
+                callbackHistoryKey.remove(historyKey)
+                errorMessageExpired()
+            } else callbackHistoryKey.add(historyKey)
+            LinkedList()
         }
         if (history.isEmpty() || (history.last != null && history.last.data != data)) {
             if (history.lastOrNull() == null) {
@@ -230,7 +225,7 @@ class MessageExpiredException(message: String): RuntimeException(message)
 fun errorAnswerCallbackQuery(message: String, showAlert: Boolean = false): Nothing =
     throw AnswerCallbackQueryException(message, showAlert)
 
-fun errorMessageExpired(message: String): Nothing = throw MessageExpiredException(message)
+fun errorMessageExpired(message: String = "该条消息已过期，请重新发送指令以进行操作"): Nothing = throw MessageExpiredException(message)
 
 @Component
 class MonitorReturn(
@@ -252,9 +247,8 @@ class MonitorReturn(
                     .replyMarkup(message.replyMarkup())
                 telegramBot.execute(editMessageText)
             } else {
-                val answerCallbackQuery = AnswerCallbackQuery(callbackQuery().id())
-                    .text("该条消息已过期，返回按钮不可用")
-                telegramBot.execute(answerCallbackQuery)
+                val editMessageText = EditMessageText(tgId, mes, "该条消息已过期，请重新发送指令以进行操作")
+                telegramBot.execute(editMessageText)
             }
             callbackHistory.remove(returnKey)
         }
