@@ -468,8 +468,6 @@ class ManagerExtension(
         callback("nodeSeekOpenRandom") { firstArg<NodeSeekEntity>().sign = NodeSeekEntity.Sign.Random }
         callback("nodeSeekOpenFix") { firstArg<NodeSeekEntity>().sign = NodeSeekEntity.Sign.Fix }
         callback("nodeSeekClose") { firstArg<NodeSeekEntity>().sign = NodeSeekEntity.Sign.None }
-        callback("nodeSeekPushOpen") { firstArg<NodeSeekEntity>().push = Status.ON }
-        callback("nodeSeekPushClose") { firstArg<NodeSeekEntity>().push = Status.OFF }
         after {
             val nodeSeekEntity: NodeSeekEntity = firstArg()
             nodeSeekService.save(nodeSeekEntity)
@@ -478,16 +476,11 @@ class ManagerExtension(
                     inlineKeyboardButton("自动签到（随机）", "nodeSeekOpenRandom"),
                     inlineKeyboardButton("自动签到（固定）", "nodeSeekOpenFix"),
                     inlineKeyboardButton("自动签到（关闭）", "nodeSeekClose")
-                ),
-                arrayOf(
-                    inlineKeyboardButton("新帖推送（开启）", "nodeSeekPushOpen"),
-                    inlineKeyboardButton("新帖推送（关闭）", "nodeSeekPushClose"),
                 )
             )
             editMessageText("""
                 NodeSeek，当前状态：
                 自动签到：${nodeSeekEntity.sign.value}
-                新帖推送：${nodeSeekEntity.push.str()}
             """.trimIndent(), markup, top = true)
         }
     }

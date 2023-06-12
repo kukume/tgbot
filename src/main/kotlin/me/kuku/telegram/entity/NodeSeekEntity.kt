@@ -12,7 +12,6 @@ class NodeSeekEntity: BaseEntity() {
     var id: String? = null
     var cookie: String = ""
     var sign: Sign = Sign.None
-    var push: Status = Status.OFF
 
     enum class Sign(val value: String) {
         Random("随机"), Fix("固定"), None("关闭")
@@ -26,8 +25,6 @@ interface NodeSeekRepository: CoroutineCrudRepository<NodeSeekEntity, String> {
     suspend fun findByTgId(tgId: Long): NodeSeekEntity?
 
     suspend fun deleteByTgId(tgId: Long)
-
-    suspend fun findByPush(push: Status): List<NodeSeekEntity>
 
 }
 
@@ -43,7 +40,5 @@ class NodeSeekService(
     suspend fun deleteByTgId(tgId: Long) = nodeSeekRepository.deleteByTgId(tgId)
 
     suspend fun findAll() = nodeSeekRepository.findAll().toList()
-
-    suspend fun findByPush(push: Status) = nodeSeekRepository.findByPush(push)
 
 }

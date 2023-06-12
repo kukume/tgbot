@@ -1,19 +1,14 @@
 package me.kuku.telegram.scheduled
 
-import com.pengrad.telegrambot.TelegramBot
-import com.pengrad.telegrambot.request.SendMessage
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.NodeSeekLogic
-import me.kuku.telegram.logic.NodeSeekPost
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.util.concurrent.TimeUnit
 
 @Component
 class NodeSeekScheduled(
     private val nodeSeekService: NodeSeekService,
-    private val logService: LogService,
-    private val telegramBot: TelegramBot
+    private val logService: LogService
 ) {
 
     @Scheduled(cron = "0 25 4 * * ?")
@@ -33,36 +28,6 @@ class NodeSeekScheduled(
                 logEntity.sendFailMessage(it.message)
             }
             logService.save(logEntity)
-        }
-    }
-
-    private var nodeSeekId = 0
-
-    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
-    suspend fun push() {
-        val list = NodeSeekLogic.post()
-        if (list.isEmpty()) return
-        val newList = mutableListOf<NodeSeekPost>()
-        if (nodeSeekId != 0) {
-            for (nodeSeekPost in list) {
-                if (nodeSeekPost.id() <= nodeSeekId) break
-                newList.add(nodeSeekPost)
-            }
-        }
-        nodeSeekId = list[0].id()
-        val nodeSeekList = nodeSeekService.findByPush(Status.ON)
-        for (nodeSeekPost in newList) {
-            for (entity in nodeSeekList) {
-                val str = """
-                    #NodeSeek新帖推送
-                    标题：${nodeSeekPost.title}
-                    昵称：#${nodeSeekPost.username}
-                    链接：${nodeSeekPost.url}
-                    分类：${nodeSeekPost.category}
-                """.trimIndent()
-                val sendMessage = SendMessage(entity.tgId, str)
-                telegramBot.execute(sendMessage)
-            }
         }
     }
 
