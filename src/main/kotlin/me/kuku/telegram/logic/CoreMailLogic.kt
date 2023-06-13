@@ -178,6 +178,7 @@ class CoreMailLogic(
             headers{ entity.appendHeaders() }
         }.bodyAsText()
         // 恭喜您！您已经成功注册别
+        if (!text.contains("您已经成功注册别名")) error("修改别名失败")
     }
 
     suspend fun alias(entity: CoreMailEntity): List<String> {
@@ -279,6 +280,54 @@ class CoreMailLogic(
     suspend fun closeForwardByXt3(entity: CoreMailEntity) {
     }
 
+    suspend fun mailList(entity: CoreMailEntity): List<CoreMailMessage> {
+        return when (entity.type) {
+            CoreMailEntity.Type.XT5 -> mailListByXt5(entity)
+            CoreMailEntity.Type.XT3 -> mailListByXt3(entity)
+        }
+    }
+
+    suspend fun mailListByXt5(entity: CoreMailEntity, start: Int = 0, limit: Int = 20): List<CoreMailMessage> {
+        val jsonNode = client.post("${entity.url}/coremail/s/json?sid=${entity.sid}&func=mbox%3AlistMessages") {
+            setBody("""
+                {"start":$start,"limit":$limit,"mode":"count","order":"receivedDate","desc":true,"returnTotal":true,"summaryWindowSize":20,"fid":1,"topFirst":true}
+            """.trimIndent())
+            contentType(ContentType("text", "x-json"))
+            headers { entity.appendHeaders() }
+        }.bodyAsText().toJsonNode()
+        jsonNode.check()
+        return jsonNode["var"].convertValue()
+    }
+
+    suspend fun mailListByXt3(entity: CoreMailEntity): List<CoreMailMessage> {
+        error("")
+    }
+
+    suspend fun mailDetail(entity: CoreMailEntity, id: String): CoreMailDetail {
+        return when (entity.type) {
+            CoreMailEntity.Type.XT5 -> mailDetailByXt5(entity, id)
+            CoreMailEntity.Type.XT3 -> mailDetailByXt3(entity, id)
+        }
+    }
+
+    suspend fun mailDetailByXt5(entity: CoreMailEntity, id: String): CoreMailDetail {
+        val text = client.get("http://mail.xy.hbuas.edu.cn/coremail/XT5/jsp/viewMailHTML.jsp?mid=${id.toUrlEncode()}&mailCipherPassword=&partId=&isSearch=&priority=&supportSMIME=&striptTrs=true&mboxa=&iframeId=${System.currentTimeMillis()}&isAuditMail=false&sspurl=false") {
+            headers { entity.appendHeaders() }
+        }.bodyAsText()
+        val html = MyUtils.regex("mainPartContent = \\('", "'\\);", text) ?: error("未获取到邮件内容")
+        val document = Jsoup.parse(html)
+        val mailText = document.text()
+        val urls = document.getElementsByTag("a").map { it.attr("href") }.toList()
+        val detail = CoreMailDetail()
+        detail.text = mailText
+        detail.a = urls
+        return detail
+    }
+
+    suspend fun mailDetailByXt3(entity: CoreMailEntity, id: String): CoreMailDetail {
+        error("")
+    }
+
 
 
 }
@@ -288,4 +337,32 @@ class CoreMailForward {
     var active: Boolean = false
     var emails: List<String> = listOf()
     var keepLocal: Boolean = false
+}
+
+class CoreMailMessage {
+    var id: String = ""
+    var fid: Int = 0
+    var size: Int = 0
+    var from: String = ""
+    var to: String = ""
+    var subject: String = ""
+    var sentDate: String = ""
+    var receivedDate: String = ""
+    var priority: Int = 0
+    var backgroundColor: Int = 0
+    var antiVirusStatus: String = ""
+    var label0: Int = 0
+    var flags: Flag = Flag()
+    var accounts: MutableList<String> = mutableListOf()
+    var hmid: String = ""
+    var summary: String = ""
+
+    class Flag {
+        var read: Boolean? = false
+    }
+}
+
+class CoreMailDetail {
+    var text: String = ""
+    var a: List<String> = listOf()
 }

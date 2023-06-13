@@ -140,6 +140,7 @@ class CoreMailExtension(
                 别名：${sb.removeSuffix("、")}
                 自动转发：${sbb.removeSuffix("、")}
             """.trimIndent(), InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("收件箱", "coreMailInbox-${entity.id}")),
                 arrayOf(inlineKeyboardButton("更新别名", "coreMailEditAlias-${entity.id}"))
             ), parseMode = ParseMode.Markdown)
         }
@@ -166,6 +167,22 @@ class CoreMailExtension(
             val alias = MyUtils.randomLetterLower(6)
             coreMailLogic.changeAlias(entity, alias)
             editMessageText("更新别名成功，新别名为`$alias@${entity.suffix}`", goBackStep = 2, parseMode = ParseMode.Markdown)
+        }
+        callbackStartsWith("coreMailInbox-") {
+            val entity = firstArg<CoreMailEntity>()
+            val mailList = coreMailLogic.mailList(entity)
+            val list = mutableListOf<Array<InlineKeyboardButton>>()
+            for (message in mailList) {
+                list.add(arrayOf(inlineKeyboardButton(message.subject, "coreMailDetail-${entity.id}-${message.id}")))
+            }
+            list.add(arrayOf(inlineKeyboardButton("刷新", "coreMailInbox-${entity.id}"), inlineKeyboardButton("返回", "coreMailManager-${entity.id}")))
+            editMessageText("${entity.mail()}收件箱：", InlineKeyboardMarkup(*list.toTypedArray()), returnButton = false)
+        }
+        callbackStartsWith("coreMailDetail-") {
+            val entity = firstArg<CoreMailEntity>()
+            val id = query.data().split("-")[2]
+            val detail = coreMailLogic.mailDetail(entity, id)
+            editMessageText(detail.text)
         }
     }
 
