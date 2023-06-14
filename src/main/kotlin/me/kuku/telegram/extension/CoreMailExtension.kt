@@ -141,7 +141,8 @@ class CoreMailExtension(
                 自动转发：${sbb.removeSuffix("、")}
             """.trimIndent(), InlineKeyboardMarkup(
                 arrayOf(inlineKeyboardButton("收件箱", "coreMailInbox-${entity.id}")),
-                arrayOf(inlineKeyboardButton("更新别名", "coreMailEditAlias-${entity.id}"))
+                arrayOf(inlineKeyboardButton("更新别名", "coreMailEditAlias-${entity.id}")),
+                arrayOf(inlineKeyboardButton("转发", "coreMailForward-${entity.id}"))
             ), parseMode = ParseMode.Markdown)
         }
         callbackStartsWith("coreMailRefreshCookie-") {
@@ -183,6 +184,30 @@ class CoreMailExtension(
             val id = query.data().split("-")[2]
             val detail = coreMailLogic.mailDetail(entity, id)
             editMessageText(detail.text)
+        }
+
+        callbackStartsWith("coreMailForward-") {
+            val id = query.data().split("-")[1]
+            editMessageText("请选择转发操作", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("新增转发邮箱", "coreMailForwardAdd-$id")),
+                arrayOf(inlineKeyboardButton("删除转发邮箱", "coreMailForwardDelete-$id"))
+            ))
+        }
+        callbackStartsWith("coreMailForwardAdd-") {
+            editMessageText("请发送您需要新增的转发邮箱")
+            val email = nextMessage().text()
+            val forward = coreMailLogic.queryForward(firstArg())
+            forward.emails.add(email)
+            coreMailLogic.changeForwardEmail(firstArg(), forward.emails.joinToString(","))
+            editMessageText("新增转发邮箱成功")
+        }
+        callbackStartsWith("coreMailForwardDelete-") {
+            editMessageText("请发送您需要删除的转发邮箱")
+            val email = nextMessage().text()
+            val forward = coreMailLogic.queryForward(firstArg())
+            forward.emails.remove(email)
+            coreMailLogic.changeForwardEmail(firstArg(), forward.emails.joinToString(","))
+            editMessageText("删除转发邮箱成功")
         }
     }
 

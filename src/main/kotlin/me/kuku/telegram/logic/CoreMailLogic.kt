@@ -220,7 +220,7 @@ class CoreMailLogic(
         val coreMailForward = CoreMailForward()
         val va = jsonNode["var"]
         coreMailForward.active = va["forwardactive"].asInt() == 1
-        coreMailForward.emails = va["forwarddes"].asText().split(",")
+        coreMailForward.emails = va["forwarddes"].asText().split(",").toMutableList()
         coreMailForward.keepLocal = va["keeplocal"].asInt() == 1
         return coreMailForward
     }
@@ -335,7 +335,7 @@ class CoreMailLogic(
 
 class CoreMailForward {
     var active: Boolean = false
-    var emails: List<String> = listOf()
+    var emails: MutableList<String> = mutableListOf()
     var keepLocal: Boolean = false
 }
 

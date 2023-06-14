@@ -16,14 +16,8 @@ import kotlinx.coroutines.*
 import me.kuku.utils.JobManager
 import org.ehcache.CacheManager
 import org.ehcache.config.builders.CacheConfigurationBuilder
-import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder
 import org.ehcache.config.builders.ExpiryPolicyBuilder
 import org.ehcache.config.builders.ResourcePoolsBuilder
-import org.ehcache.core.Ehcache
-import org.ehcache.event.CacheEventListener
-import org.ehcache.event.EventFiring
-import org.ehcache.event.EventOrdering
-import org.ehcache.event.EventType
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import java.time.Duration
@@ -256,6 +250,7 @@ class MonitorReturn(
                 telegramBot.execute(editMessageText)
             }
             callbackHistory.remove(returnKey)
+            callbackHistoryKey.remove(returnKey)
         }
         contextSessionCacheMap.remove(tgId.toString())
         val after = callbackAfter.get(key) as? ReturnMessageAfter
