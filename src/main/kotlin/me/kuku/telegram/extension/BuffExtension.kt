@@ -2,7 +2,6 @@ package me.kuku.telegram.extension
 
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
-import com.pengrad.telegrambot.request.SendDocument
 import me.kuku.telegram.entity.BuffEntity
 import me.kuku.telegram.entity.BuffMonitor
 import me.kuku.telegram.entity.BuffService
@@ -11,8 +10,6 @@ import me.kuku.telegram.logic.BuffLogic
 import me.kuku.telegram.logic.PaintWearInterval
 import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Component
-import java.io.File
-import java.io.FileOutputStream
 
 @Component
 class BuffExtension(
@@ -169,7 +166,6 @@ class BuffExtension(
             val list = mutableListOf<Array<InlineKeyboardButton>>()
             list.add(arrayOf(inlineKeyboardButton("编辑", "editBuff-${uuid}")))
             list.add(arrayOf(inlineKeyboardButton("删除", "deleteBuff-${uuid}")))
-            list.add(arrayOf(inlineKeyboardButton("导出在售列表", "exportBuffSell-$uuid")))
             editMessageText("""
                 您选择的是${monitor.goodsName}
                 您设置的类型是${if (monitor.type == BuffType.Push) "推送" else if (monitor.type == BuffType.Buy) "购买" else "取消"}
@@ -285,29 +281,6 @@ class BuffExtension(
             buffEntity.monitors.removeIf { s -> s.id == uuid }
             buffService.save(buffEntity)
             editMessageText("删除网易buff监控成功", top = true)
-        }
-
-        callbackStartsWith("exportBuffSell-") {
-            if (lock >= 1) errorAnswerCallbackQuery("已有后台正在导出，请稍后再试", true)
-            lock++
-            try {
-                val uuid = query.data().split("-")[1]
-                val monitor = firstArg<BuffEntity>().monitors.find { s -> s.id == uuid }!!
-                val paintWearInterval = monitor.paintWearInterval
-                answerCallbackQuery("导出已在后台进行中，将在成功的时候发送给您，请注意消息", true)
-                val list =
-                    BuffLogic.sellRepeat(firstArg(), monitor.goodsId, paintWearInterval.min(), paintWearInterval.max(), 100)
-                BuffLogic.export(list).use {
-                    val fileName = "tmp" + File.separator + "${System.currentTimeMillis()}-${uuid}.xlsx"
-                    val file = File(fileName)
-                    FileOutputStream(file).use { os -> it.writeTo(os) }
-                    val sendDocument = SendDocument(chatId, file)
-                    bot.execute(sendDocument)
-//                    file.delete()
-                }
-            } finally {
-                lock--
-            }
         }
 
     }

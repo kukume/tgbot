@@ -9,6 +9,7 @@ import me.kuku.telegram.logic.CoreMailLogic
 import me.kuku.telegram.utils.AbilitySubscriber
 import me.kuku.telegram.utils.TelegramSubscribe
 import me.kuku.telegram.utils.inlineKeyboardButton
+import me.kuku.telegram.utils.nextMessage
 import me.kuku.utils.MyUtils
 import org.springframework.stereotype.Component
 

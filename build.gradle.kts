@@ -29,7 +29,6 @@ dependencies {
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion")
-    implementation("org.apache.poi:poi-ooxml:5.2.3")
     kapt("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

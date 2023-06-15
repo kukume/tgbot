@@ -8,8 +8,6 @@ import io.ktor.http.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.BuffEntity
 import me.kuku.utils.*
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.ByteArrayOutputStream
 import java.lang.IllegalStateException
 
 object BuffLogic {
@@ -139,35 +137,6 @@ object BuffLogic {
             if (list.isEmpty()) break
         }
         return allList
-    }
-
-    fun export(list: List<Accessory>): ByteArrayOutputStream {
-        val workbook = XSSFWorkbook()
-        val sheet = workbook.createSheet("sheet1")
-        val headerRow = sheet.createRow(0)
-        val cell0 = headerRow.createCell(0)
-        cell0.setCellValue("饰品名字")
-        val cell1 = headerRow.createCell(1)
-        cell1.setCellValue("磨损")
-        val cell2 = headerRow.createCell(2)
-        cell2.setCellValue("价格")
-        val cell3 = headerRow.createCell(3)
-        cell3.setCellValue("描述")
-        for ((i, accessory) in list.withIndex()) {
-            val row = sheet.createRow(i + 1)
-            val c0 = row.createCell(0)
-            c0.setCellValue(accessory.name)
-            val c1 = row.createCell(1)
-            c1.setCellValue(accessory.paintWear)
-            val c2 = row.createCell(2)
-            c2.setCellValue(accessory.price)
-            val c3 = row.createCell(3)
-            c3.setCellValue(accessory.description)
-        }
-        val bos = ByteArrayOutputStream().also {
-            workbook.write(it)
-        }
-        return bos
     }
 
     // 3 buff 余额 支付宝  10  支付宝花呗  1 buff余额 银行卡  6 微信
