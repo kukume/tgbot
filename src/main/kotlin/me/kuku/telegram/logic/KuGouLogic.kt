@@ -125,7 +125,7 @@ class KuGouLogic {
             "https://api.jpa.cc/exec/kuGou",
             mutableMapOf("phone" to phone, "time" to time.toString())
         )
-        val params = preJsonNode.getString("params")
+        val params = preJsonNode["params"]?.asText() ?: error("获取加密参数失败，可能手机号格式不正确")
         val pk = preJsonNode.getString("pk")
         val mobile = phone.substring(0, 2) + "********" + phone.substring(phone.length - 1)
         val other = "{\"plat\":4,\"clienttime_ms\":$time,\"businessid\":5,\"pk\":\"$pk\",\"params\":\"$params\",\"mobile\":\"$mobile\"}"

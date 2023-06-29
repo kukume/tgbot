@@ -87,9 +87,10 @@ private val contextSessionCacheMap = ConcurrentHashMap<String, NextMessageValue>
 suspend fun TelegramContext.nextMessage(maxTime: Long = 30000, errMessage: String = "您发送的信息有误，请重新发送", filter: FilterMessage = { true }): Message {
     val lastMessage = LastMessage(message.text(), chatId,
         InlineKeyboardMarkup(arrayOf(inlineKeyboardButton("返回", query.data()))), message.messageId())
-    editMessageText("请稍后......")
-    return waitNextMessageCommon(tgId.toString(), maxTime, errMessage, lastMessage, filter)
+    val message = waitNextMessageCommon(tgId.toString(), maxTime, errMessage, lastMessage, filter)
         ?: throw CancelNextMessageException()
+    editMessageText("请稍后......")
+    return message
 }
 
 class CancelNextMessageException: RuntimeException()
