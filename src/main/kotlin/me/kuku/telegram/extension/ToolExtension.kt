@@ -121,8 +121,7 @@ class ToolExtension(
             val s = list[i]
             val bytes = OkHttpKtUtils.getBytes(s)
             if (bytes.size > 1024 * 10 * 1024) continue
-            val name = s.substring(s.lastIndexOf('/') + 1)
-            val mediaPhoto = InputMediaPhoto(bytes).fileName(name)
+            val mediaPhoto = InputMediaPhoto(bytes)
             inputMediaList.add(mediaPhoto)
         }
         val sendMediaGroup = SendMediaGroup(chatId, *inputMediaList.toTypedArray())
