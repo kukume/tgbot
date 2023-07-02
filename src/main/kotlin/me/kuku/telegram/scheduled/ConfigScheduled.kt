@@ -61,7 +61,6 @@ class ConfigScheduled(
                 val str = """
                     #线报酷推送
                     标题：${xianBao.title}
-                    内容：${xianBao.content}
                     时间：${xianBao.datetime}
                     源链接：${xianBao.yuanUrl}
                     线报酷链接：${xianBao.urlIncludeDomain()}
