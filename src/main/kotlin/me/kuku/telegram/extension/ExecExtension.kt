@@ -149,7 +149,12 @@ class ExecExtension(
         callback("netEaseExec") {
             val netEaseSignButton = InlineKeyboardButton("签到").callbackData("netEaseSign")
             val netEaseMusicianSignButton = InlineKeyboardButton("音乐人签到").callbackData("netEaseMusicianSign")
-            val markup = InlineKeyboardMarkup(arrayOf(netEaseSignButton), arrayOf(netEaseMusicianSignButton))
+            val netEaseMusicianMyComment = InlineKeyboardButton("发布主创说").callbackData("netEaseMusicianMyComment")
+            val markup = InlineKeyboardMarkup(
+                arrayOf(netEaseSignButton),
+                arrayOf(netEaseMusicianSignButton),
+                arrayOf(netEaseMusicianMyComment)
+            )
             editMessageText("网易云音乐", markup)
         }
         callback("netEaseSign") {
@@ -179,6 +184,10 @@ class ExecExtension(
                 "网易云音乐人签到成功"
             }
             editMessageText(message)
+        }
+        callback("netEaseMusicianMyComment") {
+            NetEaseLogic.myMusicComment(firstArg())
+            editMessageText("发布主创说成功")
         }
     }
 

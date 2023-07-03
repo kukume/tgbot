@@ -1,6 +1,5 @@
 package me.kuku.telegram.extension
 
-import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.BotConfigEntity
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Component
 
 @Component
 class SettingExtension(
-    private val telegramBot: TelegramBot,
     private val telegramConfig: TelegramConfig,
     private val botConfigService: BotConfigService
 ) {
