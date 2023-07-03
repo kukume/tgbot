@@ -19,10 +19,13 @@ class ConfigExtension(
         val settingRrOcrButton = inlineKeyboardButton("设置rrcor的key", "settingRrOcr")
         val v2exOpen = inlineKeyboardButton("v2ex推送（开）", "v2exPushOpen")
         val v2exClose = inlineKeyboardButton("v2ex推送（关）", "v2exPushClose")
+        val xianBaoOpen = inlineKeyboardButton("线报推送（开）", "xianBaoOpen")
+        val xianBaoClose = inlineKeyboardButton("线报推送（关）", "xianBaoClose")
         return InlineKeyboardMarkup(
             arrayOf(positiveEnergyOpenButton, positiveEnergyCloseButton),
             arrayOf(settingRrOcrButton),
-            arrayOf(v2exOpen, v2exClose)
+            arrayOf(v2exOpen, v2exClose),
+            arrayOf(xianBaoOpen, xianBaoClose)
         )
     }
 
@@ -32,6 +35,7 @@ class ConfigExtension(
             新闻联播推送：${configEntity.positiveEnergy.str()}
             rrocr的key：${configEntity.rrOcrKey}
             v2ex推送：${configEntity.v2exPush.str()}
+            线报推送：${configEntity.xianBaoPush.str()}（http://new.xianbao.fun/）
         """.trimIndent()
     }
 
@@ -53,6 +57,8 @@ class ConfigExtension(
         callback("positiveEnergyClose") { firstArg<ConfigEntity>().positiveEnergy = Status.OFF }
         callback("v2exPushOpen") { firstArg<ConfigEntity>().v2exPush = Status.ON }
         callback("v2exPushClose") { firstArg<ConfigEntity>().v2exPush = Status.OFF }
+        callback("xianBaoOpen") { firstArg<ConfigEntity>().xianBaoPush = Status.ON }
+        callback("xianBaoClose") { firstArg<ConfigEntity>().xianBaoPush = Status.OFF }
         callback("settingRrOcr") {
             editMessageText("请发送rrocr的key")
             val key = nextMessage().text()

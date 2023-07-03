@@ -1,9 +1,12 @@
 package me.kuku.telegram.scheduled
 
 import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
+import com.pengrad.telegrambot.request.SendMessage
 import me.kuku.telegram.entity.LeiShenService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.LeiShenLogic
+import me.kuku.telegram.utils.inlineKeyboardButton
 import me.kuku.telegram.utils.sendTextMessage
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -44,10 +47,11 @@ class LeiShenScheduled(
                 continue
             }
             if (userInfo.pauseStatusId == 0) {
-                telegramBot.sendTextMessage(entity.tgId, """
-                    #雷神加速器未暂停时间提醒
+                val sendMessage = SendMessage(entity.tgId, """
+                    #雷神加速器未暂停时间提醒 1小时提醒一次
                     您的雷神加速器未暂停时间，如果您未在玩游戏，请尽快暂停
-                """.trimIndent())
+                """.trimIndent()).replyMarkup(InlineKeyboardMarkup(inlineKeyboardButton("暂停时间", "leiShenPause")))
+                telegramBot.execute(sendMessage)
             }
         }
     }

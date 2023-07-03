@@ -18,12 +18,14 @@ class ConfigEntity {
     var positiveEnergy: Status = Status.OFF
     var rrOcrKey: String = ""
     var v2exPush: Status = Status.OFF
+    var xianBaoPush: Status = Status.OFF // http://new.xianbao.fun/
 }
 
 interface ConfigRepository: ReactiveMongoRepository<ConfigEntity, String> {
     fun findByTgId(tgId: Long): Mono<ConfigEntity>
     fun findByPositiveEnergy(positiveEnergy: Status): Flux<ConfigEntity>
     fun findByV2exPush(v2exPush: Status): Flux<ConfigEntity>
+    fun findByXianBaoPush(push: Status): Flux<ConfigEntity>
 }
 
 @Service
@@ -39,5 +41,6 @@ class ConfigService(
 
     suspend fun findByPositiveEnergy(positiveEnergy: Status): List<ConfigEntity> = configRepository.findByPositiveEnergy(positiveEnergy).collectList().awaitSingle()
     suspend fun findByV2exPush(v2exPush: Status): List<ConfigEntity> = configRepository.findByV2exPush(v2exPush).collectList().awaitSingle()
+    suspend fun findByXianBaoPush(push: Status): List<ConfigEntity> = configRepository.findByXianBaoPush(push).collectList().awaitSingle()
 
 }
