@@ -316,7 +316,7 @@ class CoreMailLogic(
         }.bodyAsText()
         val html = MyUtils.regex("mainPartContent = \\('", "'\\);", text) ?: error("未获取到邮件内容")
         val document = Jsoup.parse(html)
-        val mailText = document.text()
+        val mailText = document.text().replace("\\n", "\n")
         val urls = document.getElementsByTag("a").map { it.attr("href") }.toList()
         val detail = CoreMailDetail()
         detail.text = mailText

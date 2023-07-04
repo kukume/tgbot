@@ -4,6 +4,7 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.InputMediaPhoto
+import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -67,9 +68,9 @@ class ToolExtension(
             val id = message.chat().id()
             val messageThreadId = message.messageThreadId()
             sendMessage("""
-                chatId: $id
-                messageThreadId: $messageThreadId
-            """.trimIndent())
+                chatId: `$id`
+                messageThreadId: `$messageThreadId`
+            """.trimIndent(), parseMode = ParseMode.Markdown)
         }
         sub("bv", input = 1) {
             mutex.withLock {

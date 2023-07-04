@@ -127,7 +127,11 @@ class CoreMailExtension(
 
         callbackStartsWith("coreMailManager-") {
             val entity = firstArg<CoreMailEntity>()
-            coreMailLogic.login(firstArg())
+            kotlin.runCatching {
+                coreMailLogic.mailList(firstArg())
+            }.onFailure {
+                coreMailLogic.login(firstArg())
+            }
             val sb = StringBuilder()
             val aliasList = coreMailLogic.alias(entity)
             aliasList.forEach { sb.append("`$it`").append("、") }
@@ -172,7 +176,7 @@ class CoreMailExtension(
             val mailList = coreMailLogic.mailList(entity)
             val list = mutableListOf<Array<InlineKeyboardButton>>()
             for (message in mailList) {
-                list.add(arrayOf(inlineKeyboardButton(message.subject, "coreMailDetail-${entity.id}-${message.id}")))
+                list.add(arrayOf(inlineKeyboardButton("${message.receivedDate} ${message.subject}", "coreMailDetail-${entity.id}-${message.id}")))
             }
             list.add(arrayOf(inlineKeyboardButton("刷新", "coreMailInbox-${entity.id}"), inlineKeyboardButton("返回", "coreMailManager-${entity.id}")))
             editMessageText("${entity.mail()}收件箱：", InlineKeyboardMarkup(*list.toTypedArray()), returnButton = false)
@@ -181,7 +185,7 @@ class CoreMailExtension(
             val entity = firstArg<CoreMailEntity>()
             val id = query.data().split("-")[2]
             val detail = coreMailLogic.mailDetail(entity, id)
-            editMessageText(detail.text)
+            editMessageText("${detail.text}\n\n其中包含的url：\n${detail.a.joinToString("\n")}")
         }
 
         callbackStartsWith("coreMailForward-") {
