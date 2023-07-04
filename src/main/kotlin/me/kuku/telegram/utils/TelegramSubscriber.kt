@@ -10,6 +10,7 @@ import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.withContext
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.config.telegramExceptionHandler
+import me.kuku.telegram.entity.BotConfigService
 
 class AbilitySubscriber {
 
@@ -75,7 +76,17 @@ class AbilitySubscriber {
                     (locality == Locality.GROUP && type.isGroup())
             if (!status) return
             val privacy = it.privacy
-            if (privacy == Privacy.CREATOR && config.creatorId != message.from().id()) return
+            val fromId = message.from().id()
+            if (privacy == Privacy.CREATOR && config.creatorId != fromId) return
+            if (privacy == Privacy.ADMIN) {
+                var confirm = false
+                val botConfigEntity = botConfigService.findByToken(config.token)
+                if (botConfigEntity != null) {
+                    confirm = botConfigEntity.admins.contains(fromId)
+                }
+                if (!confirm) confirm = config.creatorId == fromId
+                if (!confirm) return
+            }
             val input = it.input
             if (input >= messageSplit.size) {
                 val sendMessage =
@@ -97,12 +108,16 @@ private val config by lazy {
     SpringUtils.getBean<TelegramConfig>()
 }
 
+private val botConfigService by lazy {
+    SpringUtils.getBean<BotConfigService>()
+}
+
 enum class Locality {
     GROUP, USER, ALL
 }
 
 enum class Privacy {
-    PUBLIC, CREATOR
+    PUBLIC, CREATOR, ADMIN
 }
 
 private val botUsername: String by lazy {

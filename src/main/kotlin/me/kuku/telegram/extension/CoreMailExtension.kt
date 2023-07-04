@@ -6,10 +6,7 @@ import com.pengrad.telegrambot.model.request.ParseMode
 import me.kuku.telegram.entity.CoreMailEntity
 import me.kuku.telegram.entity.CoreMailService
 import me.kuku.telegram.logic.CoreMailLogic
-import me.kuku.telegram.utils.AbilitySubscriber
-import me.kuku.telegram.utils.TelegramSubscribe
-import me.kuku.telegram.utils.inlineKeyboardButton
-import me.kuku.telegram.utils.nextMessage
+import me.kuku.telegram.utils.*
 import me.kuku.utils.MyUtils
 import org.springframework.stereotype.Component
 
@@ -20,7 +17,7 @@ class CoreMailExtension(
 ) {
 
     fun AbilitySubscriber.coreMail() {
-        sub("coremail") {
+        sub("coremail", privacy = Privacy.ADMIN) {
             sendMessage("CoreMail管理", InlineKeyboardMarkup(
                 arrayOf(inlineKeyboardButton("新增", "coreMailAdd")),
                 arrayOf(inlineKeyboardButton("查询", "coreMailQuery"))

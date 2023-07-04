@@ -311,7 +311,7 @@ class CoreMailLogic(
     }
 
     suspend fun mailDetailByXt5(entity: CoreMailEntity, id: String): CoreMailDetail {
-        val text = client.get("http://mail.xy.hbuas.edu.cn/coremail/XT5/jsp/viewMailHTML.jsp?mid=${id.toUrlEncode()}&mailCipherPassword=&partId=&isSearch=&priority=&supportSMIME=&striptTrs=true&mboxa=&iframeId=${System.currentTimeMillis()}&isAuditMail=false&sspurl=false") {
+        val text = client.get("${entity.url}/coremail/XT5/jsp/viewMailHTML.jsp?mid=${id.toUrlEncode()}&mailCipherPassword=&partId=&isSearch=&priority=&supportSMIME=&striptTrs=true&mboxa=&iframeId=${System.currentTimeMillis()}&isAuditMail=false&sspurl=false") {
             headers { entity.appendHeaders() }
         }.bodyAsText()
         val html = MyUtils.regex("mainPartContent = \\('", "'\\);", text) ?: error("未获取到邮件内容")

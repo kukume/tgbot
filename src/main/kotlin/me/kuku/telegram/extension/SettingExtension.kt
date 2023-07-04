@@ -1,6 +1,7 @@
 package me.kuku.telegram.extension
 
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
+import com.pengrad.telegrambot.model.request.ParseMode
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.BotConfigEntity
 import me.kuku.telegram.entity.BotConfigService
@@ -52,8 +53,8 @@ class SettingExtension(
         }
 
         callback("queryBlack") {
-            val ss = init().blacklist.joinToString("\n")
-            editMessageText("黑名单列表如下：\n$ss")
+            val ss = init().blacklist.joinToString("\n") { "`$it`" }
+            editMessageText("黑名单列表如下：\n$ss", parseMode = ParseMode.Markdown)
         }
 
         callback("addBlack") {
@@ -90,11 +91,11 @@ class SettingExtension(
         }
 
         callback("queryAdmin") {
-            val ss = init().admins.joinToString("\n")
-            editMessageText("管理员列表如下：\n$ss")
+            val ss = init().admins.joinToString("\n") { "`$it`" }
+            editMessageText("管理员列表如下：\n$ss", parseMode = ParseMode.Markdown)
         }
 
-        callback("addBlack") {
+        callback("addAdmin") {
             editMessageText("请发送需要新增的管理员id")
             val ss = nextMessage().text().toLongOrNull() ?: error("发送的不为数字")
             val entity = init()
@@ -103,7 +104,7 @@ class SettingExtension(
             editMessageText("增加管理员（$ss）成功")
         }
 
-        callback("deleteBlack") {
+        callback("deleteAdmin") {
             editMessageText("请发送需要删除的管理员id")
             val ss = nextMessage().text().toLongOrNull() ?: error("发送的不为数字")
             val entity = init()
