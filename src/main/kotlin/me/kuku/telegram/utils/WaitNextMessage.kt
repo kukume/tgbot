@@ -84,12 +84,13 @@ private data class NextMessageValue(val continuation: CancellableContinuation<Me
 
 private val contextSessionCacheMap = ConcurrentHashMap<String, NextMessageValue>()
 
-suspend fun TelegramContext.nextMessage(maxTime: Long = 30000, errMessage: String = "您发送的信息有误，请重新发送", filter: FilterMessage = { true }): Message {
+suspend fun TelegramContext.nextMessage(maxTime: Long = 30000, errMessage: String = "您发送的信息有误，请重新发送",
+                                        waitText: String = "请稍后......", filter: FilterMessage = { true }): Message {
     val lastMessage = LastMessage(message.text(), chatId,
         InlineKeyboardMarkup(arrayOf(inlineKeyboardButton("返回", query.data()))), message.messageId())
     val message = waitNextMessageCommon(tgId.toString(), maxTime, errMessage, lastMessage, filter)
         ?: throw CancelNextMessageException()
-    editMessageText("请稍后......")
+    editMessageText(waitText)
     return message
 }
 

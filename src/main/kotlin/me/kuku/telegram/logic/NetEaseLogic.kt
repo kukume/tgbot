@@ -308,6 +308,7 @@ object NetEaseLogic {
             val id = res.data()
             removeDy(netEaseEntity, id)
             finishStageMission(netEaseEntity, "发布动态")
+            finishCycleMission(netEaseEntity, "发布动态")
         }
         else CommonResult.failure(res.message)
     }

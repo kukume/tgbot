@@ -17,15 +17,16 @@ class ConfigExtension(
         val positiveEnergyOpenButton = InlineKeyboardButton("新闻联播推送（开）").callbackData("positiveEnergyOpen")
         val positiveEnergyCloseButton = InlineKeyboardButton("新闻联播推送（关）").callbackData("positiveEnergyClose")
         val settingRrOcrButton = inlineKeyboardButton("设置rrcor的key", "settingRrOcr")
+        val settingTwoCaptcha = inlineKeyboardButton("配置2captcha的key", "settingTwoCaptcha")
         val v2exOpen = inlineKeyboardButton("v2ex推送（开）", "v2exPushOpen")
         val v2exClose = inlineKeyboardButton("v2ex推送（关）", "v2exPushClose")
         val xianBaoOpen = inlineKeyboardButton("线报推送（开）", "xianBaoOpen")
         val xianBaoClose = inlineKeyboardButton("线报推送（关）", "xianBaoClose")
         return InlineKeyboardMarkup(
             arrayOf(positiveEnergyOpenButton, positiveEnergyCloseButton),
-            arrayOf(settingRrOcrButton),
             arrayOf(v2exOpen, v2exClose),
-            arrayOf(xianBaoOpen, xianBaoClose)
+            arrayOf(xianBaoOpen, xianBaoClose),
+            arrayOf(settingRrOcrButton, settingTwoCaptcha)
         )
     }
 
@@ -33,9 +34,10 @@ class ConfigExtension(
         return """
             配置管理，当前配置：
             新闻联播推送：${configEntity.positiveEnergy.str()}
-            rrocr的key：${configEntity.rrOcrKey}
+            rrocr的key：${configEntity.rrOcrKey}（https://www.rrocr.com）
+            2captcha的key：${configEntity.twoCaptchaKey}（https://2captcha.com）
             v2ex推送：${configEntity.v2exPush.str()}
-            线报推送：${configEntity.xianBaoPush.str()}（http://new.xianbao.fun/）
+            线报推送：${configEntity.xianBaoPush.str()}（http://new.xianbao.fun）
         """.trimIndent()
     }
 
@@ -63,6 +65,11 @@ class ConfigExtension(
             editMessageText("请发送rrocr的key")
             val key = nextMessage().text()
             firstArg<ConfigEntity>().rrOcrKey = key
+        }
+        callback("settingTwoCaptcha") {
+            editMessageText("请发送2captcha的key")
+            val key = nextMessage().text()
+            firstArg<ConfigEntity>().twoCaptchaKey = key
         }
         after {
             val configEntity = firstArg<ConfigEntity>()

@@ -17,6 +17,7 @@ class ConfigEntity {
     // 正能量推送
     var positiveEnergy: Status = Status.OFF
     var rrOcrKey: String = ""
+    var twoCaptchaKey: String = ""
     var v2exPush: Status = Status.OFF
     var xianBaoPush: Status = Status.OFF // http://new.xianbao.fun/
 }

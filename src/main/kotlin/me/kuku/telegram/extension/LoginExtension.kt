@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class LoginExtension(
+    private val configService: ConfigService,
     private val biliBiliService: BiliBiliService,
     private val baiduLogic: BaiduLogic,
     private val baiduService: BaiduService,
@@ -659,7 +660,7 @@ class LoginExtension(
                 arrayOf(appQrcodeButton),
                 arrayOf(cookieButton)
             )
-            editMessageText("请选择什么值得买登录方式", markup)
+            editMessageText("请选择什么值得买登录方式\n注意：因为什么值得买部分有极验验证码，所以你可能需要在/config中设配置rrocr密钥", markup)
         }
         callback("smZdmLoginByPhoneCode") {
             editMessageText("请发送什么值得买的手机号码")
@@ -841,7 +842,7 @@ class LoginExtension(
 
     fun TelegramSubscribe.nodeSeekLogin() {
         callback("nodeSeekLogin") {
-            editMessageText("请选择NodeSeek的登陆方式", InlineKeyboardMarkup(
+            editMessageText("请选择NodeSeek的登陆方式\n注意：使用账号密码登录，可能使用无头浏览器无法通过recaptchav3，通过recaptchav2需要前往/config配置2captcha密钥，建议抓取cookie登录", InlineKeyboardMarkup(
                 arrayOf(inlineKeyboardButton("使用cookie登陆", "nodeSeekCookieLogin")),
                 arrayOf(inlineKeyboardButton("使用账号密码登陆", "nodeSeekPasswordLogin")),
             ))
@@ -860,8 +861,10 @@ class LoginExtension(
             editMessageText("请发送NodeSeek账号")
             val username = nextMessage().text()
             editMessageText("请发送NodeSeek密码")
-            val password = nextMessage().text()
-            val cookie = NodeSeekLogic.login(username, password)
+            val password = nextMessage(waitText = "请耐心等候，打码时间很长，时间会很久").text()
+            val configEntity = configService.findByTgId(tgId)
+            val key = configEntity?.twoCaptchaKey?.ifEmpty { null }
+            val cookie = NodeSeekLogic.login(username, password, key)
             val entity = nodeSeekService.findByTgId(tgId) ?: NodeSeekEntity().init()
             entity.cookie = cookie
             nodeSeekService.save(entity)

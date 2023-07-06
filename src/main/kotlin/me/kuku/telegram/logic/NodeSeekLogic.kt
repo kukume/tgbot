@@ -17,35 +17,18 @@ object NodeSeekLogic {
         if (!jsonNode["success"].asBoolean()) error(jsonNode["message"].asText())
     }
 
-    suspend fun post(): List<NodeSeekPost> {
-        val jsonNode = client.get("$api/nodeseek/post").body<JsonNode>()
-        return jsonNode.convertValue()
-    }
-
-    suspend fun login(username: String, password: String): String {
-        val jsonNode = client.get("$api/nodeseek/login") {
+    suspend fun login(username: String, password: String, key: String? = null): String {
+        val jsonNode = client.post("$api/nodeseek/login") {
             setFormDataContent {
                 append("username", username)
                 append("password", password)
+                key?.let {
+                    append("key", key)
+                }
             }
         }.body<JsonNode>()
         if (jsonNode.has("cookie")) return jsonNode["cookie"].asText()
         else error(jsonNode["message"].asText())
     }
 
-}
-
-class NodeSeekPost {
-    var userid: Int = 0
-    var title: String = ""
-    var url: String = ""
-    var username: String = ""
-    var view: Int = 0
-    var comment: Int = 0
-    var category: String = ""
-
-
-    fun userUrl() = "https://www.nodeseek.com/space/$userid"
-    fun userAvatar() = "https://www.nodeseek.com/avatar/$userid.png"
-    fun id() = MyUtils.regex("post-", "-", url)!!.toInt()
 }
