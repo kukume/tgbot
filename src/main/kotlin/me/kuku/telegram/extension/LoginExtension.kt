@@ -10,6 +10,7 @@ import com.pengrad.telegrambot.request.SendPhoto
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
+import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service
 @Service
 class LoginExtension(
     private val configService: ConfigService,
+    private val twoCaptchaLogic: TwoCaptchaLogic,
     private val biliBiliService: BiliBiliService,
     private val baiduLogic: BaiduLogic,
     private val baiduService: BaiduService,
@@ -864,7 +866,8 @@ class LoginExtension(
             val password = nextMessage(waitText = "请耐心等候，打码时间很长，时间会很久").text()
             val configEntity = configService.findByTgId(tgId)
             val key = configEntity?.twoCaptchaKey?.ifEmpty { null }
-            val cookie = NodeSeekLogic.login(username, password, key)
+            val token = twoCaptchaLogic.recaptchaV2(key, "6LfoOGcjAAAAAMh4fkiqTP48yS5Ey_P61wmfakV3", "https://www.nodeseek.com/signIn.html")
+            val cookie = NodeSeekLogic.login(username, password, token)
             val entity = nodeSeekService.findByTgId(tgId) ?: NodeSeekEntity().init()
             entity.cookie = cookie
             nodeSeekService.save(entity)

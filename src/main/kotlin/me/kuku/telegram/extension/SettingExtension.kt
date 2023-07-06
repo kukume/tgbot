@@ -18,15 +18,19 @@ class SettingExtension(
         val blackSetting = inlineKeyboardButton("黑名单", "blackSetting")
         val adminSetting = inlineKeyboardButton("管理员", "adminSetting")
         val url = inlineKeyboardButton("设置推送url", "pushUrlSetting")
+        val rrOcr = inlineKeyboardButton("设置全局rrocr的key", "settingGlobeRrOcr")
+        val twoCaptcha = inlineKeyboardButton("设置全局2captcha的key", "settingGlobeTwoCaptcha")
         return InlineKeyboardMarkup(
             arrayOf(blackSetting, adminSetting),
-            arrayOf(url)
+            arrayOf(url),
+            arrayOf(rrOcr),
+            arrayOf(twoCaptcha)
         )
     }
 
     fun AbilitySubscriber.setting() {
         sub("setting", privacy = Privacy.CREATOR) {
-            sendMessage("请选择设置选项", settingMarkup())
+            sendMessage("请选择设置选项\nrrocr：https://www.rrocr.com\n2captcha：https://2captcha.com", settingMarkup())
         }
     }
 
@@ -120,7 +124,24 @@ class SettingExtension(
             val url = nextMessage().text() + "/push"
             val entity = init()
             entity.pushUrl = url
+            botConfigService.save(entity)
             editMessageText("设置推送url成功")
+        }
+        callback("settingGlobeRrOcr") {
+            editMessageText("请发送全局的RrOcr的key")
+            val key = nextMessage().text()
+            val entity = init()
+            entity.rrOcrKey = key
+            botConfigService.save(entity)
+            editMessageText("设置rrocr的key成功")
+        }
+        callback("settingGlobeTwoCaptcha") {
+            editMessageText("请发送全局的2captcha的key")
+            val key = nextMessage().text()
+            val entity = init()
+            entity.twoCaptchaKey = key
+            botConfigService.save(entity)
+            editMessageText("设置2captcha的key成功")
         }
     }
 

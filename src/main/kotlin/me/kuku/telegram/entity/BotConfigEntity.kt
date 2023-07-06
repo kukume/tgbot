@@ -17,6 +17,9 @@ class BotConfigEntity {
     var blacklist: MutableList<Long> = mutableListOf()
     var admins: MutableList<Long> = mutableListOf()
     var pushUrl: String = ""
+    // 公用
+    var rrOcrKey: String = ""
+    var twoCaptchaKey: String = ""
 }
 
 

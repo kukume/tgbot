@@ -17,13 +17,13 @@ object NodeSeekLogic {
         if (!jsonNode["success"].asBoolean()) error(jsonNode["message"].asText())
     }
 
-    suspend fun login(username: String, password: String, key: String? = null): String {
+    suspend fun login(username: String, password: String, token: String? = null): String {
         val jsonNode = client.post("$api/nodeseek/login") {
             setFormDataContent {
                 append("username", username)
                 append("password", password)
-                key?.let {
-                    append("key", key)
+                token?.let {
+                    append("token", token)
                 }
             }
         }.body<JsonNode>()
