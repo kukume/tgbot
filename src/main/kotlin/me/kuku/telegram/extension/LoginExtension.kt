@@ -10,7 +10,6 @@ import com.pengrad.telegrambot.request.SendPhoto
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
-import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
@@ -863,13 +862,22 @@ class LoginExtension(
             editMessageText("请发送NodeSeek账号")
             val username = nextMessage().text()
             editMessageText("请发送NodeSeek密码")
-            val password = nextMessage(waitText = "请耐心等候，打码时间很长，时间会很久").text()
-            val configEntity = configService.findByTgId(tgId)
-            val key = configEntity?.twoCaptchaKey?.ifEmpty { null }
-            val token = twoCaptchaLogic.recaptchaV2(key, "6LfoOGcjAAAAAMh4fkiqTP48yS5Ey_P61wmfakV3", "https://www.nodeseek.com/signIn.html")
-            val cookie = NodeSeekLogic.login(username, password, token)
+            val password = nextMessage().text()
+            var cookie: String? = null
+            kotlin.runCatching {
+                cookie = NodeSeekLogic.login(username, password)
+            }.onFailure {
+                val errMessage = it.message ?: "未知错误"
+                if (errMessage.contains("通过recaptchaV3失败")) {
+                    editMessageText("通过recaptchaV3失败，正在打码中")
+                    val configEntity = configService.findByTgId(tgId)
+                    val key = configEntity?.twoCaptchaKey?.ifEmpty { null }
+                    val token = twoCaptchaLogic.recaptchaV2(key, "6LfoOGcjAAAAAMh4fkiqTP48yS5Ey_P61wmfakV3", "https://www.nodeseek.com/signIn.html")
+                    cookie = NodeSeekLogic.login(username, password, token)
+                } else return@callback editMessageText(errMessage)
+            }
             val entity = nodeSeekService.findByTgId(tgId) ?: NodeSeekEntity().init()
-            entity.cookie = cookie
+            cookie?.let {  entity.cookie = it }
             nodeSeekService.save(entity)
             editMessageText("绑定NodeSeek成功")
         }
