@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class ExecExtension(
+    private val configService: ConfigService,
     private val baiduService: BaiduService,
     private val baiduLogic: BaiduLogic,
     private val biliBiliService: BiliBiliService,
@@ -23,6 +24,7 @@ class ExecExtension(
     private val douYuService: DouYuService,
     private val douYuLogic: DouYuLogic,
     private val smZdmService: SmZdmService,
+    private val smZdmLogic: SmZdmLogic,
     private val aliDriverService: AliDriverService,
     private val nodeSeekService: NodeSeekService
 ) {
@@ -264,8 +266,8 @@ class ExecExtension(
         }
         callback("smZdmSign") {
             val smZdmEntity = firstArg<SmZdmEntity>()
-            SmZdmLogic.webSign(smZdmEntity)
-            SmZdmLogic.appSign(smZdmEntity)
+            smZdmLogic.webSign(smZdmEntity, configService.findByTgId(tgId)?.rrOcrKey())
+            smZdmLogic.appSign(smZdmEntity)
             editMessageText("什么值得买app与网页签到成功")
         }
     }
@@ -303,8 +305,8 @@ class ExecExtension(
         }
         callbackStartsWith("nodeSeekSign-") {
             val random = query.data().split("-")[1].toInt() == 1
-            NodeSeekLogic.sign(firstArg(), random)
-            editMessageText("NodeSeek签到成功")
+            val num = NodeSeekLogic.sign(firstArg(), random)
+            editMessageText("NodeSeek签到成功，获得鸡腿${num}个")
         }
     }
 

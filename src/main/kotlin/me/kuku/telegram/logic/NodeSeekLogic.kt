@@ -10,11 +10,12 @@ object NodeSeekLogic {
 
     private const val api = "https://api.jpa.cc"
 
-    suspend fun sign(entity: NodeSeekEntity, random: Boolean = false) {
+    suspend fun sign(entity: NodeSeekEntity, random: Boolean = false): Int {
         val jsonNode = client.get("$api/nodeseek/sign?cookie=${entity.cookie.toUrlEncode()}&random=$random")
             .body<JsonNode>()
         // gain current
         if (!jsonNode["success"].asBoolean()) error(jsonNode["message"].asText())
+        return jsonNode["gain"].asInt()
     }
 
     suspend fun login(username: String, password: String, token: String? = null): String {

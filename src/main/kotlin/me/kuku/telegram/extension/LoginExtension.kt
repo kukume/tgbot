@@ -39,6 +39,7 @@ class LoginExtension(
     private val pixivService: PixivService,
     private val buffService: BuffService,
     private val smZdmService: SmZdmService,
+    private val smZdmLogic: SmZdmLogic,
     private val aliDriverService: AliDriverService,
     private val leiShenService: LeiShenService,
     private val youPinService: YouPinService,
@@ -666,10 +667,10 @@ class LoginExtension(
         callback("smZdmLoginByPhoneCode") {
             editMessageText("请发送什么值得买的手机号码")
             val phone = nextMessage().text()
-            SmZdmLogic.login1(phone)
+            smZdmLogic.login1(phone, configService.findByTgId(tgId)?.rrOcrKey())
             editMessageText("请发送什么值得买的验证码")
             val code = nextMessage().text()
-            val newEntity = SmZdmLogic.login2(phone, code)
+            val newEntity = smZdmLogic.login2(phone, code)
             val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
             smZdmEntity.cookie = newEntity.cookie
             smZdmService.save(smZdmEntity)
@@ -678,14 +679,14 @@ class LoginExtension(
         callback("smZdmLoginByCookie") {
             editMessageText("请发送什么值得买的cookie")
             val text = nextMessage().text()
-            SmZdmLogic.appSign(SmZdmEntity().also { it.cookie = text })
+            smZdmLogic.appSign(SmZdmEntity().also { it.cookie = text })
             val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
             smZdmEntity.cookie = text
             smZdmService.save(smZdmEntity)
             editMessageText("绑定什么值得买成功")
         }
         callback("smZdmWechatLoginByPhoneCode") {
-            val wechatQrcode = SmZdmLogic.wechatQrcode1()
+            val wechatQrcode = smZdmLogic.wechatQrcode1()
             var photoMessage: Message?
             client.get(wechatQrcode.url).body<ByteArray>().let {
                 val sendPhoto = SendPhoto(chatId, it)
@@ -698,7 +699,7 @@ class LoginExtension(
                 if (++i >= 20) break
                 try {
                     delay(3000)
-                    val result = SmZdmLogic.wechatQrcode2(wechatQrcode)
+                    val result = smZdmLogic.wechatQrcode2(wechatQrcode)
                     if (result.code == 200) {
                         val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
                         smZdmEntity.cookie = result.data().cookie
@@ -715,7 +716,7 @@ class LoginExtension(
                 editMessageText("什么值得买二维码已过期")
         }
         callback("smZdmAppQrcodeLoginByPhoneCode") {
-            val appQrcode = SmZdmLogic.appQrcode1()
+            val appQrcode = smZdmLogic.appQrcode1()
             val url = appQrcode.url
             var photoMessage: Message?
             client.get("https://api.kukuqaq.com/qrcode?text=${url.toUrlEncode()}").body<ByteArray>().let {
@@ -728,7 +729,7 @@ class LoginExtension(
             while (true) {
                 if (++i >= 20) break
                 delay(3000)
-                val result = SmZdmLogic.appQrcode2(appQrcode)
+                val result = smZdmLogic.appQrcode2(appQrcode)
                 if (result.code == 200) {
                     val newEntity = result.data()
                     val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().also { it.tgId = tgId }
@@ -870,8 +871,7 @@ class LoginExtension(
                 val errMessage = it.message ?: "未知错误"
                 if (errMessage.contains("通过recaptchaV3失败")) {
                     editMessageText("通过recaptchaV3失败，正在打码中")
-                    val configEntity = configService.findByTgId(tgId)
-                    val key = configEntity?.twoCaptchaKey?.ifEmpty { null }
+                    val key = configService.findByTgId(tgId)?.twoCaptchaKey()
                     val token = twoCaptchaLogic.recaptchaV2(key, "6LfoOGcjAAAAAMh4fkiqTP48yS5Ey_P61wmfakV3", "https://www.nodeseek.com/signIn.html")
                     cookie = NodeSeekLogic.login(username, password, token)
                 } else return@callback editMessageText(errMessage)

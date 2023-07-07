@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component
 @Component
 class SmZdmScheduled(
     private val smZdmService: SmZdmService,
+    private val configService: ConfigService,
+    private val smZdmLogic: SmZdmLogic,
     private val logService: LogService
 ) {
 
@@ -20,8 +22,8 @@ class SmZdmScheduled(
                 it.type = LogType.SmZdm
             }
             kotlin.runCatching {
-                SmZdmLogic.webSign(smZdmEntity)
-                SmZdmLogic.appSign(smZdmEntity)
+                smZdmLogic.webSign(smZdmEntity, configService.findByTgId(smZdmEntity.tgId)?.rrOcrKey())
+                smZdmLogic.appSign(smZdmEntity)
                 logEntity.text = "成功"
             }.onFailure {
                 logEntity.text = "失败"

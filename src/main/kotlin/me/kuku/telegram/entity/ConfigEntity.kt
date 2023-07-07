@@ -20,6 +20,9 @@ class ConfigEntity {
     var twoCaptchaKey: String = ""
     var v2exPush: Status = Status.OFF
     var xianBaoPush: Status = Status.OFF // http://new.xianbao.fun/
+
+    fun twoCaptchaKey() = twoCaptchaKey.ifEmpty { null }
+    fun rrOcrKey() = rrOcrKey.ifEmpty { null }
 }
 
 interface ConfigRepository: ReactiveMongoRepository<ConfigEntity, String> {

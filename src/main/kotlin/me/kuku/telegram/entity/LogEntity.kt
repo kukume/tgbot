@@ -70,4 +70,19 @@ class LogService(
         logRepository.findByCreateTimeBetweenAndTgId(before, after, tgId).collectList().awaitSingle()
 
     suspend fun findById(id: String) = logRepository.findById(id).awaitSingleOrNull()
+
+    suspend fun log(tgId: Long, type: LogType, block: suspend () -> Unit) {
+        val logEntity = LogEntity().also {
+            it.tgId = tgId
+            it.type = type
+        }
+        kotlin.runCatching {
+            block()
+        }.onFailure {
+            logEntity.text = "失败"
+            logEntity.errReason = it.message ?: "未知异常原因"
+            logEntity.sendFailMessage(it.message)
+        }
+        save(logEntity)
+    }
 }

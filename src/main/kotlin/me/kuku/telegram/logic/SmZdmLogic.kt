@@ -1,17 +1,19 @@
 package me.kuku.telegram.logic
 
-import com.fasterxml.jackson.databind.JsonNode
-import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import me.kuku.pojo.CommonResult
 import me.kuku.telegram.entity.SmZdmEntity
 import me.kuku.utils.*
+import org.springframework.stereotype.Service
 
-object SmZdmLogic {
+@Service
+class SmZdmLogic(
+    private val geeTestLogic: GeeTestLogic
+) {
 
-    suspend fun login1(phone: String) {
+    suspend fun login1(phone: String, key: String? = null) {
         val geeJsonNode = client.get("https://zhiyou.smzdm.com/user/getgeetest/captcha_init_v3?scene=login&rand=${MyUtils.randomNum(2)}") {
             headers {
                 referer("https://zhiyou.smzdm.com/user/login/window/")
@@ -19,7 +21,7 @@ object SmZdmLogic {
         }.bodyAsText().toJsonNode()
         val gt = geeJsonNode["gt"].asText()
         val challenge = geeJsonNode["challenge"].asText()
-        val geeTest = geeTest(gt, challenge, "https://zhiyou.smzdm.com/")
+        val geeTest = geeTest(gt, challenge, "https://zhiyou.smzdm.com/", key)
         val sendCodeNode = client.post("https://zhiyou.smzdm.com/user/login/ajax_get_mobile_code/") {
             setFormDataContent {
                 append("geetest_challenge", geeTest.challenge)
@@ -138,12 +140,12 @@ object SmZdmLogic {
     }
 
 
-    suspend fun webSign(smZdmEntity: SmZdmEntity) {
+    suspend fun webSign(smZdmEntity: SmZdmEntity, key: String? = null) {
         val jsonNode = client.get("https://zhiyou.smzdm.com/user/getgeetest/geetest_captcha_init").bodyAsText().toJsonNode()
         val data = jsonNode["data"]["geetest_data"]
         val gt = data["gt"].asText()
         val challenge = data["challenge"].asText()
-        val geeTest = geeTest(gt, challenge)
+        val geeTest = geeTest(gt, challenge, key = key)
         val text = client.get("https://zhiyou.smzdm.com/user/checkin/jsonp_checkin?callback=jQuery112406820925204571995_1673311348950&geetest_challenge=${geeTest.challenge}&geetest_validate=${geeTest.validate}&geetest_seccode=${geeTest.secCode.toUrlEncode()}&_=${System.currentTimeMillis()}") {
             headers {
                 cookieString(smZdmEntity.cookie)
@@ -154,19 +156,9 @@ object SmZdmLogic {
         if (signNode["error_code"].asInt() != 0) error(signNode["error_msg"].asText())
     }
 
-    private suspend fun geeTest(gt: String, challenge: String, referer: String = "https://www.smzdm.com/"): GeeTestResult {
-        val jsonNode = client.post("https://api.kukuqaq.com/geetest") {
-            setFormDataContent {
-                append("gt", gt)
-                append("challenge", challenge)
-                append("referer", referer)
-            }
-        }.body<JsonNode>()
-        if (!jsonNode.has("code")) {
-            val ch = jsonNode["challenge"].asText()
-            val validate = jsonNode["validate"].asText()
-            return GeeTestResult(ch, validate)
-        } else error(jsonNode["message"].asText())
+    private suspend fun geeTest(gt: String, challenge: String, referer: String = "https://www.smzdm.com/", key: String? = null): GeeTestResult {
+        val result = geeTestLogic.rr(gt, referer, challenge = challenge, appKey = key)
+        return GeeTestResult(result.challenge, result.validate)
 
     }
 
