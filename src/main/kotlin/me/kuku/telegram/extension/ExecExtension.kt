@@ -283,7 +283,7 @@ class ExecExtension(
         callback("aliDriverSign") {
             val entity: AliDriverEntity = firstArg()
             val res = AliDriverLogic.sign(entity)
-            editMessageText(res)
+            editMessageText(res.customMessage)
         }
         callback("aliDriverReceive") {
             editMessageText("请发送领取哪天的奖励")

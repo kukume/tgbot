@@ -13,6 +13,7 @@ class AliDriverEntity {
     var refreshToken: String = ""
     var sign: Status = Status.OFF
     var receive: Status = Status.OFF
+    var joinTeam: Status = Status.OFF
 }
 
 @Suppress("SpringDataRepositoryMethodReturnTypeInspection")
@@ -23,6 +24,8 @@ interface AliDriverRepository: CoroutineCrudRepository<AliDriverEntity, String> 
     suspend fun findBySign(sign: Status): List<AliDriverEntity>
 
     suspend fun deleteByTgId(tgId: Long)
+
+    suspend fun findByJoinTeam(status: Status): List<AliDriverEntity>
 }
 
 @Service
@@ -39,4 +42,6 @@ class AliDriverService(
     suspend fun delete(aliDriverEntity: AliDriverEntity) = aliDriverRepository.delete(aliDriverEntity)
 
     suspend fun deleteByTgId(tgId: Long) = aliDriverRepository.deleteByTgId(tgId)
+
+    suspend fun findByJoinTeam(status: Status) = aliDriverRepository.findByJoinTeam(status)
 }

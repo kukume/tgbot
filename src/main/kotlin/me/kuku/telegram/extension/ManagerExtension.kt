@@ -411,6 +411,8 @@ class ManagerExtension(
         callback("aliDriverSignClose") { firstArg<AliDriverEntity>().sign = Status.OFF }
         callback("aliDriverReceiveOpen") { firstArg<AliDriverEntity>().receive = Status.ON }
         callback("aliDriverReceiveClose") { firstArg<AliDriverEntity>().receive = Status.OFF }
+        callback("aliDriverPkOpen") { firstArg<AliDriverEntity>().joinTeam = Status.ON }
+        callback("aliDriverPkClose") { firstArg<AliDriverEntity>().joinTeam = Status.OFF }
         after {
             val aliDriverEntity = firstArg<AliDriverEntity>()
             aliDriverService.save(aliDriverEntity)
@@ -418,12 +420,16 @@ class ManagerExtension(
             val signCloseButton = inlineKeyboardButton("自动签到（关）", "aliDriverSignClose")
             val receiveOpenButton = inlineKeyboardButton("自动领取（开）", "aliDriverReceiveOpen")
             val receiveCloseButton = inlineKeyboardButton("自动领取（关）", "aliDriverReceiveClose")
-            val markup = InlineKeyboardMarkup(arrayOf(signOpenButton, signCloseButton), arrayOf(receiveOpenButton, receiveCloseButton))
+            val pkOpen = inlineKeyboardButton("自动PK（开）", "aliDriverPkOpen")
+            val pkClose = inlineKeyboardButton("自动PK（关）", "aliDriverPkClose")
+            val markup = InlineKeyboardMarkup(arrayOf(signOpenButton, signCloseButton), arrayOf(receiveOpenButton, receiveCloseButton),
+                arrayOf(pkOpen, pkClose))
             editMessageText("""
                 阿里云盘，如自动签到为关，自动领取不生效
                 当前状态：
                 签到：${aliDriverEntity.sign.str()}
                 领取：${aliDriverEntity.receive.str()}
+                PK领补签卡：${aliDriverEntity.joinTeam.str()}
             """.trimIndent(), markup, top = true)
         }
     }
