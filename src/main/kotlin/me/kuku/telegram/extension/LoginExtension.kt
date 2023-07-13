@@ -43,7 +43,8 @@ class LoginExtension(
     private val aliDriverService: AliDriverService,
     private val leiShenService: LeiShenService,
     private val youPinService: YouPinService,
-    private val nodeSeekService: NodeSeekService
+    private val nodeSeekService: NodeSeekService,
+    private val glaDosService: GlaDosService
 ) {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -66,17 +67,18 @@ class LoginExtension(
         val leiShenButton = inlineKeyboardButton("雷神加速器", "leiShenLogin")
         val youPingButton = inlineKeyboardButton("悠悠有品", "youPingLogin")
         val nodeSeekButton = inlineKeyboardButton("NodeSeek", "nodeSeekLogin")
+        val gloDos = inlineKeyboardButton("GloDos", "gloDosLogin")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
             arrayOf(huYaButton, kuGouButton),
             arrayOf(miHoYoButton, netEaseButton),
             arrayOf(stepButton, weiboStepButton),
-            arrayOf(nodeSeekButton, douYinButton),
-            arrayOf(twitterButton, pixivButton),
-            arrayOf(buffButton, smZdmButton),
-            arrayOf(aliDriverButton, leiShenButton),
-            arrayOf(youPingButton)
+            arrayOf(douYinButton, twitterButton),
+            arrayOf(pixivButton, buffButton),
+            arrayOf(smZdmButton, aliDriverButton),
+            arrayOf(leiShenButton, youPingButton),
+            arrayOf(nodeSeekButton, gloDos)
         )
     }
 
@@ -880,6 +882,35 @@ class LoginExtension(
             cookie?.let {  entity.cookie = it }
             nodeSeekService.save(entity)
             editMessageText("绑定NodeSeek成功")
+        }
+    }
+
+    fun TelegramSubscribe.gloDosSign() {
+        callback("gloDosLogin") {
+            editMessageText("请选择Glodos的登陆方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("使用cookie登陆", "glaDosCookieLogin")),
+                arrayOf(inlineKeyboardButton("使用邮箱验证码登录", "glaDosPasswordLogin")),
+            ))
+        }
+        callback("glaDosCookieLogin") {
+            editMessageText("请发送Glados的cookie")
+            val text = nextMessage().text()
+            val entity = glaDosService.findByTgId(tgId) ?: GlaDosEntity().init()
+            entity.cookie = text
+            glaDosService.save(entity)
+            editMessageText("绑定Glados成功")
+        }
+        callback("glaDosPasswordLogin") {
+            editMessageText("请发送Glados的登录邮箱")
+            val email = nextMessage().text()
+            GlaDosLogic.sendCode(email)
+            editMessageText("请发送Glados登录邮箱${email}的验证码")
+            val code = nextMessage().text()
+            val cookie = GlaDosLogic.verifyCode(email, code)
+            val entity = glaDosService.findByTgId(tgId) ?: GlaDosEntity().init()
+            entity.cookie = cookie
+            glaDosService.save(entity)
+            editMessageText("绑定Glados成功")
         }
     }
 

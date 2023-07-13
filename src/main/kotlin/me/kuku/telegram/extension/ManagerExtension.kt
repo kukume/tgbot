@@ -27,7 +27,8 @@ class ManagerExtension(
     private val smZdmService: SmZdmService,
     private val aliDriverService: AliDriverService,
     private val leiShenService: LeiShenService,
-    private val nodeSeekService: NodeSeekService
+    private val nodeSeekService: NodeSeekService,
+    private val glaDosService: GlaDosService
 ) {
 
     private fun managerKeyboardMarkup(): InlineKeyboardMarkup {
@@ -48,6 +49,7 @@ class ManagerExtension(
         val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverManager")
         val leiShen = inlineKeyboardButton("雷神加速器", "leiShenManager")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekManager")
+        val glaDos = inlineKeyboardButton("Glados", "glaDosManager")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -57,7 +59,7 @@ class ManagerExtension(
             arrayOf(twitterButton, pixivButton),
             arrayOf(douYinButton, smZdmButton),
             arrayOf(aliDriver, leiShen),
-            arrayOf(nodeSeek)
+            arrayOf(nodeSeek, glaDos)
         )
     }
 
@@ -487,6 +489,27 @@ class ManagerExtension(
             editMessageText("""
                 NodeSeek，当前状态：
                 自动签到：${nodeSeekEntity.sign.value}
+            """.trimIndent(), markup, top = true)
+        }
+    }
+
+    fun TelegramSubscribe.glaDosManager() {
+        before { set(glaDosService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定GlaDos账号")) }
+        callback("glaDosManager") {}
+        callback("glaDosSignOpen") { firstArg<GlaDosEntity>().sign = Status.ON }
+        callback("glaDosSignClose") { firstArg<GlaDosEntity>().sign = Status.OFF }
+        after {
+            val glaDosEntity: GlaDosEntity = firstArg()
+            glaDosService.save(glaDosEntity)
+            val markup = InlineKeyboardMarkup(
+                arrayOf(
+                    inlineKeyboardButton("自动签到（开）", "glaDosSignOpen"),
+                    inlineKeyboardButton("自动签到（关）", "glaDosSignClose")
+                )
+            )
+            editMessageText("""
+                GlaDos，当前状态：
+                自动签到：${glaDosEntity.sign.str()}
             """.trimIndent(), markup, top = true)
         }
     }

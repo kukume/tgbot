@@ -42,7 +42,8 @@ enum class LogType(val value: String) {
     DouYu("斗鱼"),
     SmZdm("什么值得买"),
     AliDriver("阿里云盘"),
-    NodeSeek("NodeSeek")
+    NodeSeek("NodeSeek"),
+    GlaDos("GlaDos")
 }
 
 interface LogRepository: ReactiveMongoRepository<LogEntity, String> {

@@ -26,7 +26,8 @@ class ExecExtension(
     private val smZdmService: SmZdmService,
     private val smZdmLogic: SmZdmLogic,
     private val aliDriverService: AliDriverService,
-    private val nodeSeekService: NodeSeekService
+    private val nodeSeekService: NodeSeekService,
+    private val glaDosService: GlaDosService
 ) {
 
     private fun execKeyboardMarkup(): InlineKeyboardMarkup {
@@ -42,13 +43,15 @@ class ExecExtension(
         val smZdmButton = InlineKeyboardButton("什么值得买").callbackData("smZdmExec")
         val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverExec")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekExec")
+        val glaDos = inlineKeyboardButton("GlaDos", "glaDosExec")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(hostLocButton, kuGouButton),
             arrayOf(miHoYoButton, netEaseButton),
             arrayOf(stepButton, weiboButton),
             arrayOf(douYuButton, smZdmButton),
-            arrayOf(aliDriver, nodeSeek)
+            arrayOf(aliDriver, nodeSeek),
+            arrayOf(glaDos)
         )
     }
 
@@ -307,6 +310,21 @@ class ExecExtension(
             val random = query.data().split("-")[1].toInt() == 1
             val num = NodeSeekLogic.sign(firstArg(), random)
             editMessageText("NodeSeek签到成功，获得鸡腿${num}个")
+        }
+    }
+
+    fun TelegramSubscribe.glaDosExec() {
+        before { set(glaDosService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定GlaDos账号")) }
+        callback("glaDosExec") {
+            editMessageText("GlaDos", InlineKeyboardMarkup(
+                arrayOf(
+                    inlineKeyboardButton("签到", "glaDosSign"),
+                )
+            ))
+        }
+        callback("glaDosSign") {
+            val message = GlaDosLogic.sign(firstArg())
+            editMessageText(message)
         }
     }
 
