@@ -20,8 +20,8 @@ class NodeSeekScheduled(
                 it.type = LogType.NodeSeek
             }
             kotlin.runCatching {
-                NodeSeekLogic.sign(entity, entity.sign == NodeSeekEntity.Sign.Random)
-                logEntity.text = "成功"
+                val num = NodeSeekLogic.sign(entity, entity.sign == NodeSeekEntity.Sign.Random)
+                logEntity.text = "成功，获得鸡腿${num}个"
             }.onFailure {
                 logEntity.text = "失败"
                 logEntity.errReason = it.message ?: "未知异常原因"
