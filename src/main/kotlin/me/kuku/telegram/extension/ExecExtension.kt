@@ -72,8 +72,13 @@ class ExecExtension(
             editMessageText("百度", markup)
         }
         callback("tieBaSign") {
-            baiduLogic.tieBaSign(firstArg())
-            editMessageText("贴吧签到成功")
+            editMessageText("由于贴吧签到时间长，后台运行中，运行结果将以弹窗展示")
+            kotlin.runCatching {
+                baiduLogic.tieBaSign(firstArg())
+                answerCallbackQuery("贴吧签到成功", showAlert = true)
+            }.onFailure {
+                answerCallbackQuery("贴吧签到失败，${it.message}", showAlert = true)
+            }
         }
         callback("ybbSign") {
             baiduLogic.ybbSign(firstArg())
