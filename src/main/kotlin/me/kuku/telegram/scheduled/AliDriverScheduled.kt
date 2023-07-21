@@ -9,6 +9,7 @@ import java.time.LocalDate
 
 @Component
 class AliDriverScheduled(
+    private val aliDriverLogic: AliDriverLogic,
     private val aliDriverService: AliDriverService,
     private val logService: LogService
 ) {
@@ -19,9 +20,9 @@ class AliDriverScheduled(
         for (aliDriverEntity in list) {
             logService.log(aliDriverEntity.tgId, LogType.AliDriver) {
                 delay(3000)
-                AliDriverLogic.sign(aliDriverEntity)
+                aliDriverLogic.sign(aliDriverEntity)
                 if (aliDriverEntity.receive == Status.ON) {
-                    AliDriverLogic.receive(aliDriverEntity)
+                    text = aliDriverLogic.receive(aliDriverEntity)
                 }
             }
         }
@@ -32,9 +33,9 @@ class AliDriverScheduled(
         val list = aliDriverService.findByJoinTeam(Status.ON)
         for (aliDriverEntity in list) {
             kotlin.runCatching {
-                val team = AliDriverLogic.queryTeam(aliDriverEntity)
+                val team = aliDriverLogic.queryTeam(aliDriverEntity)
                 if (team.joinTeam.isEmpty()) {
-                    AliDriverLogic.joinTeam(aliDriverEntity, team.id)
+                    aliDriverLogic.joinTeam(aliDriverEntity, team.id)
                 }
             }
         }
@@ -48,10 +49,10 @@ class AliDriverScheduled(
         if (now.dayOfMonth == lastDay.dayOfMonth) {
             val list = aliDriverService.findBySign(Status.ON)
             for (aliDriverEntity in list) {
-                val signList = AliDriverLogic.sign(aliDriverEntity)
+                val signList = aliDriverLogic.sign(aliDriverEntity)
                 for (signInLog in signList.signInLogs) {
                     if (!signInLog.isReward) {
-                        AliDriverLogic.receive(aliDriverEntity, signInLog.day)
+                        aliDriverLogic.receive(aliDriverEntity, signInLog.day)
                     }
                 }
             }

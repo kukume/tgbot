@@ -21,15 +21,11 @@ class LoginExtension(
     private val configService: ConfigService,
     private val twoCaptchaLogic: TwoCaptchaLogic,
     private val biliBiliService: BiliBiliService,
-    private val baiduLogic: BaiduLogic,
-    private val baiduService: BaiduService,
-    private val douYuLogic: DouYuLogic,
-    private val douYuService: DouYuService,
+    private val baiduLogic: BaiduLogic, private val baiduService: BaiduService,
+    private val douYuLogic: DouYuLogic, private val douYuService: DouYuService,
     private val hostLocService: HostLocService,
-    private val huYaLogic: HuYaLogic,
-    private val huYaService: HuYaService,
-    private val kuGouService: KuGouService,
-    private val kuGouLogic: KuGouLogic,
+    private val huYaLogic: HuYaLogic, private val huYaService: HuYaService,
+    private val kuGouService: KuGouService, private val kuGouLogic: KuGouLogic,
     private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
@@ -38,9 +34,8 @@ class LoginExtension(
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
     private val buffService: BuffService,
-    private val smZdmService: SmZdmService,
-    private val smZdmLogic: SmZdmLogic,
-    private val aliDriverService: AliDriverService,
+    private val smZdmService: SmZdmService, private val smZdmLogic: SmZdmLogic,
+    private val aliDriverLogic: AliDriverLogic, private val aliDriverService: AliDriverService,
     private val leiShenService: LeiShenService,
     private val youPinService: YouPinService,
     private val nodeSeekService: NodeSeekService,
@@ -751,11 +746,12 @@ class LoginExtension(
     fun TelegramSubscribe.aliDriver() {
         callback("aliDriverLogin") {
             editMessageText("请选择阿里云盘登录方式", InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("使用阿里云盘app扫码登录", "aliDriveQrcodeLogin"))
+                arrayOf(inlineKeyboardButton("使用阿里云盘app扫码登录", "aliDriveQrcodeLogin")),
+                arrayOf(inlineKeyboardButton("使用阿里云盘RefreshToken登录", "aliDriveTokenLogin"))
             ))
         }
         callback("aliDriveQrcodeLogin") {
-            val qrcode = AliDriverLogic.login1()
+            val qrcode = aliDriverLogic.login1()
             var photoMessage: Message?
             client.get("https://api.kukuqaq.com/qrcode?text=${qrcode.qrcodeUrl.toUrlEncode()}").body<ByteArray>().let {
                 val sendPhoto = SendPhoto(chatId, it)
@@ -769,7 +765,7 @@ class LoginExtension(
                     break
                 }
                 delay(3000)
-                val commonResult = AliDriverLogic.login2(qrcode)
+                val commonResult = aliDriverLogic.login2(qrcode)
                 if (commonResult.success()) {
                     val data = commonResult.data()
                     val refreshToken = data.refreshToken
@@ -786,6 +782,14 @@ class LoginExtension(
                 }
             }
             photoMessage?.delete()
+        }
+        callback("aliDriveTokenLogin") {
+            editMessageText("请发送阿里云盘的RefreshToken")
+            val refreshToken = nextMessage().text()
+            val aliDriverEntity = aliDriverService.findByTgId(tgId) ?: AliDriverEntity().init()
+            aliDriverEntity.refreshToken = refreshToken
+            aliDriverService.save(aliDriverEntity)
+            editMessageText("绑定阿里云盘成功")
         }
     }
 

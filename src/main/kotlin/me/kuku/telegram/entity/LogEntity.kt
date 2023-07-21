@@ -24,7 +24,7 @@ class LogEntity: BaseEntity() {
         telegramBot.execute(sendMessage)
     }
 
-    fun success() = text == "成功"
+    fun success() = text.contains("成功")
 }
 
 
@@ -72,13 +72,13 @@ class LogService(
 
     suspend fun findById(id: String) = logRepository.findById(id).awaitSingleOrNull()
 
-    suspend fun log(tgId: Long, type: LogType, block: suspend () -> Unit) {
+    suspend fun log(tgId: Long, type: LogType, block: suspend LogEntity.() -> Unit) {
         val logEntity = LogEntity().also {
             it.tgId = tgId
             it.type = type
         }
         kotlin.runCatching {
-            block()
+            block(logEntity)
         }.onFailure {
             logEntity.text = "失败"
             logEntity.errReason = it.message ?: "未知异常原因"

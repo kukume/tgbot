@@ -1,19 +1,22 @@
 package me.kuku.telegram.logic
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import me.kuku.pojo.CommonResult
 import me.kuku.telegram.entity.AliDriverEntity
+import me.kuku.telegram.entity.AliDriverService
 import me.kuku.utils.client
-import me.kuku.utils.convertValue
 import me.kuku.utils.setJsonBody
+import org.springframework.stereotype.Service
 import java.time.LocalDate
 
-object AliDriverLogic {
+@Service
+class AliDriverLogic(
+    private val aliDriverService: AliDriverService
+) {
 
-    private val cache = mutableMapOf<String, AliDriverAccessToken>()
+    private val cache = mutableMapOf<Long, AliDriverAccessToken>()
 
     suspend fun login1() = client.get("https://api.kukuqaq.com/alidrive/qrcode").body<AliDriverQrcode>()
 
@@ -29,14 +32,17 @@ object AliDriverLogic {
     }
 
     private suspend fun accessToken(aliDriverEntity: AliDriverEntity): String {
-        val accessToken = cache[aliDriverEntity.refreshToken]
+        val accessToken = cache[aliDriverEntity.tgId]
         return if (accessToken == null || accessToken.isExpire()) {
             val jsonNode = client.post("https://auth.aliyundrive.com/v2/account/token") {
                 setJsonBody("""{"refresh_token": "${aliDriverEntity.refreshToken}", "grant_type": "refresh_token"}"}""")
             }.body<JsonNode>()
             if (jsonNode.has("code")) error(jsonNode["message"].asText())
             val token = "${jsonNode["token_type"].asText()} ${jsonNode["access_token"].asText()}"
-            cache[aliDriverEntity.refreshToken] = AliDriverAccessToken(token, System.currentTimeMillis() + jsonNode["expires_in"].asLong() * 1000 * 60)
+            cache[aliDriverEntity.tgId] = AliDriverAccessToken(token, System.currentTimeMillis() + jsonNode["expires_in"].asLong() * 1000 * 60)
+            val newRefreshToken = jsonNode["refresh_token"].asText()
+            aliDriverEntity.refreshToken = newRefreshToken
+            aliDriverService.save(aliDriverEntity)
             token
         } else accessToken.accessToken
     }
@@ -132,7 +138,7 @@ data class AliDriverQrcode(
 )
 
 data class AliDriverAccessToken(val accessToken: String, val expire: Long) {
-    fun isExpire() = expire > System.currentTimeMillis()
+    fun isExpire() = System.currentTimeMillis() > expire
 }
 
 data class AliDriverTeam(val id: Int, val period: String, val title: String, val subTitle: String,

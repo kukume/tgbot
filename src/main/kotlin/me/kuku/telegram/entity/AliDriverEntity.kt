@@ -6,10 +6,9 @@ import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 
 @Document("ali_driver")
-class AliDriverEntity {
+class AliDriverEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var refreshToken: String = ""
     var sign: Status = Status.OFF
     var receive: Status = Status.OFF
