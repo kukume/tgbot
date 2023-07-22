@@ -39,7 +39,7 @@ class AliDriverLogic(
             }.body<JsonNode>()
             if (jsonNode.has("code")) error(jsonNode["message"].asText())
             val token = "${jsonNode["token_type"].asText()} ${jsonNode["access_token"].asText()}"
-            cache[aliDriverEntity.tgId] = AliDriverAccessToken(token, System.currentTimeMillis() + jsonNode["expires_in"].asLong() * 1000 * 60)
+            cache[aliDriverEntity.tgId] = AliDriverAccessToken(token, System.currentTimeMillis() + jsonNode["expires_in"].asLong() * 1000)
             val newRefreshToken = jsonNode["refresh_token"].asText()
             aliDriverEntity.refreshToken = newRefreshToken
             aliDriverService.save(aliDriverEntity)
