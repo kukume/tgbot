@@ -29,6 +29,7 @@ class TelegramBean(
 ): ApplicationListener<ContextRefreshedEvent> {
 
     private val telegramSubscribeList = mutableListOf<TelegramSubscribe>()
+    private val abilitySubscriberList = mutableListOf<AbilitySubscriber>()
     private val updateFunction = mutableListOf<UpdateFunction>()
     private data class UpdateFunction(val function: KFunction<*>, val any: Any)
 
@@ -67,9 +68,22 @@ class TelegramBean(
                         val obj = applicationContext.getBean(clazz)
                         function.call(obj, telegramExceptionHandler)
                     }
+                    "me.kuku.telegram.utils.MixSubscribe" -> {
+                        val mixSubscribe = MixSubscribe()
+                        val obj = applicationContext.getBean(clazz)
+                        function.call(obj, mixSubscribe)
+                        val mixSubscribeClazz = mixSubscribe::class.java
+                        val abilities = mixSubscribeClazz.getDeclaredField("abilities")
+                            .also { it.isAccessible = true }.get(mixSubscribe) as List<AbilitySubscriber>
+                        val telegrams = mixSubscribeClazz.getDeclaredField("telegrams")
+                            .also { it.isAccessible = true }.get(mixSubscribe) as List<TelegramSubscribe>
+                        abilitySubscriberList.addAll(abilities)
+                        telegramSubscribeList.addAll(telegrams)
+                    }
                 }
             }
         }
+        abilitySubscriberList.add(abilitySubscriber)
         val telegramBot = applicationContext.getBean(TelegramBot::class.java)
         telegramBot.setUpdatesListener {
             for (update in it) {
@@ -80,7 +94,11 @@ class TelegramBean(
                             function.function.callSuspend(function.any, update)
                         }
                     }
-                    abilitySubscriber.invoke(telegramBot, update)
+                    for (single in abilitySubscriberList) {
+//                        telegramExceptionHandler.invokeHandler(AbilityContext(telegramBot, update)) {
+                            single.invoke(telegramBot, update)
+//                        }
+                    }
                     for (telegramSubscribe in telegramSubscribeList) {
                         telegramExceptionHandler.invokeHandler(TelegramContext(telegramBot, update)) {
                             telegramSubscribe.invoke(telegramBot, update)

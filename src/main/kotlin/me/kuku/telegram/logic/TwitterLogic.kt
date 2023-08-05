@@ -3,10 +3,11 @@
 package me.kuku.telegram.logic
 
 import com.fasterxml.jackson.databind.JsonNode
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import me.kuku.telegram.entity.TwitterEntity
-import me.kuku.utils.MyUtils
-import me.kuku.utils.OkHttpKtUtils
-import me.kuku.utils.OkUtils
+import me.kuku.utils.*
 import org.jsoup.Jsoup
 
 object TwitterLogic {
@@ -133,6 +134,53 @@ object TwitterLogic {
                         val url = node["video_info"]["variants"][0]["url"].asText()
                         pojo.forwardVideoList.add(url)
                     }
+                }
+            }
+        }
+        return pojo
+    }
+
+    private suspend fun guestToken(): String {
+        val url = "https://twitter.com/home"
+        val response = client.get(url)
+        val cookie = response.cookie()
+        val text = client.get(url) {
+            headers { cookieString(cookie) }
+        }.bodyAsText()
+        return MyUtils.regex("gt=", ";", text) ?: error("未获取到guest-token")
+    }
+
+    suspend fun tweet(id: Long): TwitterPojo {
+        val guestToken = guestToken()
+        val jsonNode = client.get("https://twitter.com/i/api/graphql/0hWvDhmW8YQ-S_ib3azIrw/TweetResultByRestId?variables=%7B%22tweetId%22%3A%22${id}%22%2C%22withCommunity%22%3Afalse%2C%22includePromotedContent%22%3Afalse%2C%22withVoice%22%3Afalse%7D&features=%7B%22creator_subscriptions_tweet_preview_api_enabled%22%3Atrue%2C%22tweetypie_unmention_optimization_enabled%22%3Atrue%2C%22responsive_web_edit_tweet_api_enabled%22%3Atrue%2C%22graphql_is_translatable_rweb_tweet_is_translatable_enabled%22%3Atrue%2C%22view_counts_everywhere_api_enabled%22%3Atrue%2C%22longform_notetweets_consumption_enabled%22%3Atrue%2C%22responsive_web_twitter_article_tweet_consumption_enabled%22%3Afalse%2C%22tweet_awards_web_tipping_enabled%22%3Afalse%2C%22freedom_of_speech_not_reach_fetch_enabled%22%3Atrue%2C%22standardized_nudges_misinfo%22%3Atrue%2C%22tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled%22%3Atrue%2C%22longform_notetweets_rich_text_read_enabled%22%3Atrue%2C%22longform_notetweets_inline_media_enabled%22%3Atrue%2C%22responsive_web_graphql_exclude_directive_enabled%22%3Atrue%2C%22verified_phone_label_enabled%22%3Afalse%2C%22responsive_web_media_download_video_enabled%22%3Afalse%2C%22responsive_web_graphql_skip_user_profile_image_extensions_enabled%22%3Afalse%2C%22responsive_web_graphql_timeline_navigation_enabled%22%3Atrue%2C%22responsive_web_enhance_cards_enabled%22%3Afalse%7D&fieldToggles=%7B%22withArticleRichContentState%22%3Afalse%2C%22withAuxiliaryUserLabels%22%3Afalse%7D") {
+            headers {
+                append("Authorization", "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA")
+                append("X-Guest-Token", "1687813520518524928")
+            }
+        }.body<JsonNode>()
+        val result = jsonNode["data"]["tweetResult"]["result"]
+        val restId = result["rest_id"].asLong()
+        val userResult = result["core"]["user_results"]["result"]
+        val userLegacy = userResult["legacy"]
+        val createAt = userLegacy["created_at"].asText()
+        val username = userLegacy["name"].asText()
+        val screenName = userLegacy["screen_name"].asText()
+        val userid = userResult["rest_id"].asLong()
+        val legacy = result["legacy"]
+        val source = Jsoup.parse(result["source"].asText()).text()
+        val text = legacy["full_text"].asText()
+        val pojo = TwitterPojo(restId, createAt, text, userid, username, screenName, source)
+        legacy["extended_entities"]?.get("media")?.let {
+            for (node in it) {
+                val type = node["type"].asText()
+                if (type == "photo") {
+                    pojo.photoList.add(node["media_url_https"].asText())
+                }
+                if (type == "video") {
+                    val url = node["video_info"]["variants"]
+                        .filter { va -> va["content_type"].asText() == "video/mp4" }
+                        .maxBy { va -> va["bitrate"].asInt() }["url"].asText()
+                    pojo.videoList.add(url)
                 }
             }
         }

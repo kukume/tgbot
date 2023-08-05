@@ -2,6 +2,7 @@ package me.kuku.telegram.utils
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.File
+import com.pengrad.telegrambot.model.PhotoSize
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InputMediaPhoto
 import com.pengrad.telegrambot.request.SendMediaGroup
@@ -62,4 +63,8 @@ suspend fun File.byteArray(): ByteArray {
         val url = "https://api.telegram.org/file/bot${telegramConfig.token}/$filePath"
         client.get(url).body()
     }
+}
+
+fun Array<PhotoSize>.max(): PhotoSize? {
+    return this.maxByOrNull { it.fileSize() }
 }

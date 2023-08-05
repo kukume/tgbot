@@ -60,7 +60,7 @@ class AbilitySubscriber {
 
     suspend fun invoke(bot: TelegramBot, update: Update) {
         val message = update.message() ?: return
-        val text = message.text() ?: return
+        val text = message.text() ?: message.caption() ?: return
         val messageSplit = text.split(" ")
         if (messageSplit.isEmpty()) return
         var key = messageSplit[0].removePrefix("/")
@@ -219,6 +219,26 @@ class TelegramSubscribe {
                 }
             }
         }
+    }
+
+}
+
+
+class MixSubscribe {
+
+    private val abilities = mutableListOf<AbilitySubscriber>()
+    private val telegrams = mutableListOf<TelegramSubscribe>()
+
+    fun ability(block: AbilitySubscriber.() -> Unit) {
+        val abilitySubscriber = AbilitySubscriber()
+        block(abilitySubscriber)
+        abilities.add(abilitySubscriber)
+    }
+
+    fun telegram(block: TelegramSubscribe.() -> Unit) {
+        val telegramSubscribe = TelegramSubscribe()
+        block(telegramSubscribe)
+        telegrams.add(telegramSubscribe)
     }
 
 }

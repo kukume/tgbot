@@ -12,19 +12,14 @@ import com.pengrad.telegrambot.model.request.Keyboard
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.*
 import com.pengrad.telegrambot.response.SendResponse
-import kotlinx.coroutines.*
 import me.kuku.utils.JobManager
 import org.ehcache.CacheManager
 import org.ehcache.config.builders.CacheConfigurationBuilder
 import org.ehcache.config.builders.ExpiryPolicyBuilder
 import org.ehcache.config.builders.ResourcePoolsBuilder
 import org.springframework.stereotype.Component
-import org.springframework.stereotype.Service
 import java.time.Duration
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.resume
 
 abstract class Context {
     abstract val tgId: Long
@@ -65,7 +60,7 @@ class AbilityContext(override val bot: TelegramBot, val update: Update): Context
 
     override val chatId: Long = message.chat().id()
 
-    private val messageSplit: List<String> = message.text().split(" ")
+    private val messageSplit: List<String> = (message.text() ?: message.caption()).split(" ")
 
     fun firstArg(): String = messageSplit.getOrNull(1) ?: error("first argument is missing")
     fun secondArg(): String = messageSplit.getOrNull(2) ?: error("second argument is missing")

@@ -1,18 +1,18 @@
 package me.kuku.telegram.extension
 
-import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.InputMediaPhoto
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.*
-import kotlinx.coroutines.delay
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeout
 import me.kuku.telegram.entity.BiliBiliService
 import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.ToolLogic
+import me.kuku.telegram.logic.TwitterLogic
 import me.kuku.telegram.logic.YgoLogic
 import me.kuku.telegram.utils.*
 import me.kuku.utils.*
@@ -27,16 +27,42 @@ class ToolExtension(
 
     private val mutex = Mutex()
 
-    fun AbilitySubscriber.queryYgoCard() {
-        sub("ygo", 1) {
-            val cardList = ygoLogic.search(firstArg())
-            val list = mutableListOf<Array<InlineKeyboardButton>>()
-            for (i in cardList.indices) {
-                val card = cardList[i]
-                list.add(arrayOf(InlineKeyboardButton(card.chineseName).callbackData("ygoCard-${card.cardPassword}")))
+    fun MixSubscribe.queryYgoCard() {
+        ability {
+            sub("ygo", 1) {
+                val cardList = ygoLogic.search(firstArg())
+                val list = mutableListOf<Array<InlineKeyboardButton>>()
+                for (i in cardList.indices) {
+                    val card = cardList[i]
+                    list.add(arrayOf(InlineKeyboardButton(card.chineseName).callbackData("ygoCard-${card.cardPassword}")))
+                }
+                sendMessage("请选择查询的卡片", replyKeyboard = InlineKeyboardMarkup(*list.toTypedArray()))
             }
-            sendMessage("请选择查询的卡片", replyKeyboard = InlineKeyboardMarkup(*list.toTypedArray()))
         }
+        telegram {
+            callbackStartsWith("ygoCard") {
+                answerCallbackQuery("获取成功")
+                val id = query.data().split("-")[1]
+                val card = ygoLogic.searchDetail(id.toLong())
+                val sendPhoto = SendPhoto(chatId, OkHttpKtUtils.getBytes(card.imageUrl))
+                sendPhoto.caption("中文名：${card.chineseName}\n日文名：${card.japaneseName}\n英文名：${card.englishName}\n效果：\n${card.effect}\n链接：${card.url}")
+                bot.execute(sendPhoto)
+            }
+        }
+    }
+
+    fun AbilitySubscriber.tool() {
+        sub("info", locality = Locality.ALL) {
+            val id = message.chat().id()
+            val messageThreadId = message.messageThreadId()
+            sendMessage("""
+                chatId: `$id`
+                messageThreadId: `$messageThreadId`
+            """.trimIndent(), parseMode = ParseMode.Markdown)
+        }
+    }
+
+    fun AbilitySubscriber.loLiCon() {
         sub("lolicon", locality = Locality.ALL) {
             val r18 = kotlin.runCatching {
                 if (firstArg().lowercase() == "r18") 1 else 0
@@ -59,19 +85,47 @@ class ToolExtension(
             }
         }
         sub("loliconmulti", locality = Locality.ALL) {
-            loLiConMulti(chatId.toString(), bot, this, message.messageThreadId())
+            val r18 = kotlin.runCatching {
+                if (firstArg().lowercase() == "r18") 1 else 0
+            }.getOrDefault(0)
+            val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=$r18")
+            val list = jsonNode["data"].map { node -> node["urls"]["original"].asText() }
+            val inputMediaList = mutableListOf<InputMediaPhoto>()
+            for (i in list.indices) {
+                val s = list[i]
+                val bytes = OkHttpKtUtils.getBytes(s)
+                if (bytes.size > 1024 * 10 * 1024) continue
+                val mediaPhoto = InputMediaPhoto(bytes)
+                inputMediaList.add(mediaPhoto)
+            }
+            val sendMediaGroup = SendMediaGroup(chatId, *inputMediaList.toTypedArray())
+            message.messageThreadId()?.let {
+                sendMediaGroup.messageThreadId(it)
+            }
+            bot.execute(sendMediaGroup)
         }
-        sub("tool") {
-            sendMessage("请选择小工具", toolKeyboardMarkup())
-        }
-        sub("info", locality = Locality.ALL) {
-            val id = message.chat().id()
-            val messageThreadId = message.messageThreadId()
+        sub("saucenao") {
+            val photos = update.message().photo()
+            val photoSize = photos.max() ?: error("未发现图片")
+            val getFile = GetFile(photoSize.fileId())
+            val fileResponse = bot.execute(getFile)
+            val byteArray = fileResponse.file().byteArray()
+            val list = toolLogic.saucenao(byteArray)
+            if (list.isEmpty()) error("未找到结果")
+            val result = list[0]
             sendMessage("""
-                chatId: `$id`
-                messageThreadId: `$messageThreadId`
-            """.trimIndent(), parseMode = ParseMode.Markdown)
+                相似度：${result.similarity}
+                名字：${result.indexName}
+                标题：${result.title}
+                预览链接：${result.thumbnail}
+                源链接：${result.extUrls}
+                作者：${result.author}
+                作者主页：${result.authUrl}
+            """.trimIndent())
         }
+    }
+
+    fun AbilitySubscriber.dyna() {
         sub("bv", input = 1) {
             mutex.withLock {
                 val biliBiliEntity = biliBiliService.findByTgId(tgId)
@@ -88,103 +142,28 @@ class ToolExtension(
                 file.delete()
             }
         }
-    }
-
-    fun TelegramSubscribe.selectCard() {
-        callbackStartsWith("ygoCard") {
-            answerCallbackQuery("获取成功")
-            val id = query.data().split("-")[1]
-            val card = ygoLogic.searchDetail(id.toLong())
-            val sendPhoto = SendPhoto(chatId, OkHttpKtUtils.getBytes(card.imageUrl))
-            sendPhoto.caption("中文名：${card.chineseName}\n日文名：${card.japaneseName}\n英文名：${card.englishName}\n效果：\n${card.effect}\n链接：${card.url}")
-            bot.execute(sendPhoto)
-        }
-    }
-
-    private fun toolKeyboardMarkup(): InlineKeyboardMarkup {
-        val fishermanCalendarButton = InlineKeyboardButton("摸鱼日历").callbackData("FishermanCalendarTool")
-        val ttsButton = InlineKeyboardButton("tts").callbackData("ttsTool")
-        val saucenaoButton = InlineKeyboardButton("saucenao识图").callbackData("saucenaoTool")
-        return InlineKeyboardMarkup(
-            arrayOf(fishermanCalendarButton),
-            arrayOf(ttsButton, saucenaoButton)
-        )
-    }
-
-    private suspend fun loLiConMulti(chatId: String, bot: TelegramBot, abilityContext: AbilityContext, messageThreadId: Int? = null) {
-        val r18 = kotlin.runCatching {
-            if (abilityContext.firstArg().lowercase() == "r18") 1 else 0
-        }.getOrDefault(0)
-        val jsonNode = OkHttpKtUtils.getJson("https://api.lolicon.app/setu/v2?num=5&r18=$r18")
-        val list = jsonNode["data"].map { node -> node["urls"]["original"].asText() }
-        val inputMediaList = mutableListOf<InputMediaPhoto>()
-        for (i in list.indices) {
-            val s = list[i]
-            val bytes = OkHttpKtUtils.getBytes(s)
-            if (bytes.size > 1024 * 10 * 1024) continue
-            val mediaPhoto = InputMediaPhoto(bytes)
-            inputMediaList.add(mediaPhoto)
-        }
-        val sendMediaGroup = SendMediaGroup(chatId, *inputMediaList.toTypedArray())
-        messageThreadId?.let {
-            sendMediaGroup.messageThreadId(it)
-        }
-        bot.execute(sendMediaGroup)
-    }
-
-    fun TelegramSubscribe.colorPic() {
-        callback("FishermanCalendarTool") {
-            OkHttpKtUtils.getBytes("https://api.kukuqaq.com/fishermanCalendar?preview").let {
-                val sendPhoto = SendPhoto(chatId, it)
-                bot.execute(sendPhoto)
-            }
-            answerCallbackQuery("获取成功")
-        }
-        callback("ttsTool") {
-            editMessageText("请发送生成的语音日语文字")
-            val text = nextMessage().text()
-            val jsonNode = OkHttpKtUtils.postJson("https://innnky-vits-nyaru.hf.space/api/queue/push/", OkUtils.json("""
-                {"fn_index":0,"data":["$text"],"action":"predict","session_hash":""}
-            """.trimIndent()))
-            val hash = jsonNode["hash"].asText()
-            withTimeout(1000 * 20) {
-                while (true) {
-                    delay(1000)
-                    val statusJsonNode = OkHttpKtUtils.postJson("https://innnky-vits-nyaru.hf.space/api/queue/status/",
-                        OkUtils.json("""{"hash":"$hash"}"""))
-                    if (statusJsonNode["status"].asText() == "QUEUED") continue
-                    val data = statusJsonNode["data"]["data"] ?: continue
-                    val status = data[0].asText()
-                    if (status != "Success") error(status)
-                    val base = data[1].asText().substring(22)
-                    base.base64Decode().let {
-                        val sendAudio = SendAudio(chatId, it).fileName("tts.wav")
-                        bot.execute(sendAudio)
-                    }
-                    break
+        sub("x", 1) {
+            mutex.withLock {
+                val twitterPojo = TwitterLogic.tweet(firstArg().toLong())
+                val text = TwitterLogic.convertStr(twitterPojo)
+                val videoUrl = if (twitterPojo.videoList.isNotEmpty()) twitterPojo.videoList[0]
+                else ""
+                try {
+                    if (videoUrl.isNotEmpty()) {
+                        client.get(videoUrl).body<ByteArray>().let {
+                            val sendVideo = SendVideo(tgId, it).fileName("${twitterPojo.id}.mp4")
+                                .caption(text)
+                            bot.execute(sendVideo)
+                        }
+                    } else if (twitterPojo.photoList.isNotEmpty() || twitterPojo.forwardPhotoList.isNotEmpty()) {
+                        val imageList = twitterPojo.photoList
+                        imageList.addAll(twitterPojo.forwardPhotoList)
+                        bot.sendPic(tgId, text, imageList)
+                    } else bot.sendTextMessage(tgId, text)
+                } catch (e: Exception) {
+                    bot.sendTextMessage(tgId, text)
                 }
             }
-        }
-       callback("saucenaoTool") {
-            editMessageText("请发送需要识别的图片")
-            val message = nextMessage()
-            val photoList = message.photo()
-            if (photoList.isEmpty()) error("您发送的不为图片")
-            val photo = photoList.last()
-            val getFile = GetFile(photo.fileId())
-            val file = bot.execute(getFile).file()
-            val list = toolLogic.saucenao(file.byteArray())
-            if (list.isEmpty()) error("未找到结果")
-            val result = list[0]
-            editMessageText("""
-                相似度：${result.similarity}
-                名字：${result.indexName}
-                标题：${result.title}
-                预览链接：${result.thumbnail}
-                源链接：${result.extUrls}
-                作者：${result.author} 
-                作者主页：${result.authUrl}
-            """.trimIndent())
         }
     }
 
