@@ -6,11 +6,14 @@ import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import me.kuku.telegram.entity.TwitterEntity
 import me.kuku.utils.*
 import org.jsoup.Jsoup
 
 object TwitterLogic {
+
+    private var guestToken: String? = null
 
     private fun Map<String, String>.auth(): MutableMap<String, String> {
         val map = this.toMutableMap()
@@ -141,13 +144,26 @@ object TwitterLogic {
     }
 
     private suspend fun guestToken(): String {
-        val url = "https://twitter.com/home"
-        val response = client.get(url)
-        val cookie = response.cookie()
-        val text = client.get(url) {
-            headers { cookieString(cookie) }
-        }.bodyAsText()
-        return MyUtils.regex("gt=", ";", text) ?: error("未获取到guest-token")
+        return if (guestToken == null || !checkGuest(guestToken!!)) {
+            val url = "https://twitter.com/home"
+            val response = client.get(url)
+            val cookie = response.cookie()
+            val text = client.get(url) {
+                headers { cookieString(cookie) }
+            }.bodyAsText()
+            guestToken = MyUtils.regex("gt=", ";", text) ?: error("未获取到guest-token")
+            guestToken!!
+        } else guestToken!!
+    }
+
+    private suspend fun checkGuest(token: String): Boolean {
+        val response = client.get("https://twitter.com/i/api/1.1/hashflags.json") {
+            headers {
+                append("Authorization", "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA")
+                append("X-Guest-Token", token)
+            }
+        }
+       return response.status != HttpStatusCode.Forbidden
     }
 
     suspend fun tweet(id: Long): TwitterPojo {
@@ -155,7 +171,7 @@ object TwitterLogic {
         val jsonNode = client.get("https://twitter.com/i/api/graphql/0hWvDhmW8YQ-S_ib3azIrw/TweetResultByRestId?variables=%7B%22tweetId%22%3A%22${id}%22%2C%22withCommunity%22%3Afalse%2C%22includePromotedContent%22%3Afalse%2C%22withVoice%22%3Afalse%7D&features=%7B%22creator_subscriptions_tweet_preview_api_enabled%22%3Atrue%2C%22tweetypie_unmention_optimization_enabled%22%3Atrue%2C%22responsive_web_edit_tweet_api_enabled%22%3Atrue%2C%22graphql_is_translatable_rweb_tweet_is_translatable_enabled%22%3Atrue%2C%22view_counts_everywhere_api_enabled%22%3Atrue%2C%22longform_notetweets_consumption_enabled%22%3Atrue%2C%22responsive_web_twitter_article_tweet_consumption_enabled%22%3Afalse%2C%22tweet_awards_web_tipping_enabled%22%3Afalse%2C%22freedom_of_speech_not_reach_fetch_enabled%22%3Atrue%2C%22standardized_nudges_misinfo%22%3Atrue%2C%22tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled%22%3Atrue%2C%22longform_notetweets_rich_text_read_enabled%22%3Atrue%2C%22longform_notetweets_inline_media_enabled%22%3Atrue%2C%22responsive_web_graphql_exclude_directive_enabled%22%3Atrue%2C%22verified_phone_label_enabled%22%3Afalse%2C%22responsive_web_media_download_video_enabled%22%3Afalse%2C%22responsive_web_graphql_skip_user_profile_image_extensions_enabled%22%3Afalse%2C%22responsive_web_graphql_timeline_navigation_enabled%22%3Atrue%2C%22responsive_web_enhance_cards_enabled%22%3Afalse%7D&fieldToggles=%7B%22withArticleRichContentState%22%3Afalse%2C%22withAuxiliaryUserLabels%22%3Afalse%7D") {
             headers {
                 append("Authorization", "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA")
-                append("X-Guest-Token", "1687813520518524928")
+                append("X-Guest-Token", guestToken)
             }
         }.body<JsonNode>()
         val result = jsonNode["data"]["tweetResult"]["result"]
