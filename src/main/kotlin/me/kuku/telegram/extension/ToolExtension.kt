@@ -144,7 +144,12 @@ class ToolExtension(
         }
         sub("x", 1) {
             mutex.withLock {
-                val twitterPojo = TwitterLogic.tweet(firstArg().toLong())
+                val id = try {
+                    firstArg().toLong()
+                } catch (e: NumberFormatException) {
+                    MyUtils.regex("(?<=/status/)[0-9]*", firstArg())?.toLong() ?: error("错误的x链接")
+                }
+                val twitterPojo = TwitterLogic.tweet(id)
                 val text = TwitterLogic.convertStr(twitterPojo)
                 val videoUrl = if (twitterPojo.videoList.isNotEmpty()) twitterPojo.videoList[0]
                 else ""
