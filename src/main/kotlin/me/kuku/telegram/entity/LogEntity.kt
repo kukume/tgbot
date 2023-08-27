@@ -41,7 +41,8 @@ enum class LogType(val value: String) {
     Weibo("微博"),
     DouYu("斗鱼"),
     SmZdm("什么值得买"),
-    AliDriver("阿里云盘"),
+    AliDrive("阿里云盘"),
+    AliDriveTask("阿里云盘任务"),
     NodeSeek("NodeSeek"),
     GlaDos("GlaDos")
 }

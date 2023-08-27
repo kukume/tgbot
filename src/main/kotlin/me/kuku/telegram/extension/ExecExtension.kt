@@ -25,8 +25,8 @@ class ExecExtension(
     private val douYuLogic: DouYuLogic,
     private val smZdmService: SmZdmService,
     private val smZdmLogic: SmZdmLogic,
-    private val aliDriverService: AliDriverService,
-    private val aliDriverLogic: AliDriverLogic,
+    private val aliDriveService: AliDriveService,
+    private val aliDriveLogic: AliDriveLogic,
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService
 ) {
@@ -42,7 +42,7 @@ class ExecExtension(
         val weiboButton = InlineKeyboardButton("微博").callbackData("weiboExec")
         val douYuButton = InlineKeyboardButton("斗鱼").callbackData("douYuExec")
         val smZdmButton = InlineKeyboardButton("什么值得买").callbackData("smZdmExec")
-        val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverExec")
+        val aliDrive = inlineKeyboardButton("阿里云盘", "aliDriveExec")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekExec")
         val glaDos = inlineKeyboardButton("GlaDos", "glaDosExec")
         return InlineKeyboardMarkup(
@@ -51,7 +51,7 @@ class ExecExtension(
             arrayOf(miHoYoButton, netEaseButton),
             arrayOf(stepButton, weiboButton),
             arrayOf(douYuButton, smZdmButton),
-            arrayOf(aliDriver, nodeSeek),
+            arrayOf(aliDrive, nodeSeek),
             arrayOf(glaDos)
         )
     }
@@ -281,23 +281,23 @@ class ExecExtension(
         }
     }
 
-    fun TelegramSubscribe.aliDriver() {
-        before { set(aliDriverService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定阿里云盘账号")) }
-        callback("aliDriverExec") {
-            val signButton = inlineKeyboardButton("签到", "aliDriverSign")
-            val receive = inlineKeyboardButton("领取", "aliDriverReceive")
+    fun TelegramSubscribe.aliDrive() {
+        before { set(aliDriveService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定阿里云盘账号")) }
+        callback("aliDriveExec") {
+            val signButton = inlineKeyboardButton("签到", "aliDriveSign")
+            val receive = inlineKeyboardButton("领取", "aliDriveReceive")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(arrayOf(signButton), arrayOf(receive))
             editMessageText("阿里云盘", inlineKeyboardMarkup)
         }
-        callback("aliDriverSign") {
-            val entity: AliDriverEntity = firstArg()
-            val res = aliDriverLogic.sign(entity)
+        callback("aliDriveSign") {
+            val entity: AliDriveEntity = firstArg()
+            val res = aliDriveLogic.sign(entity)
             editMessageText(res.customMessage)
         }
-        callback("aliDriverReceive") {
+        callback("aliDriveReceive") {
             editMessageText("请发送领取哪天的奖励")
             val day = nextMessage().text().toIntOrNull() ?: error("错误，不为数字")
-            val result = aliDriverLogic.receive(firstArg(), day)
+            val result = aliDriveLogic.receive(firstArg(), day)
             editMessageText(result)
         }
     }

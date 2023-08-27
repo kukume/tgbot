@@ -35,7 +35,7 @@ class LoginExtension(
     private val pixivService: PixivService,
     private val buffService: BuffService,
     private val smZdmService: SmZdmService, private val smZdmLogic: SmZdmLogic,
-    private val aliDriverLogic: AliDriverLogic, private val aliDriverService: AliDriverService,
+    private val aliDriveLogic: AliDriveLogic, private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
     private val youPinService: YouPinService,
     private val nodeSeekService: NodeSeekService,
@@ -58,7 +58,7 @@ class LoginExtension(
         val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivLogin")
         val buffButton = InlineKeyboardButton("网易Buff").callbackData("buffLogin")
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmLogin")
-        val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriverLogin")
+        val aliDriveButton = inlineKeyboardButton("阿里云盘", "aliDriveLogin")
         val leiShenButton = inlineKeyboardButton("雷神加速器", "leiShenLogin")
         val youPingButton = inlineKeyboardButton("悠悠有品", "youPingLogin")
         val nodeSeekButton = inlineKeyboardButton("NodeSeek", "nodeSeekLogin")
@@ -71,7 +71,7 @@ class LoginExtension(
             arrayOf(stepButton, weiboStepButton),
             arrayOf(douYinButton, twitterButton),
             arrayOf(pixivButton, buffButton),
-            arrayOf(smZdmButton, aliDriverButton),
+            arrayOf(smZdmButton, aliDriveButton),
             arrayOf(leiShenButton, youPingButton),
             arrayOf(nodeSeekButton, gloDos)
         )
@@ -743,15 +743,15 @@ class LoginExtension(
         }
     }
 
-    fun TelegramSubscribe.aliDriver() {
-        callback("aliDriverLogin") {
+    fun TelegramSubscribe.aliDrive() {
+        callback("aliDriveLogin") {
             editMessageText("请选择阿里云盘登录方式", InlineKeyboardMarkup(
                 arrayOf(inlineKeyboardButton("使用阿里云盘app扫码登录", "aliDriveQrcodeLogin")),
                 arrayOf(inlineKeyboardButton("使用阿里云盘RefreshToken登录", "aliDriveTokenLogin"))
             ))
         }
         callback("aliDriveQrcodeLogin") {
-            val qrcode = aliDriverLogic.login1()
+            val qrcode = aliDriveLogic.login1()
             var photoMessage: Message?
             client.get("https://api.kukuqaq.com/qrcode?text=${qrcode.qrcodeUrl.toUrlEncode()}").body<ByteArray>().let {
                 val sendPhoto = SendPhoto(chatId, it)
@@ -765,15 +765,15 @@ class LoginExtension(
                     break
                 }
                 delay(3000)
-                val commonResult = aliDriverLogic.login2(qrcode)
+                val commonResult = aliDriveLogic.login2(qrcode)
                 if (commonResult.success()) {
                     val data = commonResult.data()
                     val refreshToken = data.refreshToken
-                    val aliDriverEntity = aliDriverService.findByTgId(tgId) ?: AliDriverEntity().also {
+                    val aliDriveEntity = aliDriveService.findByTgId(tgId) ?: AliDriveEntity().also {
                         it.tgId = tgId
                     }
-                    aliDriverEntity.refreshToken = refreshToken
-                    aliDriverService.save(aliDriverEntity)
+                    aliDriveEntity.refreshToken = refreshToken
+                    aliDriveService.save(aliDriveEntity)
                     editMessageText("绑定阿里云盘成功")
                     break
                 } else if (commonResult.code != 0) {
@@ -786,9 +786,9 @@ class LoginExtension(
         callback("aliDriveTokenLogin") {
             editMessageText("请发送阿里云盘的RefreshToken")
             val refreshToken = nextMessage().text()
-            val aliDriverEntity = aliDriverService.findByTgId(tgId) ?: AliDriverEntity().init()
-            aliDriverEntity.refreshToken = refreshToken
-            aliDriverService.save(aliDriverEntity)
+            val aliDriveEntity = aliDriveService.findByTgId(tgId) ?: AliDriveEntity().init()
+            aliDriveEntity.refreshToken = refreshToken
+            aliDriveService.save(aliDriveEntity)
             editMessageText("绑定阿里云盘成功")
         }
     }

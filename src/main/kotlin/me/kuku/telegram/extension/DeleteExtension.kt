@@ -23,7 +23,7 @@ class DeleteExtension(
     private val pixivService: PixivService,
     private val buffService: BuffService,
     private val smZdmService: SmZdmService,
-    private val aliDriverService: AliDriverService,
+    private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
     private val youPinService: YouPinService,
     private val nodeSeekService: NodeSeekService
@@ -45,7 +45,7 @@ class DeleteExtension(
         val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivDelete")
         val buffButton = InlineKeyboardButton("网易buff").callbackData("buffDelete")
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmDelete")
-        val aliDriverButton = inlineKeyboardButton("阿里云盘", "aliDriveDelete")
+        val aliDriveButton = inlineKeyboardButton("阿里云盘", "aliDriveDelete")
         val leiShenDelete = inlineKeyboardButton("雷神加速器", "leiShenDelete")
         val youPinDelete = inlineKeyboardButton("悠悠有品", "youPinDelete")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekDelete")
@@ -57,7 +57,7 @@ class DeleteExtension(
             arrayOf(stepButton, weiboStepButton),
             arrayOf(douYinButton, twitterButton),
             arrayOf(pixivButton, buffButton),
-            arrayOf(smZdmButton, aliDriverButton),
+            arrayOf(smZdmButton, aliDriveButton),
             arrayOf(leiShenDelete, youPinDelete),
             arrayOf(nodeSeek)
         )
@@ -131,7 +131,7 @@ class DeleteExtension(
             editMessageText("删除什么值得买成功")
         }
         callback("aliDriveDelete") {
-            aliDriverService.deleteByTgId(tgId)
+            aliDriveService.deleteByTgId(tgId)
             editMessageText("删除阿里云盘成功")
         }
         callback("leiShenDelete") {

@@ -25,7 +25,7 @@ class ManagerExtension(
     private val pixivService: PixivService,
     private val douYinService: DouYinService,
     private val smZdmService: SmZdmService,
-    private val aliDriverService: AliDriverService,
+    private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService
@@ -46,7 +46,7 @@ class ManagerExtension(
         val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivManager")
         val douYinButton = InlineKeyboardButton("抖音").callbackData("douYinManager")
         val smZdmButton = InlineKeyboardButton("什么值得买").callbackData("smZdmManager")
-        val aliDriver = inlineKeyboardButton("阿里云盘", "aliDriverManager")
+        val aliDrive = inlineKeyboardButton("阿里云盘", "aliDriveManager")
         val leiShen = inlineKeyboardButton("雷神加速器", "leiShenManager")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekManager")
         val glaDos = inlineKeyboardButton("Glados", "glaDosManager")
@@ -58,7 +58,7 @@ class ManagerExtension(
             arrayOf(xiaomiStepButton, weiboButton),
             arrayOf(twitterButton, pixivButton),
             arrayOf(douYinButton, smZdmButton),
-            arrayOf(aliDriver, leiShen),
+            arrayOf(aliDrive, leiShen),
             arrayOf(nodeSeek, glaDos)
         )
     }
@@ -407,31 +407,42 @@ class ManagerExtension(
     }
 
     fun TelegramSubscribe.aliDriveManager() {
-        before { set(aliDriverService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定阿里云盘账号")) }
-        callback("aliDriverManager") {}
-        callback("aliDriverSignOpen") { firstArg<AliDriverEntity>().sign = Status.ON }
-        callback("aliDriverSignClose") { firstArg<AliDriverEntity>().sign = Status.OFF }
-        callback("aliDriverReceiveOpen") { firstArg<AliDriverEntity>().receive = Status.ON }
-        callback("aliDriverReceiveClose") { firstArg<AliDriverEntity>().receive = Status.OFF }
-        callback("aliDriverPkOpen") { firstArg<AliDriverEntity>().joinTeam = Status.ON }
-        callback("aliDriverPkClose") { firstArg<AliDriverEntity>().joinTeam = Status.OFF }
+        before { set(aliDriveService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定阿里云盘账号")) }
+        callback("aliDriveManager") {}
+        callback("aliDriveSignOpen") { firstArg<AliDriveEntity>().sign = Status.ON }
+        callback("aliDriveSignClose") { firstArg<AliDriveEntity>().sign = Status.OFF }
+        callback("aliDriveReceiveOpen") { firstArg<AliDriveEntity>().receive = Status.ON }
+        callback("aliDriveReceiveClose") { firstArg<AliDriveEntity>().receive = Status.OFF }
+        callback("aliDrivePkOpen") { firstArg<AliDriveEntity>().joinTeam = Status.ON }
+        callback("aliDrivePkClose") { firstArg<AliDriveEntity>().joinTeam = Status.OFF }
+        callback("aliDriveTaskOpen") { firstArg<AliDriveEntity>().task = Status.ON }
+        callback("aliDriveTaskClose") { firstArg<AliDriveEntity>().task = Status.OFF }
+        callback("aliDriveReceiveTaskOpen") { firstArg<AliDriveEntity>().receiveTask = Status.ON }
+        callback("aliDriveReceiveTaskClose") { firstArg<AliDriveEntity>().receiveTask = Status.OFF }
         after {
-            val aliDriverEntity = firstArg<AliDriverEntity>()
-            aliDriverService.save(aliDriverEntity)
-            val signOpenButton = inlineKeyboardButton("自动签到（开）", "aliDriverSignOpen")
-            val signCloseButton = inlineKeyboardButton("自动签到（关）", "aliDriverSignClose")
-            val receiveOpenButton = inlineKeyboardButton("自动领取（开）", "aliDriverReceiveOpen")
-            val receiveCloseButton = inlineKeyboardButton("自动领取（关）", "aliDriverReceiveClose")
-            val pkOpen = inlineKeyboardButton("自动PK（开）", "aliDriverPkOpen")
-            val pkClose = inlineKeyboardButton("自动PK（关）", "aliDriverPkClose")
+            val aliDriveEntity = firstArg<AliDriveEntity>()
+            aliDriveService.save(aliDriveEntity)
+            val signOpenButton = inlineKeyboardButton("自动签到（开）", "aliDriveSignOpen")
+            val signCloseButton = inlineKeyboardButton("自动签到（关）", "aliDriveSignClose")
+            val receiveOpenButton = inlineKeyboardButton("自动领取（开）", "aliDriveReceiveOpen")
+            val receiveCloseButton = inlineKeyboardButton("自动领取（关）", "aliDriveReceiveClose")
+            val pkOpen = inlineKeyboardButton("自动PK（开）", "aliDrivePkOpen")
+            val pkClose = inlineKeyboardButton("自动PK（关）", "aliDrivePkClose")
+            val taskOpen = inlineKeyboardButton("完成任务（开）", "aliDriveTaskOpen")
+            val taskClose = inlineKeyboardButton("完成任务（关）", "aliDriveTaskClose")
+            val receiveTaskOpen = inlineKeyboardButton("领取任务奖励（开）", "aliDriveReceiveTaskOpen")
+            val receiveTaskClose = inlineKeyboardButton("领取任务奖励（关）", "aliDriveReceiveTaskClose")
             val markup = InlineKeyboardMarkup(arrayOf(signOpenButton, signCloseButton), arrayOf(receiveOpenButton, receiveCloseButton),
-                arrayOf(pkOpen, pkClose))
+                arrayOf(pkOpen, pkClose), arrayOf(taskOpen, taskClose), arrayOf(receiveTaskOpen, receiveTaskClose)
+            )
             editMessageText("""
                 阿里云盘，如自动签到为关，自动领取不生效
                 当前状态：
-                签到：${aliDriverEntity.sign.str()}
-                领取：${aliDriverEntity.receive.str()}
-                PK领补签卡：${aliDriverEntity.joinTeam.str()}
+                签到：${aliDriveEntity.sign.str()}
+                领取：${aliDriveEntity.receive.str()}
+                PK领补签卡：${aliDriveEntity.joinTeam.str()}
+                完成任务：${aliDriveEntity.task.str()}
+                领取任务奖励：${aliDriveEntity.receiveTask.str()}
             """.trimIndent(), markup, top = true)
         }
     }
