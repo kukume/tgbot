@@ -289,7 +289,10 @@ class ExecExtension(
             val task = inlineKeyboardButton("完成任务", "aliDriveTask")
             val receiveTask = inlineKeyboardButton("领取任务奖励", "aliDriveReceiveTask")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(arrayOf(signButton), arrayOf(receive), arrayOf(task), arrayOf(receiveTask))
-            editMessageText("阿里云盘", inlineKeyboardMarkup)
+            editMessageText("""
+                阿里云盘
+                完成任务会在你的云盘上上传图片、视频、新建文件夹等，介意勿用
+            """.trimIndent(), inlineKeyboardMarkup)
         }
         callback("aliDriveSign") {
             val entity: AliDriveEntity = firstArg()

@@ -437,6 +437,7 @@ class ManagerExtension(
             )
             editMessageText("""
                 阿里云盘，如自动签到为关，自动领取不生效
+                完成任务会在你的云盘上上传图片、视频、新建文件夹等，介意勿用
                 当前状态：
                 签到：${aliDriveEntity.sign.str()}
                 领取：${aliDriveEntity.receive.str()}

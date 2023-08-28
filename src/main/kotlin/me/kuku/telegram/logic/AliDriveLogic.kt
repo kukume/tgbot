@@ -156,12 +156,13 @@ class AliDriveLogic(
 
     suspend fun receiveTask(aliDriveEntity: AliDriveEntity, day: Int = LocalDate.now().dayOfMonth): String {
         val accessToken = accessToken(aliDriveEntity)
-        val jsonNode = client.post("https://member.aliyundrive.com/v1/activity/sign_in_task_reward?_rx-s=mobile") {
+        val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/sign_in_task_reward?_rx-s=mobile") {
             setJsonBody("""{"signInDay": $day}""")
             headers {
                 append("Authorization", accessToken)
             }
         }.body<JsonNode>()
+        jsonNode.check()
         return if (jsonNode["success"]?.asBoolean() == true) {
             "领取成功，${jsonNode["result"]["notice"].asText()}"
         } else error(jsonNode["code"].asText())
