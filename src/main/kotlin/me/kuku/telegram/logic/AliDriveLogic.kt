@@ -4,22 +4,23 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.util.*
 import me.kuku.pojo.CommonResult
 import me.kuku.telegram.entity.AliDriveEntity
 import me.kuku.telegram.entity.AliDriveService
 import me.kuku.utils.*
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.bouncycastle.crypto.digests.SHA256Digest
 import org.bouncycastle.crypto.ec.CustomNamedCurves
-import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.crypto.params.ECDomainParameters
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters
+import org.bouncycastle.crypto.params.ECPublicKeyParameters
+import org.bouncycastle.crypto.signers.ECDSASigner
+import org.bouncycastle.crypto.signers.HMacDSAKCalculator
 import org.springframework.stereotype.Service
 import java.io.ByteArrayInputStream
 import java.math.BigInteger
-import java.security.KeyFactory
-import java.security.Security
-import java.security.Signature
-import java.security.spec.PKCS8EncodedKeySpec
 import java.time.LocalDate
+import java.util.*
 import javax.imageio.ImageIO
 
 @Service
@@ -28,6 +29,7 @@ class AliDriveLogic(
 ) {
 
     private val cache = mutableMapOf<Long, AliDriveAccessToken>()
+    private val signatureCache = mutableMapOf<Long, AliDriveSignature>()
 
     suspend fun login1() = client.get("https://api.kukuqaq.com/alidrive/qrcode").body<AliDriveQrcode>()
 
@@ -97,6 +99,37 @@ class AliDriveLogic(
         val accessToken = accessToken(this@AliDriveEntity)
         headers {
             append("Authorization", accessToken)
+        }
+    }
+
+    context(HttpRequestBuilder)
+    private suspend fun AliDriveEntity.appendEncrypt() {
+        val tgId = this@AliDriveEntity.tgId
+        val aliDriveSignature = if (signatureCache.containsKey(tgId)) {
+            val aliDriveSignature = signatureCache[tgId]!!
+            if (aliDriveSignature.isExpire()) {
+                aliDriveSignature.nonce += 1
+                encrypt(this@AliDriveEntity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
+                    aliDriveSignature.deviceId, aliDriveSignature.userid)
+                aliDriveSignature.expireRefresh()
+                aliDriveSignature
+            } else aliDriveSignature
+        } else {
+            val userGet = userGet(this@AliDriveEntity)
+            val deviceId = UUID.randomUUID().toString()
+            val encryptKey = encryptKey()
+            val encrypt = encrypt(this@AliDriveEntity, encryptKey, deviceId, userGet.userid)
+            val aliDriveSignature = AliDriveSignature()
+            aliDriveSignature.deviceId = deviceId
+            aliDriveSignature.privateKey = encryptKey.privateKey
+            aliDriveSignature.publicKey = encryptKey.publicKey
+            aliDriveSignature.signature = encrypt.signature
+            signatureCache[tgId] = aliDriveSignature
+            aliDriveSignature
+        }
+        headers {
+            append("x-device-id", aliDriveSignature.deviceId)
+            append("x-signature", aliDriveSignature.signature)
         }
     }
 
@@ -329,9 +362,7 @@ class AliDriveLogic(
                 {"drive_id":"$driveId","file_id":"$fileId","category":"live_transcoding","template_id":"","get_subtitle_info":true}
             """.trimIndent())
             aliDriveEntity.appendAuth()
-            headers {
-                append("X-Device-Id", "2e87985f-e41d-4c56-9ecb-570f2a9c4c98")
-            }
+            aliDriveEntity.appendEncrypt()
         }.body<JsonNode>()
         jsonNode.check2()
         return jsonNode.convertValue()
@@ -438,36 +469,53 @@ class AliDriveLogic(
         return jsonNode.convertValue()
     }
 
-
-    fun test2() {
-        Security.addProvider(BouncyCastleProvider())
-        val privateKeyHex = "28268685290321229737041092088357888864351093278183538461211559008945010884953"
-        val privateKeyValue = BigInteger(privateKeyHex, 16)
-        val curveParams  = CustomNamedCurves.getByName("secp256k1")
-        val publicKeyPoint = curveParams.g.multiply(privateKeyValue)
-        val encoded = publicKeyPoint.getEncoded(false)
-        val publicKeyHex = encoded.hex()
-        println(publicKeyHex)
-        val keyFactory = KeyFactory.getInstance("EC", "BC")
-        val privateKeySpec = PKCS8EncodedKeySpec(hex(privateKeyHex))
-        val generatePrivate = keyFactory.generatePrivate(privateKeySpec)
-
-        val signature = Signature.getInstance("SHA256withECDSA", "BC")
-        signature.initSign(generatePrivate)
-        signature.update("5dde4e1bdf9e4966b387ba58f4b3fdc3:e5173011-XXXX-XXXX-XXXX-XXXXf04f3c62:XXXXf36e37XXXX79bdXXXXdeb6203f67:0".toByteArray())
-
-        val signBytes = signature.sign()
-        val signatureStr = signBytes.hex() + "01"
-        println(signatureStr)
-        val str = OkHttpUtils.postStr("https://api.aliyundrive.com/users/v1/users/device/create_session",
-            OkUtils.json("""{"deviceName":"Chrome浏览器","modelName":"Windows网页版","pubKey":"$publicKeyHex"}"""),
-            mapOf(
-                "x-device-id" to "e5173011-XXXX-XXXX-XXXX-XXXXf04f3c62",
-                "x-signature" to signatureStr,
-                "authorization" to "B"
-            )
+    private fun encryptKey(): AliDriveKey {
+        val privateExponent = BigInteger(256, Random())
+        val curveParams = CustomNamedCurves.getByName("secp256k1")
+        val privateKeyParams = ECPrivateKeyParameters(privateExponent, ECDomainParameters(curveParams))
+        val publicKeyParams = ECPublicKeyParameters(
+            curveParams.curve.decodePoint(privateKeyParams.parameters.g.getEncoded(false)), privateKeyParams.parameters
         )
-        println(str)
+
+        val publicBytes = publicKeyParams.q.getEncoded(false)
+        val publicKey = "04" + publicBytes.joinToString("") { "%02x".format(it) }
+        return AliDriveKey(privateKeyParams, publicKey)
+    }
+
+    private suspend fun encrypt(aliDriveEntity: AliDriveEntity, encryptKey: AliDriveKey, deviceId: String, userid: String, nonce: Int = 0): AliDriveEncrypt {
+        val privateKey = encryptKey.privateKey
+        val publicKey = encryptKey.publicKey
+        val appId = "5dde4e1bdf9e4966b387ba58f4b3fdc3"
+        val data = "$appId:$deviceId:$userid:$nonce"
+        val ecdsaSigner = ECDSASigner(HMacDSAKCalculator(SHA256Digest()))
+        ecdsaSigner.init(true, privateKey)
+
+        val message = data.toByteArray()
+        val sig = ecdsaSigner.generateSignature(message)
+
+        val signatureStr = sig.joinToString("") { "%02x".format(it) } + "01"
+        val accessToken = accessToken(aliDriveEntity)
+        val jsonNode = if (nonce == 0) {
+            OkHttpUtils.postJson("https://api.aliyundrive.com/users/v1/users/device/create_session",
+                OkUtils.json("""{"deviceName":"Chrome浏览器","modelName":"Windows网页版","pubKey":"$publicKey"}"""),
+                mapOf(
+                    "x-device-id" to deviceId,
+                    "x-signature" to signatureStr,
+                    "authorization" to accessToken
+                )
+            )
+        } else {
+            client.post("https://api.aliyundrive.com/users/v1/users/device/renew_session") {
+                setJsonBody("{}")
+                headers {
+                    append("x-device-id", deviceId)
+                    append("x-signature", signatureStr)
+                    append("authorization", accessToken)
+                }
+            }.body<JsonNode>()
+        }
+        jsonNode.check()
+        return AliDriveEncrypt(deviceId, signatureStr)
     }
 
 }
@@ -545,6 +593,8 @@ class AliDriveUser {
     var resourceDriveId: Int = 0
     @JsonProperty("default_drive_id")
     var defaultDriveId: Int = 0
+    @JsonProperty("user_id")
+    var userid: String = ""
 }
 
 class AliDriveSignInInfo {
@@ -605,4 +655,24 @@ class AliDriveBottle {
     var bottleId: Int = 0
     var bottleName: String = ""
     var shareId: String = ""
+}
+
+data class AliDriveEncrypt(val deviceId: String, val signature: String)
+
+data class AliDriveKey(val privateKey: ECPrivateKeyParameters, val publicKey: String)
+
+class AliDriveSignature {
+    var privateKey: ECPrivateKeyParameters = ECPrivateKeyParameters(null, null)
+    var publicKey: String = ""
+    var nonce: Int = 0
+    var deviceId: String = ""
+    var signature: String = ""
+    var userid: String = ""
+    private var expire: Long = System.currentTimeMillis() + 1000 * 60 * 60
+
+    fun isExpire() = System.currentTimeMillis() > expire
+
+    fun expireRefresh() {
+        expire = System.currentTimeMillis() + 1000 * 60 * 60
+    }
 }
