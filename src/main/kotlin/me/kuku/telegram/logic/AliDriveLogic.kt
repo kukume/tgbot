@@ -518,6 +518,7 @@ class AliDriveLogic(
         return AliDriveEncrypt(deviceId, signatureStr)
     }
 
+    @Suppress("DuplicatedCode")
     suspend fun finishTask(aliDriveEntity: AliDriveEntity) {
         val signInInfo = signInInfo(aliDriveEntity)
         val reward = signInInfo.rewards[1]
@@ -592,6 +593,20 @@ class AliDriveLogic(
                     uploadFileToShareAlbum(aliDriveEntity, id, "${MyUtils.random(6)}.jpg", bytes)
                 }
             }
+            "使用快传功能传输任意1个文件即可领取奖励" -> {
+                val userGet = userGet(aliDriveEntity)
+                val backupDriveId = userGet.backupDriveId
+                val searchFile = searchFile(aliDriveEntity, "kuku的上传文件任务", listOf(backupDriveId.toString()))
+                val fileId = if (searchFile.isEmpty())
+                    createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
+                else searchFile[0].fileId
+                val bytes = picture()
+                val complete = uploadFileToBackupDrive(
+                    aliDriveEntity, backupDriveId,
+                    "${MyUtils.random(10)}.jpg", bytes, fileId
+                )
+                quickShare(aliDriveEntity, backupDriveId, complete.fileId)
+            }
             else -> error("不支持的任务，${reward.remind}")
         }
     }
@@ -612,6 +627,14 @@ class AliDriveLogic(
         }.body<JsonNode>()
         jsonNode.check()
         return jsonNode["result"].convertValue()
+    }
+
+    suspend fun quickShare(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String) {
+        val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/share/create") {
+            setJsonBody("""{"drive_file_list":[{"drive_id":"$driveId","file_id":"$fileId"}]}""")
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check2()
     }
 
 }
