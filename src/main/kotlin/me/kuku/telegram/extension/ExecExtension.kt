@@ -286,7 +286,9 @@ class ExecExtension(
         callback("aliDriveExec") {
             val signButton = inlineKeyboardButton("签到", "aliDriveSign")
             val receive = inlineKeyboardButton("领取", "aliDriveReceive")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(arrayOf(signButton), arrayOf(receive))
+            val task = inlineKeyboardButton("完成任务", "aliDriveTask")
+            val receiveTask = inlineKeyboardButton("领取任务奖励", "aliDriveReceiveTask")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(arrayOf(signButton), arrayOf(receive), arrayOf(task), arrayOf(receiveTask))
             editMessageText("阿里云盘", inlineKeyboardMarkup)
         }
         callback("aliDriveSign") {
@@ -298,6 +300,16 @@ class ExecExtension(
             editMessageText("请发送领取哪天的奖励")
             val day = nextMessage().text().toIntOrNull() ?: error("错误，不为数字")
             val result = aliDriveLogic.receive(firstArg(), day)
+            editMessageText(result)
+        }
+        callback("aliDriveTask") {
+            editMessageText("程序正在后台为您完成任务，任务完成时间会很长")
+            aliDriveLogic.finishTask(firstArg())
+        }
+        callback("aliDriveReceiveTask") {
+            editMessageText("请发送领取哪天的奖励")
+            val day = nextMessage().text().toIntOrNull() ?: error("错误，不为数字")
+            val result = aliDriveLogic.receiveTask(firstArg(), day)
             editMessageText(result)
         }
     }

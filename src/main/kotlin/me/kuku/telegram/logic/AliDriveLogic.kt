@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.telegram.entity.AliDriveEntity
 import me.kuku.telegram.entity.AliDriveService
@@ -517,6 +518,102 @@ class AliDriveLogic(
         return AliDriveEncrypt(deviceId, signatureStr)
     }
 
+    suspend fun finishTask(aliDriveEntity: AliDriveEntity) {
+        val signInInfo = signInInfo(aliDriveEntity)
+        val reward = signInInfo.rewards[1]
+        when (reward.remind) {
+            "创建一个手工相册即可领取奖励" -> {
+                val album = createAlbum(aliDriveEntity, "kuku的创建相册任务")
+                deleteAlbum(aliDriveEntity, album.id)
+            }
+            "上传10个文件到备份盘即可领取奖励" -> {
+                val userGet = userGet(aliDriveEntity)
+                val backupDriveId = userGet.backupDriveId
+                val searchFile = searchFile(aliDriveEntity, "kuku的上传文件任务", listOf(backupDriveId.toString()))
+                val fileId = if (searchFile.isEmpty())
+                    createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
+                else searchFile[0].fileId
+                repeat(10) {
+                    delay(3000)
+                    val bytes = picture()
+                    uploadFileToBackupDrive(aliDriveEntity, backupDriveId,
+                        "${MyUtils.random(10)}.jpg", bytes, fileId)
+                }
+            }
+            "备份10张照片到相册即可领取奖励" -> {
+                val albumsDriveId = albumsDriveId(aliDriveEntity)
+                val albumList = albumList(aliDriveEntity)
+                val findAlbum = albumList.find { it.name == "kuku的上传图片任务" }
+                val id = findAlbum?.id ?: createAlbum(aliDriveEntity, "kuku的上传图片任务").id
+                repeat(10) {
+                    delay(3000)
+                    val bytes = picture()
+                    val complete = uploadFileToAlbums(
+                        aliDriveEntity,
+                        albumsDriveId,
+                        "${MyUtils.random(10)}.jpg",
+                        bytes
+                    )
+                    addFileToAlbum(aliDriveEntity, albumsDriveId, complete.fileId, id)
+                }
+            }
+            "接3次好运瓶即可领取奖励" -> {
+                repeat(3) {
+                    delay(3000)
+                    bottleFish(aliDriveEntity)
+                }
+            }
+            "播放1个视频30秒即可领取奖励" -> {
+                val userGet = userGet(aliDriveEntity)
+                val backupDriveId = userGet.backupDriveId
+                val searchFile = searchFile(aliDriveEntity, "kuku的视频", listOf(backupDriveId.toString()))
+                val fileId = if (searchFile.isEmpty())
+                    createFolder(aliDriveEntity, backupDriveId, "kuku的视频").fileId
+                else searchFile[0].fileId
+                val bytes = client.get("https://minio.kuku.me/kuku/BV14s4y1Z7ZAoutput.mp4").body<ByteArray>()
+                val uploadComplete = uploadFileToBackupDrive(
+                    aliDriveEntity, backupDriveId,
+                    "BV14s4y1Z7ZAoutput.mp4", bytes, fileId
+                )
+                val uploadFileId = uploadComplete.fileId
+                val uploadDriveId = uploadComplete.driveId
+                val videoInfo = videoInfo(aliDriveEntity, uploadDriveId, uploadFileId)
+                videoUpdate(aliDriveEntity, uploadDriveId, uploadFileId, videoInfo.videoPreviewPlayInfo.meta.duration,
+                    50.123)
+            }
+            "创建共享相簿邀请成员加入并上传10张照片" -> {
+                val albumList = albumList(aliDriveEntity)
+                val find = albumList.find { it.name == "kuku的共享相册任务" }
+                val id = find?.id ?: createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
+                shareAlbumInvite(aliDriveEntity, id)
+                repeat(10) {
+                    delay(3000)
+                    val bytes = picture()
+                    uploadFileToShareAlbum(aliDriveEntity, id, "${MyUtils.random(6)}.jpg", bytes)
+                }
+            }
+            else -> error("不支持的任务，${reward.remind}")
+        }
+    }
+
+    private suspend fun picture(): ByteArray {
+        var hour = MyUtils.randomInt(0, 23).toString()
+        if (hour.length == 1) hour = "0$hour"
+        var minute = MyUtils.randomInt(0, 59).toString()
+        if (minute.length == 1) minute = "0$minute"
+        val pictureUrl = "https://minio.kuku.me/kuku/time/$hour/$hour-$minute.jpg"
+        return client.get(pictureUrl).body<ByteArray>()
+    }
+
+    suspend fun signInList(aliDriveEntity: AliDriveEntity): AliDriveSignIn {
+        val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/sign_in_list?_rx-s=mobile") {
+            setJsonBody("{}")
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check()
+        return jsonNode["result"].convertValue()
+    }
+
 }
 
 
@@ -673,4 +770,29 @@ class AliDriveSignature(val privateKey: ECPrivateKeyParameters) {
     fun expireRefresh() {
         expire = System.currentTimeMillis() + 1000 * 60 * 60
     }
+}
+
+class AliDriveSignIn {
+    var month: String = ""
+    var signInCount: Int = 0
+    var signInInfos: MutableList<SignInInfo> = mutableListOf()
+
+    class SignInInfo {
+        var day: Int = 0
+        var date: String? = null
+        var blessing: String = ""
+        var status: String = ""
+        var subtitle: String? = null
+        var theme: String? = null
+        var rewards: MutableList<Reward> = mutableListOf()
+
+        class Reward {
+            var name: String = ""
+            var type: String = ""
+            var status: String = ""
+            var remind: String = ""
+        }
+    }
+
+
 }

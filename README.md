@@ -14,7 +14,7 @@ https://hub.docker.com/r/kukume/tgbot
 
 ## Jar
 
-https://pan.kuku.me/tgbot
+https://pan.kukuqaq.com/tgbot
 
 ## Config
 
