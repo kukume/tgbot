@@ -113,7 +113,7 @@ class AliDriveScheduled(
                             aliDriveLogic.bottleFish(aliDriveEntity)
                         }
                     }
-                    "播放一个视频30秒" -> {
+                    "播放1个视频30秒即可领取奖励" -> {
                         val userGet = aliDriveLogic.userGet(aliDriveEntity)
                         val backupDriveId = userGet.backupDriveId
                         val searchFile = aliDriveLogic.searchFile(aliDriveEntity, "kuku的视频", listOf(backupDriveId.toString()))

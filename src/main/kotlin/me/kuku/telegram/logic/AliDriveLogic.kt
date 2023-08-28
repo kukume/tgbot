@@ -119,9 +119,8 @@ class AliDriveLogic(
             val deviceId = UUID.randomUUID().toString()
             val encryptKey = encryptKey()
             val encrypt = encrypt(this@AliDriveEntity, encryptKey, deviceId, userGet.userid)
-            val aliDriveSignature = AliDriveSignature()
+            val aliDriveSignature = AliDriveSignature(encryptKey.privateKey)
             aliDriveSignature.deviceId = deviceId
-            aliDriveSignature.privateKey = encryptKey.privateKey
             aliDriveSignature.publicKey = encryptKey.publicKey
             aliDriveSignature.signature = encrypt.signature
             signatureCache[tgId] = aliDriveSignature
@@ -661,8 +660,7 @@ data class AliDriveEncrypt(val deviceId: String, val signature: String)
 
 data class AliDriveKey(val privateKey: ECPrivateKeyParameters, val publicKey: String)
 
-class AliDriveSignature {
-    var privateKey: ECPrivateKeyParameters = ECPrivateKeyParameters(null, null)
+class AliDriveSignature(val privateKey: ECPrivateKeyParameters) {
     var publicKey: String = ""
     var nonce: Int = 0
     var deviceId: String = ""
