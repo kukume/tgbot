@@ -59,7 +59,7 @@ class AliDriveScheduled(
                     }
                 }
             }
-            val taskList = aliDriveService.findByReceiveTask(Status.ON)
+            val taskList = aliDriveService.findByTask(Status.ON)
             for (aliDriveEntity in taskList) {
                 logService.log(aliDriveEntity.tgId, LogType.ALiDriveReceiveTask) {
                     val signList = aliDriveLogic.signInList(aliDriveEntity)

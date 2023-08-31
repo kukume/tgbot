@@ -535,7 +535,7 @@ class AliDriveLogic(
                 val fileId = if (searchFile.isEmpty())
                     createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
                 else searchFile[0].fileId
-                repeat(10) {
+                repeat(12) {
                     delay(3000)
                     val bytes = picture()
                     uploadFileToBackupDrive(aliDriveEntity, backupDriveId,
@@ -547,7 +547,7 @@ class AliDriveLogic(
                 val albumList = albumList(aliDriveEntity)
                 val findAlbum = albumList.find { it.name == "kuku的上传图片任务" }
                 val id = findAlbum?.id ?: createAlbum(aliDriveEntity, "kuku的上传图片任务").id
-                repeat(10) {
+                repeat(12) {
                     delay(3000)
                     val bytes = picture()
                     val complete = uploadFileToAlbums(
@@ -588,7 +588,7 @@ class AliDriveLogic(
                 val find = albumList.find { it.name == "kuku的共享相册任务" }
                 val id = find?.id ?: createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
                 shareAlbumInvite(aliDriveEntity, id)
-                repeat(10) {
+                repeat(12) {
                     delay(3000)
                     val bytes = picture()
                     uploadFileToShareAlbum(aliDriveEntity, id, "${MyUtils.random(6)}.jpg", bytes)
