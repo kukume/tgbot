@@ -8,6 +8,12 @@ Demo：https://t.me/kukume_bot （搭建在家宽上，可能不稳定）
 
 JDK17 + Mongodb
 
+## Commands
+
+* /login - 登陆账号
+* /exec - 手动执行签到
+* /manager - 管理自动签到状态，默认自动签到全为关
+
 ## Docker
 
 https://hub.docker.com/r/kukume/tgbot

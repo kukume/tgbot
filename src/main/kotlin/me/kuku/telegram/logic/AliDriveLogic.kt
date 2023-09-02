@@ -248,6 +248,17 @@ class AliDriveLogic(
         return list
     }
 
+    suspend fun albumFileList(aliDriveEntity: AliDriveEntity, albumId: String): AliDriveFileList {
+        val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/album/list_files") {
+            setJsonBody("""
+                {"album_id":"$albumId","image_thumbnail_process":"image/resize,w_480/format,avif","image_url_process":"image/resize,w_1920/format,avif","video_thumbnail_process":"video/snapshot,t_0,f_jpg,ar_auto,w_480","filter":"","fields":"*","limit":20,"order_by":"joined_at","order_direction":"DESC"}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check2()
+        return jsonNode.convertValue()
+    }
+
     suspend fun createAlbum(aliDriveEntity: AliDriveEntity, name: String): AliDriveAlbum {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/album/create") {
             setJsonBody("""{"name":"$name","description":""}""")
@@ -308,33 +319,35 @@ class AliDriveLogic(
         return jsonNode.convertValue()
     }
 
-    suspend fun fileList(aliDriveEntity: AliDriveEntity, driveId: Int, parentId: String = "root") {
+    suspend fun fileList(aliDriveEntity: AliDriveEntity, driveId: Int, parentId: String = "root"): AliDriveFileList {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v3/file/list?jsonmask=next_marker%2Citems(name%2Cfile_id%2Cdrive_id%2Ctype%2Csize%2Ccreated_at%2Cupdated_at%2Ccategory%2Cfile_extension%2Cparent_file_id%2Cmime_type%2Cstarred%2Cthumbnail%2Curl%2Cstreams_info%2Ccontent_hash%2Cuser_tags%2Cuser_meta%2Ctrashed%2Cvideo_media_metadata%2Cvideo_preview_metadata%2Csync_meta%2Csync_device_flag%2Csync_flag%2Cpunish_flag)") {
             setJsonBody("""
                 {"drive_id":"$driveId","parent_file_id":"$parentId","limit":20,"all":false,"url_expire_sec":14400,"image_thumbnail_process":"image/resize,w_256/format,avif","image_url_process":"image/resize,w_1920/format,avif","video_thumbnail_process":"video/snapshot,t_1000,f_jpg,ar_auto,w_256","fields":"*","order_by":"updated_at","order_direction":"DESC"}
             """.trimIndent())
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
-        /*
-{
-            "created_at": "2023-08-26T16:17:55.571Z",
-            "drive_id": "103118",
-            "file_id": "64ea25b376cf8062a7194961a96b9bad6c6c1656",
-            "name": "kuku的任务",
-            "parent_file_id": "root",
-            "starred": false,
-            "type": "folder",
-            "updated_at": "2023-08-26T16:17:55.571Z",
-            "user_meta": "{\"channel\":\"file_upload\",\"client\":\"web\"}",
-            "user_tags": {
-                "channel": "file_upload",
-                "client": "web",
-                "device_id": "2e87985f-e41d-4c56-9ecb-570f2a9c4c98",
-                "device_name": "chrome",
-                "version": "v4.9.0"
-            }
-        },
-         */
+        jsonNode.check2()
+        return jsonNode.convertValue()
+    }
+
+    private suspend fun batch(aliDriveEntity: AliDriveEntity, aliDriveBatch: AliDriveBatch) {
+        val jsonNode = client.post("https://api.aliyundrive.com/v2/batch") {
+            setJsonBody(aliDriveBatch)
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check2()
+    }
+
+    suspend fun batchDeleteFile(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
+        val batch = AliDriveBatch()
+        for (deleteFileBody in list) {
+            val request = AliDriveBatch.Request()
+            request.id = deleteFileBody.fileId
+            request.url = "/recyclebin/trash"
+            request.body = deleteFileBody
+            batch.requests.add(request)
+        }
+        batch(aliDriveEntity, batch)
     }
 
     suspend fun searchFile(aliDriveEntity: AliDriveEntity, name: String, driveId: List<String>): List<AliDriveSearch> {
@@ -369,7 +382,6 @@ class AliDriveLogic(
         return jsonNode.convertValue()
     }
 
-    // 不知道是不是看视频
     suspend fun videoUpdate(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String, duration: Double, play: Double) {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v2/video/update") {
             setJsonBody("""
@@ -535,6 +547,9 @@ class AliDriveLogic(
                 val fileId = if (searchFile.isEmpty())
                     createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
                 else searchFile[0].fileId
+                val fileList = fileList(aliDriveEntity, backupDriveId, fileId)
+                val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
+                batchDeleteFile(aliDriveEntity, bodies)
                 repeat(12) {
                     delay(3000)
                     val bytes = picture()
@@ -547,6 +562,9 @@ class AliDriveLogic(
                 val albumList = albumList(aliDriveEntity)
                 val findAlbum = albumList.find { it.name == "kuku的上传图片任务" }
                 val id = findAlbum?.id ?: createAlbum(aliDriveEntity, "kuku的上传图片任务").id
+                val fileList = albumFileList(aliDriveEntity, id)
+                val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
+                batchDeleteFile(aliDriveEntity, bodies)
                 repeat(12) {
                     delay(3000)
                     val bytes = picture()
@@ -819,4 +837,60 @@ class AliDriveSignIn {
     }
 
 
+}
+
+class AliDriveFileList {
+    var items: MutableList<AliDriveFile> = mutableListOf()
+    @JsonProperty("next_marker")
+    var nextMarker: String = ""
+}
+
+class AliDriveFile {
+    var category: String = ""
+    @JsonProperty("content_hash")
+    var contentHash: String = ""
+    @JsonProperty("created_at")
+    var createdAt: String = ""
+    @JsonProperty("drive_id")
+    var driveId: Int = 0
+    @JsonProperty("file_extension")
+    var fileExtension: String = ""
+    @JsonProperty("file_id")
+    var fileId: String = ""
+    @JsonProperty("mime_type")
+    var mimeType: String = ""
+    var name: String = ""
+    @JsonProperty("parent_file_id")
+    var parentFileId: String = ""
+    @JsonProperty("punish_flag")
+    var punishFlag: Int = 0
+    var size: Long = 0
+    var starred: Boolean = false
+    var thumbnail: String = ""
+    var type: String = ""
+    @JsonProperty("updated_at")
+    var updatedAt: String = ""
+    var url: String = ""
+    @JsonProperty("user_meta")
+    var userMeta: String = ""
+}
+
+class AliDriveBatch {
+    var requests: MutableList<Request> = mutableListOf()
+    var resource: String = "file"
+
+    class Request {
+        var body: Any = Any()
+        var headers: MutableMap<String, String> = mutableMapOf("Content-Type" to "application/json")
+        var id: String = ""
+        var method: String = "POST"
+        var url: String = ""
+    }
+
+    data class DeleteFileBody(
+        @JsonProperty("drive_id")
+        var driveId: String = "",
+        @JsonProperty("file_id")
+        var fileId: String = ""
+    )
 }
