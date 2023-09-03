@@ -537,8 +537,7 @@ class AliDriveLogic(
         val reward = signInInfo.rewards[1]
         when (reward.remind) {
             "创建一个手工相册即可领取奖励" -> {
-                val album = createAlbum(aliDriveEntity, "kuku的创建相册任务")
-                deleteAlbum(aliDriveEntity, album.id)
+                createAlbum(aliDriveEntity, "kuku的创建相册任务")
             }
             "上传10个文件到备份盘即可领取奖励" -> {
                 val userGet = userGet(aliDriveEntity)

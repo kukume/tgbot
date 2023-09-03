@@ -41,7 +41,7 @@ class BiliBilliScheduled(
             kotlin.runCatching {
                 val firstRank = BiliBiliLogic.ranking()[0]
                 delay(5000)
-                BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
+                BiliBiliLogic.watchVideo(biliBiliEntity, firstRank)
                 delay(5000)
                 BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
                 delay(5000)

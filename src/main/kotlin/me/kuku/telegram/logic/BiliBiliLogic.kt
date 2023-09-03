@@ -5,12 +5,15 @@ import com.fasterxml.jackson.module.kotlin.contains
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.BiliBiliEntity
 import me.kuku.telegram.utils.ffmpeg
 import me.kuku.utils.*
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okio.ByteString
 import java.io.File
 
@@ -199,36 +202,48 @@ object BiliBiliLogic {
         return CommonResult.success(message = dataJsonNode.getString("next_offset"), data = list)
     }
 
-    suspend fun loginByQr1(): String {
-        val jsonNode = OkHttpKtUtils.getJson("https://passport.bilibili.com/qrcode/getLoginUrl")
-        return jsonNode["data"]["url"].asText()
+    suspend fun loginByQr1(): BiliBiliQrcode {
+        val jsonNode = OkHttpKtUtils.getJson("https://passport.bilibili.com/x/passport-login/web/qrcode/generate?source=main-fe-header")
+        val data = jsonNode["data"]
+        return BiliBiliQrcode(data["url"].asText(), data["qrcode_key"].asText())
     }
 
-    suspend fun loginByQr2(url: String): CommonResult<BiliBiliEntity> {
-        val oauthKey = MyUtils.regex("(?<=oauthKey\\=).*", url)
-            ?: return CommonResult.failure("链接格式不正确", null)
-        val map = mutableMapOf("oauthKey" to oauthKey, "gourl" to "https://www.bilibili.com")
-        val jsonNode = OkHttpKtUtils.postJson("https://passport.bilibili.com/qrcode/getLoginInfo", map)
-        val status = jsonNode.getBoolean("status")
-        return if (!status) {
-            when (jsonNode.getInteger("data")) {
-                -2 -> CommonResult.failure("您的二维码已过期！！", null)
-                -4 -> CommonResult.failure("二维码未扫描", code = 0)
-                -5 -> CommonResult.failure("二维码已扫描", code = 0)
-                else -> CommonResult.failure(jsonNode.getString("message"), null)
+    suspend fun loginByQr2(qrcode: BiliBiliQrcode): CommonResult<BiliBiliEntity> {
+        val response = OkHttpKtUtils.get("https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key=${qrcode.key}&source=main-fe-header")
+        val jsonNode = OkUtils.json(response)
+        val data = jsonNode["data"]
+        return when(data["code"].asInt()) {
+            86101 -> CommonResult.failure("二维码未扫描", code = 0)
+            86090 -> CommonResult.failure("二维码已扫描", code = 0)
+            86038 -> CommonResult.failure("您的二维码已过期！！", null)
+            0 -> {
+                val firstCookie = OkUtils.cookie(response)
+                val url = data["url"].asText()
+                val token = MyUtils.regex("bili_jct=", "\\u0026", url)!!
+                val urlJsonNode =
+                    OkHttpKtUtils.getJson("https://passport.bilibili.com/x/passport-login/web/sso/list?biliCSRF=$token",
+                        OkUtils.cookie(firstCookie))
+                val sso = urlJsonNode["data"]["sso"]
+                var cookie = ""
+                sso.forEach {
+                    val innerUrl = it.asText()
+                    val innerResponse = OkHttpKtUtils.post(innerUrl, "".toRequestBody("application/x-www-form-urlencoded".toMediaType()),
+                        mapOf("Referer" to "https://www.bilibili.com/", "Origin" to "https://www.bilibili.com",
+                            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"))
+                    innerResponse.close()
+                    cookie = OkUtils.cookie(innerResponse)
+                }
+                val userid = MyUtils.regex("DedeUserID=", "; ", cookie)!!
+                val fingerJsonNode = OkHttpKtUtils.getJson("https://api.bilibili.com/x/frontend/finger/spi")
+                val fingerData = fingerJsonNode["data"]
+                val fingerCookie = "buvid3=${fingerData["b_3"].asText()}; buvid4=${fingerData["b_4"].asText()}; "
+                val biliBiliEntity = BiliBiliEntity()
+                biliBiliEntity.cookie = cookie + fingerCookie
+                biliBiliEntity.userid = userid
+                biliBiliEntity.token = token
+                CommonResult.success(biliBiliEntity)
             }
-        } else {
-            val successUrl = jsonNode["data"]["url"].asText()
-            val response = OkHttpKtUtils.get(successUrl, OkUtils.referer("https://passport.bilibili.com/login")).apply { close() }
-            val cookie = OkUtils.cookie(response)
-            val token = MyUtils.regex("bili_jct=", "; ", cookie)!!
-            val locationUrl = response.header("location")!!
-            val userid = MyUtils.regex("DedeUserID=", "&", locationUrl)!!
-            val biliBiliEntity = BiliBiliEntity()
-            biliBiliEntity.cookie = cookie
-            biliBiliEntity.userid = userid
-            biliBiliEntity.token = token
-            CommonResult.success(biliBiliEntity)
+            else -> CommonResult.failure(data["message"].asText(), null)
         }
     }
 
@@ -371,6 +386,7 @@ object BiliBiliLogic {
             biliBiliRanking.username = singleJsonNode["owner"]["name"].asText()
             biliBiliRanking.dynamic = singleJsonNode.getString("dynamic")
             biliBiliRanking.bv = singleJsonNode.getString("bvid")
+            biliBiliRanking.duration = singleJsonNode["bvid"].asInt()
             list.add(biliBiliRanking)
         }
         return list
@@ -385,11 +401,64 @@ object BiliBiliLogic {
         else error(jsonNode.getString("message"))
     }
 
+    private fun JsonNode.check() {
+        if (this["code"].asInt() != 0) error(this["message"].asText())
+    }
+
+    suspend fun watchVideo(biliBiliEntity: BiliBiliEntity, biliBiliRanking: BiliBiliRanking) {
+        val startTs = System.currentTimeMillis().toString()
+        val map = mutableMapOf(
+            "mid" to biliBiliEntity.userid,
+            "aid" to biliBiliRanking.aid,
+            "cid" to biliBiliRanking.cid,
+            "part" to "1",
+            "lv" to "5",
+            "ftime" to System.currentTimeMillis().toString(),
+            "stime" to startTs,
+            "jsonp" to "jsonp",
+            "type" to "3",
+            "sub_type" to "0",
+            "refer_url" to "",
+            "spmid" to "333.788.0.0",
+            "from_spmid" to "333.1007.tianma.1-1-1.click",
+            "csrf" to biliBiliEntity.token,
+        )
+        val jsonNode = client.post("https://api.bilibili.com/x/click-interface/click/web/h5") {
+            setFormDataContent {
+                map.forEach { (t, u) -> append(t, u) }
+            }
+            cookieString(biliBiliEntity.cookie)
+        }.body<JsonNode>()
+        jsonNode.check()
+        delay(3000)
+        map["start_ts"] = startTs
+        map["dt"] = "2"
+        map["play_type"] = "0"
+        map["realtime"] = (biliBiliRanking.duration - 5).toString()
+        map["played_time"] = (biliBiliRanking.duration - 1).toString()
+        map["real_played_time"] = (biliBiliRanking.duration - 1).toString()
+        map["quality"] = "80"
+        map["video_duration"] = biliBiliRanking.duration.toString()
+        map["last_play_progress_time"] = (biliBiliRanking.duration - 2).toString()
+        map["max_play_progress_time"] = (biliBiliRanking.duration - 2).toString()
+        val watchJsonNode = client.post("https://api.bilibili.com/x/click-interface/web/heartbeat") {
+            setFormDataContent {
+                map.forEach { (t, u) -> append(t, u) }
+            }
+            cookieString(biliBiliEntity.cookie)
+        }.body<JsonNode>()
+        watchJsonNode.check()
+    }
+
     suspend fun share(biliBiliEntity: BiliBiliEntity, aid: String): String {
-        val map = mapOf("aid" to aid, "csrf" to biliBiliEntity.token)
-        val jsonNode = OkHttpKtUtils.postJson("https://api.bilibili.com/x/web-interface/share/add", map,
-            OkUtils.cookie(biliBiliEntity.cookie))
-        return if (jsonNode.getInteger("code") == 0) "成功"
+        val jsonNode = client.post("https://api.bilibili.com/x/web-interface/share/add") {
+            cookieString(biliBiliEntity.cookie)
+            setFormDataContent {
+                append("aid", aid)
+                append("csrf", biliBiliEntity.token)
+            }
+        }.body<JsonNode>()
+        return if (jsonNode.getInteger("code") in listOf(0, 71000)) "成功"
         else error(jsonNode.getString("message"))
     }
 
@@ -491,7 +560,8 @@ data class BiliBiliRanking(
     var desc: String = "",
     var username: String = "",
     var dynamic: String = "",
-    var bv: String = ""
+    var bv: String = "",
+    var duration: Int = 0
 )
 
 data class BiliBiliReplay(
@@ -502,4 +572,9 @@ data class BiliBiliReplay(
 data class BiliBiliFollowed(
     var id: String = "",
     var name: String = ""
+)
+
+data class BiliBiliQrcode(
+    val url: String,
+    val key: String
 )

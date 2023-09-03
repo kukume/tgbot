@@ -88,30 +88,20 @@ private val callbackAfter by lazy {
 private data class History(var message: Message?, var data: String)
 
 
-class TelegramContext(val bot: TelegramBot, val update: Update) {
+class TelegramContext(override val bot: TelegramBot, val update: Update): Context() {
     lateinit var query: CallbackQuery
-    val message: Message by lazy {
+    override val message: Message by lazy {
         if (this::query.isInitialized) query.message() else update.message()
     }
-    val tgId: Long by lazy {
+    override val tgId: Long by lazy {
         if (this::query.isInitialized) query.from().id() else update.chatMember().from().id()
     }
-    val chatId: Long by lazy {
+    override val chatId: Long by lazy {
         message.chat().id()
     }
 
     init {
         update.callbackQuery()?.let { query = it }
-    }
-
-    fun Message.delete(timeout: Long = 0) {
-        if (timeout > 0) {
-            JobManager.delay(timeout) {
-                bot.execute(DeleteMessage(chatId, this@delete.messageId()))
-            }
-        } else {
-            bot.execute(DeleteMessage(chatId, this.messageId()))
-        }
     }
 
     private fun addReturnButton(replyMarkup: InlineKeyboardMarkup, after: ReturnMessageAfter, top: Boolean,

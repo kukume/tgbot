@@ -22,8 +22,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.ehcache:ehcache:3.10.8")
     implementation("com.github.pengrad:java-telegram-bot-api:6.8.0")
-    implementation("me.kuku:utils:2.3.3.0")
-    implementation("me.kuku:ktor-spring-boot-starter:2.3.3.0")
+    implementation("me.kuku:utils:2.3.4.0")
+    implementation("me.kuku:ktor-spring-boot-starter:2.3.4.0")
     implementation("org.jsoup:jsoup:1.16.1")
     val ociVersion = "3.24.0"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")

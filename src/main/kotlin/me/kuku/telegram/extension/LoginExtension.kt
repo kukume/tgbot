@@ -128,9 +128,9 @@ class LoginExtension(
             ))
         }
         callback("biliBiliQrcodeLogin") {
-            val qrCodeUrl = BiliBiliLogic.loginByQr1()
+            val qrcode = BiliBiliLogic.loginByQr1()
             var photoMessage: Message?
-            OkHttpKtUtils.getBytes("https://api.kukuqaq.com/qrcode?text=${qrCodeUrl.toUrlEncode()}").let {
+            OkHttpKtUtils.getBytes("https://api.kukuqaq.com/qrcode?text=${qrcode.url.toUrlEncode()}").let {
                 val photo = SendPhoto(chatId, it)
                 photoMessage = bot.execute(photo).message()
                 editMessageText("请使用哔哩哔哩app扫描以下二维码登陆", returnButton = false)
@@ -142,7 +142,7 @@ class LoginExtension(
                     break
                 }
                 delay(3000)
-                val result = BiliBiliLogic.loginByQr2(qrCodeUrl)
+                val result = BiliBiliLogic.loginByQr2(qrcode)
                 when (result.code) {
                     0 -> continue
                     200 -> {

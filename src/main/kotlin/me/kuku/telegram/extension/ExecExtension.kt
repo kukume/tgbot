@@ -73,12 +73,12 @@ class ExecExtension(
             editMessageText("百度", markup)
         }
         callback("tieBaSign") {
-            editMessageText("由于贴吧签到时间长，后台运行中，运行结果将以弹窗展示")
+            editMessageText("由于贴吧签到时间长，后台运行中")
             kotlin.runCatching {
                 baiduLogic.tieBaSign(firstArg())
-                answerCallbackQuery("贴吧签到成功", showAlert = true)
+                sendMessage("#手动执行结果\n贴吧签到成功")
             }.onFailure {
-                answerCallbackQuery("贴吧签到失败，${it.message}", showAlert = true)
+                sendMessage("#手动执行结果\n贴吧签到失败，${it.message}")
             }
         }
         callback("ybbSign") {
@@ -101,8 +101,10 @@ class ExecExtension(
         callback("biliBiliSign") {
             val biliBiliEntity = firstArg<BiliBiliEntity>()
             val firstRank = BiliBiliLogic.ranking()[0]
-            BiliBiliLogic.report(biliBiliEntity, firstRank.aid, firstRank.cid, 300)
+            BiliBiliLogic.watchVideo(biliBiliEntity, firstRank)
+            delay(1000)
             BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
+            delay(1000)
             BiliBiliLogic.liveSign(biliBiliEntity)
             editMessageText("哔哩哔哩签到成功")
         }
@@ -307,7 +309,12 @@ class ExecExtension(
         }
         callback("aliDriveTask") {
             editMessageText("程序正在后台为您完成任务，任务完成时间会很长")
-            aliDriveLogic.finishTask(firstArg())
+            kotlin.runCatching {
+                aliDriveLogic.finishTask(firstArg())
+                sendMessage("#手动执行结果：\n阿里云盘完成任务成功")
+            }.onFailure {
+                sendMessage("#手动执行结果：\n阿里云盘完成任务失败，失败原因：${it.message}")
+            }
         }
         callback("aliDriveReceiveTask") {
             editMessageText("请发送领取哪天的奖励")
