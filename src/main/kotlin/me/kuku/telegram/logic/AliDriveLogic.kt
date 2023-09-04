@@ -537,6 +537,13 @@ class AliDriveLogic(
         val reward = signInInfo.rewards[1]
         when (reward.remind) {
             "创建一个手工相册即可领取奖励" -> {
+                val aliDriveAlbums = albumList(aliDriveEntity).filter { it.name.contains("kuku的") }
+                aliDriveAlbums.forEach {
+                    val fileList = albumFileList(aliDriveEntity, it.id)
+                    val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
+                    batchDeleteFile(aliDriveEntity, bodies)
+                    deleteAlbum(aliDriveEntity, it.id)
+                }
                 createAlbum(aliDriveEntity, "kuku的创建相册任务")
             }
             "上传10个文件到备份盘即可领取奖励" -> {
@@ -789,7 +796,7 @@ class AliDriveShareAlbum {
 }
 
 class AliDriveBottle {
-    var bottleId: Int = 0
+    var bottleId: Long = 0
     var bottleName: String = ""
     var shareId: String = ""
 }
