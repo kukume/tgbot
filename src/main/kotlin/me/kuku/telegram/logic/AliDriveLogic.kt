@@ -105,21 +105,26 @@ class AliDriveLogic(
 
     context(HttpRequestBuilder)
     private suspend fun AliDriveEntity.appendEncrypt() {
-        val tgId = this@AliDriveEntity.tgId
+        val entity = this@AliDriveEntity
+        val tgId = entity.tgId
         val aliDriveSignature = if (signatureCache.containsKey(tgId)) {
             val aliDriveSignature = signatureCache[tgId]!!
             if (aliDriveSignature.isExpire()) {
                 aliDriveSignature.nonce += 1
-                encrypt(this@AliDriveEntity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
+                encrypt(entity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
                     aliDriveSignature.deviceId, aliDriveSignature.userid)
                 aliDriveSignature.expireRefresh()
                 aliDriveSignature
             } else aliDriveSignature
         } else {
-            val userGet = userGet(this@AliDriveEntity)
-            val deviceId = UUID.randomUUID().toString()
+            val userGet = userGet(entity)
+            if (entity.deviceId.isEmpty()) {
+                entity.deviceId = UUID.randomUUID().toString()
+                aliDriveService.save(entity)
+            }
+            val deviceId = entity.deviceId
             val encryptKey = encryptKey()
-            val encrypt = encrypt(this@AliDriveEntity, encryptKey, deviceId, userGet.userid)
+            val encrypt = encrypt(entity, encryptKey, deviceId, userGet.userid)
             val aliDriveSignature = AliDriveSignature(encryptKey.privateKey)
             aliDriveSignature.deviceId = deviceId
             aliDriveSignature.publicKey = encryptKey.publicKey
@@ -202,6 +207,7 @@ class AliDriveLogic(
             aliDriveEntity.appendAuth()
             setJsonBody("{}")
         }.body<JsonNode>()
+        jsonNode.check2()
         return jsonNode["data"]["driveId"].asInt()
     }
 
@@ -214,6 +220,7 @@ class AliDriveLogic(
             """.trimIndent())
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
+        jsonNode.check2()
         val fileId = jsonNode["file_id"].asText()
         val uploadId = jsonNode["upload_id"].asText()
         val uploadUrl = jsonNode["part_info_list"][0]["upload_url"].asText()
@@ -238,6 +245,7 @@ class AliDriveLogic(
             setJsonBody("""{"limit":20,"order_by":"created_at","order_direction":"ASC"}""")
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
+        jsonNode.check2()
         val list = mutableListOf<AliDriveAlbum>()
         for (node in jsonNode["items"]) {
             list.add(AliDriveAlbum().also {
@@ -264,6 +272,7 @@ class AliDriveLogic(
             setJsonBody("""{"name":"$name","description":""}""")
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
+        jsonNode.check2()
         return AliDriveAlbum().also {
             it.id = jsonNode["album_id"].asText()
             it.name = jsonNode["name"].asText()
@@ -271,17 +280,19 @@ class AliDriveLogic(
     }
 
     suspend fun deleteAlbum(aliDriveEntity: AliDriveEntity, id: String) {
-        client.post("https://api.aliyundrive.com/adrive/v1/album/delete") {
+        val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/album/delete") {
             setJsonBody("""{"album_id":"$id"}""")
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
+        jsonNode.check2()
     }
 
     suspend fun addFileToAlbum(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String, albumId: String) {
-        client.post("https://api.aliyundrive.com/adrive/v1/album/add_files") {
+        val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/album/add_files") {
             setJsonBody("""{"drive_file_list":[{"drive_id":"$driveId","file_id":"$fileId"}],"album_id":"$albumId"}""")
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
+        jsonNode.check2()
     }
 
     @Suppress("DuplicatedCode")
@@ -292,6 +303,7 @@ class AliDriveLogic(
             """.trimIndent())
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
+        jsonNode.check2()
         val fileId = jsonNode["file_id"].asText()
         val uploadId = jsonNode["upload_id"].asText()
         val uploadUrl = jsonNode["part_info_list"][0]["upload_url"].asText()
@@ -313,9 +325,10 @@ class AliDriveLogic(
 
     suspend fun createFolder(aliDriveEntity: AliDriveEntity, driveId: Int, name: String, parentId: String = "root"): AliDriveFolder {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v2/file/createWithFolders") {
-            setJsonBody("""{"drive_id":"103118","parent_file_id":"root","name":"kuku的任务","check_name_mode":"refuse","type":"folder"}""")
+            setJsonBody("""{"drive_id":"$driveId","parent_file_id":"root","name":"$name","check_name_mode":"refuse","type":"folder"}""")
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
+        jsonNode.check2()
         return jsonNode.convertValue()
     }
 
@@ -491,7 +504,7 @@ class AliDriveLogic(
         )
 
         val publicBytes = publicKeyParams.q.getEncoded(false)
-        val publicKey = "04" + publicBytes.joinToString("") { "%02x".format(it) }
+        val publicKey = publicBytes.joinToString("") { "%02x".format(it) }
         return AliDriveKey(privateKeyParams, publicKey)
     }
 
@@ -540,7 +553,7 @@ class AliDriveLogic(
                 val aliDriveAlbums = albumList(aliDriveEntity).filter { it.name.contains("kuku的") }
                 aliDriveAlbums.forEach {
                     val fileList = albumFileList(aliDriveEntity, it.id)
-                    val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
+                    val bodies = fileList.items.map { item -> AliDriveBatch.DeleteFileBody(item.driveId.toString(), item.fileId) }
                     batchDeleteFile(aliDriveEntity, bodies)
                     deleteAlbum(aliDriveEntity, it.id)
                 }

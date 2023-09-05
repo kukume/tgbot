@@ -294,6 +294,7 @@ class ExecExtension(
             editMessageText("""
                 阿里云盘
                 完成任务会在你的云盘上上传图片、视频、新建文件夹等，介意勿用
+                完成任务如出现device offline错误，请找到阿里云盘的登录设备管理，下线一些设备即可
             """.trimIndent(), inlineKeyboardMarkup)
         }
         callback("aliDriveSign") {

@@ -15,6 +15,7 @@ import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
+import java.util.UUID
 
 @Service
 class LoginExtension(
@@ -773,6 +774,7 @@ class LoginExtension(
                         it.tgId = tgId
                     }
                     aliDriveEntity.refreshToken = refreshToken
+                    if (aliDriveEntity.deviceId.isEmpty()) aliDriveEntity.deviceId = UUID.randomUUID().toString()
                     aliDriveService.save(aliDriveEntity)
                     editMessageText("绑定阿里云盘成功")
                     break

@@ -10,6 +10,7 @@ class AliDriveEntity: BaseEntity() {
     @Id
     var id: String? = null
     var refreshToken: String = ""
+    var deviceId: String = ""
     var sign: Status = Status.OFF
     var receive: Status = Status.OFF
     var joinTeam: Status = Status.OFF
