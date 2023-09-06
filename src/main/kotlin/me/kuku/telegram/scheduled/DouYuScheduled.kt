@@ -98,22 +98,11 @@ class DouYuScheduled(
     suspend fun douYuSign() {
         val list = douYuService.findByFishGroup(Status.ON)
         for (douYuEntity in list) {
-            val logEntity = LogEntity().also {
-                it.tgId = douYuEntity.tgId
-                it.type = LogType.DouYu
-            }
-            kotlin.runCatching {
+            logService.log(douYuEntity.tgId, LogType.DouYu) {
+                delay(3000)
                 val cookie = douYuEntity.cookie
                 if (cookie.isNotEmpty()) douYuLogic.fishGroup(douYuEntity)
-                val appCookie = douYuEntity.appCookie
-                if (appCookie.isNotEmpty()) douYuLogic.appSign(douYuEntity)
-                logEntity.text = "成功"
-            }.onFailure {
-                logEntity.text = "失败"
-                logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(it.message)
             }
-            logService.save(logEntity)
         }
     }
 

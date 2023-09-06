@@ -63,7 +63,8 @@ class LogExtension(
             val logEntity = logService.findById(id)!!
             val reason = logEntity.errReason
             val errReason = reason.ifEmpty { "没有记录异常原因，请手动执行重新获取" }
-            answerCallbackQuery(errReason, showAlert = true)
+            sendMessage("#${logEntity.type.value}签到失败异常信息\n$errReason\n${logEntity.exceptionStack}")
+            answerCallbackQuery("获取成功")
         }
     }
 

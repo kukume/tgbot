@@ -17,19 +17,9 @@ class MiHoYoScheduled(
     suspend fun genShinSign() {
         val list = miHoYoService.findBySign(Status.ON)
         for (miHoYoEntity in list) {
-            val logEntity = LogEntity().also {
-                it.tgId = miHoYoEntity.tgId
-                it.type = LogType.GenShin
-            }
-            kotlin.runCatching {
+            logService.log(miHoYoEntity.tgId, LogType.GenShin) {
                 MiHoYoLogic.sign(miHoYoEntity)
-                logEntity.text = "成功"
-            }.onFailure {
-                logEntity.text = "失败"
-                logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(it.message)
             }
-            logService.save(logEntity)
             delay(3000)
         }
     }

@@ -171,10 +171,8 @@ class LoginExtension(
     fun TelegramSubscribe.douYu() {
         callback("douYuLogin") {
             val qrLogin = inlineKeyboardButton("扫码登录", "douYuQr")
-            val douYuAppCookie = inlineKeyboardButton("斗鱼app的cookie", "douYuAppCookie")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(qrLogin),
-                arrayOf(douYuAppCookie)
+                arrayOf(qrLogin)
             )
             editMessageText("斗鱼登录", inlineKeyboardMarkup)
         }
@@ -214,9 +212,6 @@ class LoginExtension(
                 }
             }
             photoMessage?.delete()
-        }
-        callback("douYuAppCookie") {
-            error("旧方法获取的cookie会失效，等待更新中")
         }
     }
 

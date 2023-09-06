@@ -34,11 +34,7 @@ class BiliBilliScheduled(
     suspend fun sign() {
         val list = biliBiliService.findBySign(Status.ON)
         for (biliBiliEntity in list) {
-            val logEntity = LogEntity().apply {
-                tgId = biliBiliEntity.tgId
-                type = LogType.BiliBili
-            }
-            kotlin.runCatching {
+            logService.log(biliBiliEntity.tgId, LogType.BiliBili) {
                 val firstRank = BiliBiliLogic.ranking()[0]
                 delay(5000)
                 BiliBiliLogic.watchVideo(biliBiliEntity, firstRank)
@@ -46,13 +42,7 @@ class BiliBilliScheduled(
                 BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
                 delay(5000)
                 BiliBiliLogic.liveSign(biliBiliEntity)
-                logEntity.text = "成功"
-            }.onFailure {
-                logEntity.text = "失败"
-                logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(it.message)
             }
-            logService.save(logEntity)
             delay(3000)
         }
     }

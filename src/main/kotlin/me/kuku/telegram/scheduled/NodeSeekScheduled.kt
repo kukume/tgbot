@@ -1,5 +1,6 @@
 package me.kuku.telegram.scheduled
 
+import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.NodeSeekLogic
 import org.springframework.scheduling.annotation.Scheduled
@@ -15,19 +16,11 @@ class NodeSeekScheduled(
     suspend fun sign() {
         val entityList = nodeSeekService.findAll().filter { it.sign != NodeSeekEntity.Sign.None }
         for (entity in entityList) {
-            val logEntity = LogEntity().also {
-                it.tgId = entity.tgId
-                it.type = LogType.NodeSeek
-            }
-            kotlin.runCatching {
+            logService.log(entity.tgId, LogType.NodeSeek) {
+                delay(3000)
                 val num = NodeSeekLogic.sign(entity, entity.sign == NodeSeekEntity.Sign.Random)
-                logEntity.text = "成功，获得鸡腿${num}个"
-            }.onFailure {
-                logEntity.text = "失败"
-                logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(it.message)
+                text = "成功，获得鸡腿${num}个"
             }
-            logService.save(logEntity)
         }
     }
 

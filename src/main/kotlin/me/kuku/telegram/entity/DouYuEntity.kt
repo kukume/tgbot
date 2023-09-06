@@ -20,7 +20,6 @@ class DouYuEntity {
     var live: Status = Status.OFF
     var fishGroup: Status = Status.OFF
     var push: Status = Status.OFF
-    var appSign: Status = Status.OFF
     var titleChange: Status = Status.OFF
 }
 
@@ -35,8 +34,6 @@ interface DouYuRepository: ReactiveMongoRepository<DouYuEntity, String> {
     fun findByFishGroup(fishGroup: Status): Flux<DouYuEntity>
 
     fun findByPush(push: Status): Flux<DouYuEntity>
-
-    fun findByAppSign(appSign: Status): Flux<DouYuEntity>
 
     fun findByTitleChange(titleChange: Status): Flux<DouYuEntity>
 
@@ -60,8 +57,6 @@ class DouYuService(
     suspend fun findByFishGroup(fishGroup: Status): List<DouYuEntity> = douYuRepository.findByFishGroup(fishGroup).collectList().awaitSingle()
 
     suspend fun findByPush(push: Status): List<DouYuEntity> = douYuRepository.findByPush(push).collectList().awaitSingle()
-
-    suspend fun findByAppSign(appSign: Status): List<DouYuEntity> = douYuRepository.findByAppSign(appSign).collectList().awaitSingle()
 
     suspend fun findByTitleChange(titleChange: Status): List<DouYuEntity> = douYuRepository.findByTitleChange(titleChange).collectList().awaitSingle()
 

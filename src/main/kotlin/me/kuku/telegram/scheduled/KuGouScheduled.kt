@@ -17,20 +17,10 @@ class KuGouScheduled(
     suspend fun sign() {
         val list = kuGouService.findBySign(Status.ON)
         for (kuGouEntity in list) {
-            val logEntity = LogEntity().also {
-                it.type = LogType.KuGou
-                it.tgId = kuGouEntity.tgId
-            }
-            kotlin.runCatching {
+            logService.log(kuGouEntity.tgId, LogType.KuGou) {
                 kuGouLogic.musicianSign(kuGouEntity)
                 kuGouLogic.listenMusic(kuGouEntity)
-                logEntity.text = "成功"
-            }.onFailure {
-                logEntity.text = "失败"
-                logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(it.message)
             }
-            logService.save(logEntity)
             delay(3000)
         }
     }

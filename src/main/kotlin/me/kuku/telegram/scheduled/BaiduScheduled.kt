@@ -17,11 +17,8 @@ class BaiduScheduled(
     suspend fun sign() {
         val list = baiduService.findBySign(Status.ON)
         for (baiduEntity in list) {
-            val logEntity = LogEntity().apply {
-                tgId = baiduEntity.tgId
-                type = LogType.Baidu
-            }
-            kotlin.runCatching {
+            delay(3000)
+            logService.log(baiduEntity.tgId, LogType.Baidu) {
                 for (i in 0 until 12) {
                     delay(1000 * 15)
                     baiduLogic.ybbWatchAd(baiduEntity)
@@ -32,14 +29,7 @@ class BaiduScheduled(
                 }
                 baiduLogic.ybbSign(baiduEntity)
                 baiduLogic.tieBaSign(baiduEntity)
-                logEntity.text = "成功"
-            }.onFailure {
-                logEntity.text = "失败"
-                logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(it.message)
             }
-            logService.save(logEntity)
-            delay(3000)
         }
     }
 

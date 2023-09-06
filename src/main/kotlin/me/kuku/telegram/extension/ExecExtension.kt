@@ -249,8 +249,7 @@ class ExecExtension(
         before { set(douYuService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定斗鱼账号")) }
         callback("douYuExec") {
             val fishGroupSignButton = inlineKeyboardButton("鱼吧签到", "fishGroupSign")
-            val appSignButton = inlineKeyboardButton("app签到", "douYuAppSign")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(arrayOf(fishGroupSignButton), arrayOf(appSignButton))
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(arrayOf(fishGroupSignButton))
             editMessageText("斗鱼", inlineKeyboardMarkup)
         }
         callback("fishGroupSign") {
@@ -259,13 +258,6 @@ class ExecExtension(
             douYuLogic.fishGroup(douYuEntity)
             editMessageText("斗鱼鱼吧签到成功")
         }
-        callback("douYuAppSign") {
-            val douYuEntity = firstArg<DouYuEntity>()
-            if (douYuEntity.appCookie.isEmpty()) error("未使用cookie登录斗鱼，无法执行app签到")
-            douYuLogic.appSign(douYuEntity)
-            editMessageText("斗鱼app签到成功")
-        }
-
     }
 
     fun TelegramSubscribe.smZdm() {

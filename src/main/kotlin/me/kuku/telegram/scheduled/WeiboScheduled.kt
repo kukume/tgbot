@@ -28,19 +28,9 @@ class WeiboScheduled(
     suspend fun sign() {
         val list = weiboService.findBySign(Status.ON)
         for (weiboEntity in list) {
-            val logEntity = LogEntity().also {
-                it.type = LogType.Weibo
-                it.tgId = weiboEntity.tgId
-            }
-            kotlin.runCatching {
+            logService.log(weiboEntity.tgId, LogType.Weibo) {
                 WeiboLogic.superTalkSign(weiboEntity)
-                logEntity.text = "成功"
-            }.onFailure {
-                logEntity.text = "失败"
-                logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(it.message)
             }
-            logService.save(logEntity)
             delay(3000)
         }
     }

@@ -130,8 +130,6 @@ class ManagerExtension(
         callback("douYuFishClose") { firstArg<DouYuEntity>().fishGroup = Status.OFF }
         callback("douYuFishPushOpen") { firstArg<DouYuEntity>().push = Status.ON }
         callback("douYuFishPushClose") { firstArg<DouYuEntity>().push = Status.OFF }
-        callback("douYuAppSignOpen") { firstArg<DouYuEntity>().appSign = Status.ON }
-        callback("douYuAppSignClose") { firstArg<DouYuEntity>().appSign = Status.OFF }
         callback("douYuTitleChangeOpen") { firstArg<DouYuEntity>().titleChange = Status.ON }
         callback("douYuTitleChangeClose") { firstArg<DouYuEntity>().titleChange = Status.OFF }
         after {
@@ -143,15 +141,12 @@ class ManagerExtension(
             val fishCloseButton = InlineKeyboardButton("鱼吧签到（关）").callbackData("douYuFishClose")
             val fishPushOpenButton = InlineKeyboardButton("鱼吧推送（开）").callbackData("douYuFishPushOpen")
             val fishPushCloseButton = InlineKeyboardButton("鱼吧推送（关）").callbackData("douYuFishPushClose")
-            val appSignOpenButton = inlineKeyboardButton("app签到（开）", "douYuAppSignOpen")
-            val appSignCloseButton = inlineKeyboardButton("app签到（关）", "douYuAppSignClose")
             val titleChangeOpenButton = inlineKeyboardButton("直播标题更新推送（开）", "douYuTitleChangeOpen")
             val titleChangeCloseButton = inlineKeyboardButton("直播标题更新推送（关）", "douYuTitleChangeClose")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
                 arrayOf(liveOpenButton, liveCloseButton),
                 arrayOf(fishOpenButton, fishCloseButton),
                 arrayOf(fishPushOpenButton, fishPushCloseButton),
-                arrayOf(appSignOpenButton, appSignCloseButton),
                 arrayOf(titleChangeOpenButton, titleChangeCloseButton)
             )
             editMessageText("""
@@ -159,7 +154,6 @@ class ManagerExtension(
                 开播提醒：${douYuEntity.live.str()}
                 鱼吧签到：${douYuEntity.fishGroup.str()}
                 鱼吧推送：${douYuEntity.push.str()}
-                app签到：${douYuEntity.appSign.str()}
                 直播标题更新推送：${douYuEntity.titleChange.str()}
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }

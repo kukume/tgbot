@@ -18,24 +18,14 @@ class StepScheduled(
     suspend fun ss() {
         val list = stepService.findByAuto()
         for (stepEntity in list) {
-            val logEntity = LogEntity().also {
-                it.tgId = stepEntity.tgId
-                it.type = LogType.Step
-            }
             var step = stepEntity.step
             if (stepEntity.offset == Status.ON) {
                 step = MyUtils.randomInt(step - 1000, step + 1000)
             }
-            kotlin.runCatching {
+            logService.log(stepEntity.tgId, LogType.Step) {
                 XiaomiStepLogic.modifyStepCount(stepEntity, step)
                 LeXinStepLogic.modifyStepCount(stepEntity, step)
-                logEntity.text = "成功"
-            }.onFailure {
-                logEntity.text = "失败"
-                logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(it.message)
             }
-            logService.save(logEntity)
             delay(3000)
         }
     }

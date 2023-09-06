@@ -17,6 +17,7 @@ class LogEntity: BaseEntity() {
     var type: LogType = LogType.None
     var text: String = "成功"
     var errReason: String = ""
+    var exceptionStack: String = ""
 
     fun sendFailMessage(message: String? = null) {
         val telegramBot = SpringUtils.getBean<TelegramBot>()
@@ -85,6 +86,7 @@ class LogService(
         }.onFailure {
             logEntity.text = "失败"
             logEntity.errReason = it.message ?: "未知异常原因"
+            logEntity.exceptionStack = it.stackTraceToString()
             logEntity.sendFailMessage(it.message)
         }
         save(logEntity)

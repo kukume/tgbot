@@ -51,19 +51,10 @@ class HostLocScheduled(
     suspend fun sign() {
         val list = hostLocService.findBySign(Status.ON)
         for (hostLocEntity in list) {
-            val logEntity = LogEntity().also {
-                it.tgId = hostLocEntity.tgId
-                it.type = LogType.HostLoc
-            }
-            kotlin.runCatching {
+            logService.log(hostLocEntity.tgId, LogType.HostLoc) {
+                delay(3000)
                 HostLocLogic.sign(hostLocEntity.cookie)
-                logEntity.text = "成功"
-            }.onFailure {
-                logEntity.text = "失败"
-                logEntity.errReason = it.message ?: "未知异常原因"
-                logEntity.sendFailMessage(it.message)
             }
-            logService.save(logEntity)
         }
     }
 
