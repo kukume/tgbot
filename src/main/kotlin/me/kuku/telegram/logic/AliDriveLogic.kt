@@ -146,6 +146,10 @@ class AliDriveLogic(
         if (this.has("code")) error(this["message"].asText())
     }
 
+    private fun JsonNode.check3() {
+        if (this["code"].asInt() != 200) error(this["message"].asText())
+    }
+
     suspend fun receive(aliDriveEntity: AliDriveEntity, day: Int = LocalDate.now().dayOfMonth): String {
         val accessToken = accessToken(aliDriveEntity)
         val jsonNode = client.post("https://member.aliyundrive.com/v1/activity/sign_in_reward?_rx-s=mobile") {
@@ -207,7 +211,7 @@ class AliDriveLogic(
             aliDriveEntity.appendAuth()
             setJsonBody("{}")
         }.body<JsonNode>()
-        jsonNode.check2()
+        jsonNode.check3()
         return jsonNode["data"]["driveId"].asInt()
     }
 
@@ -352,6 +356,7 @@ class AliDriveLogic(
     }
 
     suspend fun batchDeleteFile(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
+        if (list.isEmpty()) return
         val batch = AliDriveBatch()
         for (deleteFileBody in list) {
             val request = AliDriveBatch.Request()
@@ -609,6 +614,9 @@ class AliDriveLogic(
                 val fileId = if (searchFile.isEmpty())
                     createFolder(aliDriveEntity, backupDriveId, "kuku的视频").fileId
                 else searchFile[0].fileId
+                val fileList = fileList(aliDriveEntity, backupDriveId, fileId)
+                val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
+                batchDeleteFile(aliDriveEntity, bodies)
                 val bytes = client.get("https://minio.kuku.me/kuku/BV14s4y1Z7ZAoutput.mp4").body<ByteArray>()
                 val uploadComplete = uploadFileToBackupDrive(
                     aliDriveEntity, backupDriveId,
