@@ -8,6 +8,7 @@ import me.kuku.telegram.logic.V2exLogic
 import me.kuku.telegram.logic.V2exTopic
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.net.ConnectException
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -20,7 +21,11 @@ class V2exScheduled(
 
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     suspend fun push() {
-        val list = V2exLogic.latestTopic()
+        val list = try {
+            V2exLogic.latestTopic()
+        } catch (e: ConnectException) {
+            return
+        }
         if (list.isEmpty()) return
         val newList = mutableListOf<V2exTopic>()
         if (v2exId != 0) {

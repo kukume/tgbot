@@ -2,11 +2,14 @@ package me.kuku.telegram.extension
 
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.ParseMode
+import com.pengrad.telegrambot.request.SendDocument
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.BotConfigEntity
 import me.kuku.telegram.entity.BotConfigService
 import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Component
+import java.io.File
+import java.io.FileOutputStream
 
 @Component
 class SettingExtension(
@@ -20,11 +23,14 @@ class SettingExtension(
         val url = inlineKeyboardButton("设置推送url", "pushUrlSetting")
         val rrOcr = inlineKeyboardButton("设置全局rrocr的key", "settingGlobeRrOcr")
         val twoCaptcha = inlineKeyboardButton("设置全局2captcha的key", "settingGlobeTwoCaptcha")
+        val sendLog = inlineKeyboardButton("发送日志", "settingsSendLog")
+        val clearLog = inlineKeyboardButton("清空日志", "settingsClearLog")
         return InlineKeyboardMarkup(
             arrayOf(blackSetting, adminSetting),
             arrayOf(url),
             arrayOf(rrOcr),
-            arrayOf(twoCaptcha)
+            arrayOf(twoCaptcha),
+            arrayOf(sendLog, clearLog)
         )
     }
 
@@ -142,6 +148,20 @@ class SettingExtension(
             entity.twoCaptchaKey = key
             botConfigService.save(entity)
             editMessageText("设置2captcha的key成功")
+        }
+    }
+
+    fun TelegramSubscribe.log() {
+        callback("settingsSendLog") {
+            val file = File("tmp" + File.separator + "spring.log")
+            val sendDocument = SendDocument(tgId, file)
+            bot.execute(sendDocument)
+            editMessageText("发送日志文件成功")
+        }
+        callback("settingsClearLog") {
+            val file = File("tmp" + File.separator + "spring.log")
+            FileOutputStream(file).write("".toByteArray())
+            editMessageText("清空日志文件成功")
         }
     }
 

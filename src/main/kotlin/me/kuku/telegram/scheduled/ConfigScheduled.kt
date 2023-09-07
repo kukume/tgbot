@@ -14,6 +14,7 @@ import me.kuku.utils.DateTimeFormatterUtils
 import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.net.ConnectException
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -44,7 +45,11 @@ class ConfigScheduled(
 
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     suspend fun xianBaoPush() {
-        val list = client.get("http://new.xianbao.fun/plus/json/push.json?230406").body<List<XianBao>>()
+        val list = try {
+            client.get("http://new.xianbao.fun/plus/json/push.json?230406").body<List<XianBao>>()
+        } catch (e: ConnectException) {
+            return
+        }
         if (list.isEmpty()) return
         val newList = mutableListOf<XianBao>()
         if (xianBaoId != 0) {

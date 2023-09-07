@@ -2,6 +2,7 @@
 
 package me.kuku.telegram.utils
 
+import org.slf4j.LoggerFactory
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.superclasses
@@ -41,6 +42,8 @@ class TelegramExceptionHandler {
 
 }
 
+private val logger = LoggerFactory.getLogger(TelegramExceptionHandler::class.java)
+
 suspend fun TelegramExceptionHandler.invokeHandler(telegramContext: TelegramContext, block: suspend () -> Unit) {
     kotlin.runCatching {
         block()
@@ -60,7 +63,8 @@ suspend fun TelegramExceptionHandler.invokeHandler(telegramContext: TelegramCont
                 func.invoke(context)
             }
         }
-        throw it
+        logger.error("Unexpected error occurred in telegram subscribe", it)
+//        throw it
     }
 }
 
@@ -80,7 +84,8 @@ suspend fun TelegramExceptionHandler.invokeHandler(abilityContext: AbilityContex
                 }
             }
         }
-        throw it
+        logger.error("Unexpected error occurred in telegram subscribe", it)
+//        throw it
     }
 }
 

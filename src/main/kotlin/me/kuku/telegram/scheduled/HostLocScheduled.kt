@@ -8,6 +8,7 @@ import me.kuku.telegram.logic.HostLocLogic
 import me.kuku.telegram.logic.HostLocPost
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.net.ConnectException
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -20,7 +21,11 @@ class HostLocScheduled(
 
     @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
     suspend fun locPush() {
-        val list = HostLocLogic.post()
+        val list = try {
+            HostLocLogic.post()
+        } catch (e: ConnectException) {
+            return
+        }
         if (list.isEmpty()) return
         val newList = mutableListOf<HostLocPost>()
         if (locId != 0) {
