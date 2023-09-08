@@ -14,7 +14,7 @@ class AliDriveScheduled(
     private val logService: LogService
 ) {
 
-    @Scheduled(cron = "13 9 4 * * ?")
+    @Scheduled(cron = "13 9 2 * * ?")
     suspend fun sign() {
         val list = aliDriveService.findBySign(Status.ON)
         for (aliDriveEntity in list) {
@@ -76,12 +76,13 @@ class AliDriveScheduled(
         }
     }
 
-    @Scheduled(cron = "43 30 5 * * ?")
+    @Scheduled(cron = "43 1 3 * * ?")
     suspend fun task() {
         val list = aliDriveService.findByTask(Status.ON)
         for (aliDriveEntity in list) {
             logService.log(aliDriveEntity.tgId, LogType.AliDriveTask) {
                 aliDriveLogic.finishTask(aliDriveEntity)
+                delay(1000 * 60)
                 if (aliDriveEntity.receiveTask == Status.ON) {
                     text = aliDriveLogic.receiveTask(aliDriveEntity)
                 }
