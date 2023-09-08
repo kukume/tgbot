@@ -30,7 +30,7 @@ class LoginExtension(
     private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
-    private val miHoYoService: MiHoYoService,
+    private val miHoYoService: MiHoYoService, private val miHoYoLogic: MiHoYoLogic,
     private val douYinService: DouYinService,
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
@@ -316,6 +316,7 @@ class LoginExtension(
         callback("miHoYoLogin") {
             editMessageText("请选择登录米哈游的方式", InlineKeyboardMarkup(
                 arrayOf(inlineKeyboardButton("使用cookie登录", "miHoYoCookieLogin")),
+                arrayOf(inlineKeyboardButton("使用米游社app扫码登陆", "miHoYoQrcodeLogin")),
                 arrayOf(inlineKeyboardButton("使用账号密码登录", "miHoYoAccountLogin"))
             ))
         }
@@ -329,12 +330,49 @@ class LoginExtension(
             miHoYoService.save(newEntity)
             editMessageText("绑定米哈游成功")
         }
+        callback("miHoYoQrcodeLogin") {
+            val qrcode = miHoYoLogic.qrcodeLogin1()
+            val newUrl =
+                "https://api.kukuqaq.com/qrcode?text=${qrcode.url.toUrlEncode()}"
+            var photoMessage: Message?
+            client.get(newUrl).body<ByteArray>().let {
+                val photo = SendPhoto(chatId, it)
+                photoMessage = bot.execute(photo).message()
+                editMessageText("请使用米游社扫描下面二维码登录", returnButton = false)
+            }
+            var i = 0
+            try {
+                while (true) {
+                    if (i++ > 20) {
+                        editMessageText("米游社二维码已过期")
+                        break
+                    }
+                    delay(3000)
+                    val result = miHoYoLogic.qrcodeLogin2(qrcode)
+                    when (result.code) {
+                        200 -> {
+                            val miHoYoEntity = result.data()
+                            val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().init()
+                            newEntity.fix = miHoYoEntity.fix
+                            newEntity.aid = miHoYoEntity.aid
+                            newEntity.mid = miHoYoEntity.mid
+                            newEntity.cookie = miHoYoEntity.cookie
+                            miHoYoService.save(newEntity)
+                            editMessageText("绑定米哈游成功")
+                            break
+                        }
+                    }
+                }
+            } finally {
+                photoMessage?.delete()
+            }
+        }
         callback("miHoYoAccountLogin") {
             editMessageText("请发送账号")
             val account = nextMessage().text()
             editMessageText("请发送密码")
             val password = nextMessage().text()
-            val result = MiHoYoLogic.login(account, password)
+            val result = miHoYoLogic.login(account, password)
             if (result.success()) {
                 val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().also {
                     it.tgId = tgId

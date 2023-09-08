@@ -11,22 +11,17 @@ import org.springframework.stereotype.Service
 @Service
 class ExecExtension(
     private val configService: ConfigService,
-    private val baiduService: BaiduService,
-    private val baiduLogic: BaiduLogic,
+    private val baiduService: BaiduService, private val baiduLogic: BaiduLogic,
     private val biliBiliService: BiliBiliService,
     private val hostLocService: HostLocService,
-    private val kuGouService: KuGouService,
-    private val kuGouLogic: KuGouLogic,
-    private val miHoYoService: MiHoYoService,
+    private val kuGouService: KuGouService, private val kuGouLogic: KuGouLogic,
+    private val miHoYoService: MiHoYoService, private val miHoYoLogic: MiHoYoLogic,
     private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
-    private val douYuService: DouYuService,
-    private val douYuLogic: DouYuLogic,
-    private val smZdmService: SmZdmService,
-    private val smZdmLogic: SmZdmLogic,
-    private val aliDriveService: AliDriveService,
-    private val aliDriveLogic: AliDriveLogic,
+    private val douYuService: DouYuService, private val douYuLogic: DouYuLogic,
+    private val smZdmService: SmZdmService, private val smZdmLogic: SmZdmLogic,
+    private val aliDriveService: AliDriveService, private val aliDriveLogic: AliDriveLogic,
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService
 ) {
@@ -36,7 +31,7 @@ class ExecExtension(
         val biliBiliButton = InlineKeyboardButton("哔哩哔哩").callbackData("biliBiliExec")
         val hostLocButton = InlineKeyboardButton("HostLoc").callbackData("hostLocExec")
         val kuGouButton = InlineKeyboardButton("酷狗").callbackData("kuGouExec")
-        val miHoYoButton = InlineKeyboardButton("米忽悠").callbackData("miHoYoExec")
+        val miHoYoButton = InlineKeyboardButton("米哈游").callbackData("miHoYoExec")
         val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseExec")
         val stepButton = InlineKeyboardButton("刷步数").callbackData("stepExec")
         val weiboButton = InlineKeyboardButton("微博").callbackData("weiboExec")
@@ -149,10 +144,13 @@ class ExecExtension(
         callback("miHoYoExec") {
             val genShinSignButton = InlineKeyboardButton("原神签到").callbackData("genShinSign")
             val markup = InlineKeyboardMarkup(arrayOf(genShinSignButton))
-            editMessageText("米哈游", markup)
+            editMessageText("""
+                米哈游
+                注意：原神签到可能需要在/config配置rrcor的key
+            """.trimIndent(), markup)
         }
         callback("genShinSign") {
-            MiHoYoLogic.sign(firstArg())
+            miHoYoLogic.sign(firstArg(), tgId)
             editMessageText("原神签到成功")
         }
     }

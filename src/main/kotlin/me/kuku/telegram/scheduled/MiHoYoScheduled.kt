@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class MiHoYoScheduled(
-    private val miHoYoService: MiHoYoService,
+    private val miHoYoService: MiHoYoService, private val miHoYoLogic: MiHoYoLogic,
     private val logService: LogService
 ) {
 
@@ -18,7 +18,7 @@ class MiHoYoScheduled(
         val list = miHoYoService.findBySign(Status.ON)
         for (miHoYoEntity in list) {
             logService.log(miHoYoEntity.tgId, LogType.GenShin) {
-                MiHoYoLogic.sign(miHoYoEntity)
+                miHoYoLogic.sign(miHoYoEntity)
             }
             delay(3000)
         }

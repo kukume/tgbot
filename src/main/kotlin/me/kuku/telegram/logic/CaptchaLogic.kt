@@ -8,6 +8,7 @@ import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.BotConfigService
+import me.kuku.telegram.entity.ConfigService
 import me.kuku.utils.client
 import me.kuku.utils.convertValue
 import me.kuku.utils.setFormDataContent
@@ -56,7 +57,8 @@ class TwoCaptchaLogic(
 @Service
 class GeeTestLogic(
     private val botConfigService: BotConfigService,
-    private val telegramConfig: TelegramConfig
+    private val telegramConfig: TelegramConfig,
+    private val configService: ConfigService
 ) {
 
     /**
@@ -95,8 +97,13 @@ class GeeTestLogic(
      *     "code": 1004
      * }
      */
-    suspend fun rr(gt: String, referer: String, challenge: String? = null, ip: String? = null, host: String? = null, appKey: String? = null): RrOcrResult {
-        val newKey = appKey ?: botConfigService.findByToken(telegramConfig.token)?.rrOcrKey ?: error("未设置rrocr的key")
+    suspend fun rr(gt: String, referer: String, challenge: String? = null, ip: String? = null, host: String? = null, appKey: String? = null, tgId: Long? = null): RrOcrResult {
+        val newKey = appKey ?: botConfigService.findByToken(telegramConfig.token)?.rrOcrKey ?: run {
+            tgId?.let {
+                val configEntity = configService.findByTgId(tgId)
+                configEntity?.rrOcrKey()
+            }
+        } ?: error("未设置rrocr的key")
         val jsonNode = client.post("http://api.rrocr.com/api/recognize.html") {
             setFormDataContent {
                 append("gt", gt)

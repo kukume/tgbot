@@ -2,6 +2,7 @@ package me.kuku.telegram.entity
 
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import me.kuku.telegram.logic.MiHoYoFix
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
@@ -11,10 +12,12 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Document("mi_ho_yo")
-class MiHoYoEntity {
+class MiHoYoEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
+    var fix: MiHoYoFix = MiHoYoFix()
+    var aid: String = ""
+    var mid: String = ""
     var cookie: String = ""
     var sign: Status = Status.OFF
 }
