@@ -1,5 +1,6 @@
 package me.kuku.telegram.entity
 
+import kotlinx.coroutines.flow.toList
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
@@ -54,4 +55,6 @@ class AliDriveService(
     suspend fun findByTask(task: Status) = aliDriveRepository.findByTask(task)
 
     suspend fun findByReceiveTask(task: Status) = aliDriveRepository.findByReceiveTask(task)
+
+    suspend fun findAll() = aliDriveRepository.findAll().toList()
 }

@@ -479,14 +479,51 @@ class AliDriveLogic(
         }.body<JsonNode>()
     }
 
-    suspend fun shareAlbumInvite(aliDriveEntity: AliDriveEntity, id: String): String {
+    suspend fun shareAlbumInvite(aliDriveEntity: AliDriveEntity, id: String): AliDriveShareAlbumInvite {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/sharedAlbumMember/invite") {
             setJsonBody("""
                 {"sharedAlbumId":"$id"}
             """.trimIndent())
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
-        return jsonNode["message"].asText()
+        jsonNode.check2()
+        return jsonNode.convertValue()
+    }
+
+    private suspend fun albumIdByCode(aliDriveEntity: AliDriveEntity, code: String): String {
+        val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/sharedAlbumMember/invitePage") {
+            setJsonBody("""{"code":"$code"}""")
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check2()
+        return jsonNode["sharedAlbumId"].asText()
+    }
+
+    suspend fun joinShareAlbum(aliDriveEntity: AliDriveEntity, code: String) {
+        val shareAlbumId = albumIdByCode(aliDriveEntity, code)
+        val joinNode = client.post("https://api.aliyundrive.com/adrive/v1/sharedAlbumMember/join") {
+            setJsonBody("""
+                {"code":"$code","sharedAlbumId":"$shareAlbumId"}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        joinNode.check2()
+        // https://api.alipan.com/adrive/v1/sharedAlbumMember/quit {"sharedAlbumId":""}
+    }
+
+    suspend fun quitShareAlbum(aliDriveEntity: AliDriveEntity, id: String) {
+        val jsonNode = client.post("https://api.alipan.com/adrive/v1/sharedAlbumMember/quit") {
+            setJsonBody("""
+                {"sharedAlbumId":"$id"}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check2()
+    }
+
+    suspend fun quitShareAlbumByCode(aliDriveEntity: AliDriveEntity, code: String) {
+        val shareAlbumId = albumIdByCode(aliDriveEntity, code)
+        quitShareAlbum(aliDriveEntity, shareAlbumId)
     }
 
     suspend fun bottleFish(aliDriveEntity: AliDriveEntity): AliDriveBottle {
@@ -632,7 +669,11 @@ class AliDriveLogic(
                 val albumList = albumList(aliDriveEntity)
                 val find = albumList.find { it.name == "kuku的共享相册任务" }
                 val id = find?.id ?: createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
-                shareAlbumInvite(aliDriveEntity, id)
+                val shareAlbumInvite = shareAlbumInvite(aliDriveEntity, id)
+                runCatching {
+                    val filterEntity = aliDriveService.findAll().filter { it.id != aliDriveEntity.id }.random()
+                    joinShareAlbum(filterEntity, shareAlbumInvite.code())
+                }
                 repeat(12) {
                     delay(3000)
                     val bytes = picture()
@@ -920,4 +961,19 @@ class AliDriveBatch {
         @JsonProperty("file_id")
         var fileId: String = ""
     )
+}
+
+class AliDriveShareAlbumInvite {
+
+    var message: String = ""
+    var url: String = ""
+    var shareMode: String = ""
+    var shareTitle: String = ""
+    var shareSubTitle: String = ""
+    var shareImageUrl: String = ""
+
+    fun code(): String {
+        return MyUtils.regex("(?<=album/).*", url) ?: error("找不到共享相册code")
+    }
+
 }
