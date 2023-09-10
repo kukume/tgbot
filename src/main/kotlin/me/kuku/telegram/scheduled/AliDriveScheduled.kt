@@ -82,12 +82,20 @@ class AliDriveScheduled(
         for (aliDriveEntity in list) {
             logService.log(aliDriveEntity.tgId, LogType.AliDriveTask) {
                 aliDriveLogic.finishTask(aliDriveEntity)
-                delay(1000 * 60)
-                if (aliDriveEntity.receiveTask == Status.ON) {
-                    text = aliDriveLogic.receiveTask(aliDriveEntity)
-                }
+                delay(3000)
             }
 
+        }
+    }
+
+    @Scheduled(cron = "43 10 4 * * ?")
+    suspend fun receiveTodayTask() {
+        val list = aliDriveService.findByReceiveTask(Status.ON)
+        for (aliDriveEntity in list) {
+            logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
+                aliDriveLogic.receiveTask(aliDriveEntity)
+                delay(1000 * 60)
+            }
         }
     }
 

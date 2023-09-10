@@ -44,6 +44,7 @@ enum class LogType(val value: String) {
     SmZdm("什么值得买"),
     AliDrive("阿里云盘"),
     AliDriveTask("阿里云盘任务"),
+    AliDriveReceiveTaskToday("阿里云盘领取当日任务奖励"),
     ALiDriveReceive("阿里云盘月末领取签到奖励"),
     ALiDriveReceiveTask("阿里云盘月末领取任务奖励"),
     NodeSeek("NodeSeek"),

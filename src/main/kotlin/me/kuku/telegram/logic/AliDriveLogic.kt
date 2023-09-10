@@ -139,7 +139,7 @@ class AliDriveLogic(
     }
 
     private fun JsonNode.check() {
-        if (this["success"]?.asBoolean() != true) error(this["code"].asText())
+        if (this["success"]?.asBoolean() != true) error("${this["code"].asText()}-${this["message"]?.asText()}")
     }
 
     private fun JsonNode.check2() {
