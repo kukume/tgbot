@@ -13,7 +13,7 @@ class SmZdmLogic(
     private val geeTestLogic: GeeTestLogic
 ) {
 
-    suspend fun login1(phone: String, key: String? = null) {
+    suspend fun login1(phone: String, tgId: Long? = null) {
         val geeJsonNode = client.get("https://zhiyou.smzdm.com/user/getgeetest/captcha_init_v3?scene=login&rand=${MyUtils.randomNum(2)}") {
             headers {
                 referer("https://zhiyou.smzdm.com/user/login/window/")
@@ -21,7 +21,7 @@ class SmZdmLogic(
         }.bodyAsText().toJsonNode()
         val gt = geeJsonNode["gt"].asText()
         val challenge = geeJsonNode["challenge"].asText()
-        val geeTest = geeTest(gt, challenge, "https://zhiyou.smzdm.com/", key)
+        val geeTest = geeTest(gt, challenge, "https://zhiyou.smzdm.com/", tgId)
         val sendCodeNode = client.post("https://zhiyou.smzdm.com/user/login/ajax_get_mobile_code/") {
             setFormDataContent {
                 append("geetest_challenge", geeTest.challenge)
@@ -140,12 +140,12 @@ class SmZdmLogic(
     }
 
 
-    suspend fun webSign(smZdmEntity: SmZdmEntity, key: String? = null) {
+    suspend fun webSign(smZdmEntity: SmZdmEntity, tgId: Long? = null) {
         val jsonNode = client.get("https://zhiyou.smzdm.com/user/getgeetest/geetest_captcha_init").bodyAsText().toJsonNode()
         val data = jsonNode["data"]["geetest_data"]
         val gt = data["gt"].asText()
         val challenge = data["challenge"].asText()
-        val geeTest = geeTest(gt, challenge, key = key)
+        val geeTest = geeTest(gt, challenge, tgId = tgId)
         val text = client.get("https://zhiyou.smzdm.com/user/checkin/jsonp_checkin?callback=jQuery112406820925204571995_1673311348950&geetest_challenge=${geeTest.challenge}&geetest_validate=${geeTest.validate}&geetest_seccode=${geeTest.secCode.toUrlEncode()}&_=${System.currentTimeMillis()}") {
             headers {
                 cookieString(smZdmEntity.cookie)
@@ -156,8 +156,8 @@ class SmZdmLogic(
         if (signNode["error_code"].asInt() != 0) error(signNode["error_msg"].asText())
     }
 
-    private suspend fun geeTest(gt: String, challenge: String, referer: String = "https://www.smzdm.com/", key: String? = null): GeeTestResult {
-        val result = geeTestLogic.rr(gt, referer, challenge = challenge, appKey = key)
+    private suspend fun geeTest(gt: String, challenge: String, referer: String = "https://www.smzdm.com/", tgId: Long? = null): GeeTestResult {
+        val result = geeTestLogic.rr(gt, referer, challenge = challenge, tgId = tgId)
         return GeeTestResult(result.challenge, result.validate)
 
     }

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component
 @Component
 class SmZdmScheduled(
     private val smZdmService: SmZdmService,
-    private val configService: ConfigService,
     private val smZdmLogic: SmZdmLogic,
     private val logService: LogService
 ) {
@@ -20,7 +19,7 @@ class SmZdmScheduled(
         for (smZdmEntity in entityList) {
             logService.log(smZdmEntity.tgId, LogType.SmZdm) {
                 delay(3000)
-                smZdmLogic.webSign(smZdmEntity, configService.findByTgId(smZdmEntity.tgId)?.rrOcrKey())
+                smZdmLogic.webSign(smZdmEntity, smZdmEntity.tgId)
                 smZdmLogic.appSign(smZdmEntity)
             }
         }

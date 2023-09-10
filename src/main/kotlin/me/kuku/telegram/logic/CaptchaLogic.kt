@@ -97,13 +97,13 @@ class GeeTestLogic(
      *     "code": 1004
      * }
      */
-    suspend fun rr(gt: String, referer: String, challenge: String? = null, ip: String? = null, host: String? = null, appKey: String? = null, tgId: Long? = null): RrOcrResult {
-        val newKey = appKey ?: botConfigService.findByToken(telegramConfig.token)?.rrOcrKey ?: run {
+    suspend fun rr(gt: String, referer: String, challenge: String? = null, ip: String? = null, host: String? = null, tgId: Long? = null): RrOcrResult {
+        val newKey = run {
             tgId?.let {
                 val configEntity = configService.findByTgId(tgId)
                 configEntity?.rrOcrKey()
             }
-        } ?: error("未设置rrocr的key")
+        } ?: botConfigService.findByToken(telegramConfig.token)?.rrOcrKey ?: error("未设置rrocr的key")
         val jsonNode = client.post("http://api.rrocr.com/api/recognize.html") {
             setFormDataContent {
                 append("gt", gt)

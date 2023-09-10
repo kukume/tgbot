@@ -698,7 +698,7 @@ class LoginExtension(
         callback("smZdmLoginByPhoneCode") {
             editMessageText("请发送什么值得买的手机号码")
             val phone = nextMessage().text()
-            smZdmLogic.login1(phone, configService.findByTgId(tgId)?.rrOcrKey())
+            smZdmLogic.login1(phone, tgId)
             editMessageText("请发送什么值得买的验证码")
             val code = nextMessage().text()
             val newEntity = smZdmLogic.login2(phone, code)
@@ -779,7 +779,10 @@ class LoginExtension(
 
     fun TelegramSubscribe.aliDrive() {
         callback("aliDriveLogin") {
-            editMessageText("请选择阿里云盘登录方式", InlineKeyboardMarkup(
+            editMessageText("""
+                请选择阿里云盘登录方式
+                登陆成功之后账号可能会用于完成加入共享相册的任务
+            """.trimIndent(), InlineKeyboardMarkup(
                 arrayOf(inlineKeyboardButton("使用阿里云盘app扫码登录", "aliDriveQrcodeLogin")),
                 arrayOf(inlineKeyboardButton("使用阿里云盘RefreshToken登录", "aliDriveTokenLogin"))
             ))

@@ -267,7 +267,7 @@ class ExecExtension(
         }
         callback("smZdmSign") {
             val smZdmEntity = firstArg<SmZdmEntity>()
-            smZdmLogic.webSign(smZdmEntity, configService.findByTgId(tgId)?.rrOcrKey())
+            smZdmLogic.webSign(smZdmEntity, tgId)
             smZdmLogic.appSign(smZdmEntity)
             editMessageText("什么值得买app与网页签到成功")
         }
