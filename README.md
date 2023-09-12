@@ -50,5 +50,10 @@ kuku:
 
 * 
 
+## Log
+
+* `/info`可查看发送人的`id` ，设置`creatorId`，`/setting`中可下载日志
+* `/log`中可下载失败任务日志
+
 ## LICENSE
-AGPL
+`AGPLv3`
