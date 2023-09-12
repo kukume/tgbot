@@ -131,7 +131,7 @@ class LoginExtension(
         callback("biliBiliQrcodeLogin") {
             val qrcode = BiliBiliLogic.loginByQr1()
             var photoMessage: Message?
-            OkHttpKtUtils.getBytes("https://api.kukuqaq.com/qrcode?text=${qrcode.url.toUrlEncode()}").let {
+            qrcode(qrcode.url).let {
                 val photo = SendPhoto(chatId, it)
                 photoMessage = bot.execute(photo).message()
                 editMessageText("请使用哔哩哔哩app扫描以下二维码登陆", returnButton = false)
@@ -180,7 +180,7 @@ class LoginExtension(
             val qrcode = douYuLogic.getQrcode()
             val imageUrl = qrcode.url
             var photoMessage: Message?
-            client.get("https://api.kukuqaq.com/qrcode?text=${imageUrl.toUrlEncode()}").body<ByteArray>().let {
+            qrcode(imageUrl).let {
                 val photo = SendPhoto(chatId, it)
                 photoMessage = bot.execute(photo).message()
                 editMessageText("请使用斗鱼app扫码二维码登录", returnButton = false)
@@ -332,10 +332,8 @@ class LoginExtension(
         }
         callback("miHoYoQrcodeLogin") {
             val qrcode = miHoYoLogic.qrcodeLogin1()
-            val newUrl =
-                "https://api.kukuqaq.com/qrcode?text=${qrcode.url.toUrlEncode()}"
             var photoMessage: Message?
-            client.get(newUrl).body<ByteArray>().let {
+            qrcode(qrcode.url).let {
                 val photo = SendPhoto(chatId, it)
                 photoMessage = bot.execute(photo).message()
                 editMessageText("请使用米游社扫描下面二维码登录", returnButton = false)
@@ -394,10 +392,8 @@ class LoginExtension(
         callback("netEaseQrcodeLogin") {
             val key = NetEaseLogic.qrcode()
             val url = "http://music.163.com/login?codekey=$key"
-            val newUrl =
-                "https://api.kukuqaq.com/qrcode?text=${url.toUrlEncode()}"
             var photoMessage: Message?
-            OkHttpKtUtils.getBytes(newUrl).let {
+            qrcode(url).let {
                 val photo = SendPhoto(chatId, it)
                 photoMessage = bot.execute(photo).message()
                 editMessageText("请使用网易云音乐App扫描下面二维码登录", returnButton = false)
@@ -750,7 +746,7 @@ class LoginExtension(
             val appQrcode = smZdmLogic.appQrcode1()
             val url = appQrcode.url
             var photoMessage: Message?
-            client.get("https://api.kukuqaq.com/qrcode?text=${url.toUrlEncode()}").body<ByteArray>().let {
+            qrcode(url).let {
                 val sendPhoto = SendPhoto(chatId, it)
                 photoMessage = bot.execute(sendPhoto).message()
                 editMessageText("请使用什么值得买App扫码登陆", returnButton = false)
@@ -790,7 +786,7 @@ class LoginExtension(
         callback("aliDriveQrcodeLogin") {
             val qrcode = aliDriveLogic.login1()
             var photoMessage: Message?
-            client.get("https://api.kukuqaq.com/qrcode?text=${qrcode.qrcodeUrl.toUrlEncode()}").body<ByteArray>().let {
+            qrcode(qrcode.qrcodeUrl).let {
                 val sendPhoto = SendPhoto(chatId, it)
                 photoMessage = bot.execute(sendPhoto).message()
                 editMessageText("请使用阿里云盘app扫码登陆", returnButton = false)
@@ -826,6 +822,7 @@ class LoginExtension(
             val refreshToken = nextMessage().text()
             val aliDriveEntity = aliDriveService.findByTgId(tgId) ?: AliDriveEntity().init()
             aliDriveEntity.refreshToken = refreshToken
+            if (aliDriveEntity.deviceId.isEmpty()) aliDriveEntity.deviceId = UUID.randomUUID().toString()
             aliDriveService.save(aliDriveEntity)
             editMessageText("绑定阿里云盘成功")
         }

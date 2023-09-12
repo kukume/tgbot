@@ -2,7 +2,7 @@
 
 [SpringBoot](https://spring.io/projects/spring-boot) + [Spring-Data-Mongodb-Reactive](https://spring.io/projects/spring-data-mongodb) + [Java-Telegram-Bot-Api](https://github.com/pengrad/java-telegram-bot-api)
 
-Demo：https://t.me/kukume_bot （搭建在家宽上，可能不稳定）
+Demo：https://t.me/kukume_bot （可能不稳定）
 
 ## Environment
 
@@ -20,7 +20,7 @@ https://hub.docker.com/r/kukume/tgbot
 
 ## Jar
 
-https://pan.kukuqaq.com/tgbot
+https://pan.kuku.me/tgbot
 
 ## Config
 

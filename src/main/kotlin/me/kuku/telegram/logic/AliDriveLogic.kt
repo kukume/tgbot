@@ -6,6 +6,7 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
+import me.kuku.pojo.UA
 import me.kuku.telegram.entity.AliDriveEntity
 import me.kuku.telegram.entity.AliDriveService
 import me.kuku.utils.*
@@ -20,6 +21,7 @@ import org.bouncycastle.crypto.signers.HMacDSAKCalculator
 import org.springframework.stereotype.Service
 import java.io.ByteArrayInputStream
 import java.math.BigInteger
+import java.nio.charset.StandardCharsets
 import java.time.LocalDate
 import java.util.*
 import javax.imageio.ImageIO
@@ -32,17 +34,58 @@ class AliDriveLogic(
     private val cache = mutableMapOf<Long, AliDriveAccessToken>()
     private val signatureCache = mutableMapOf<Long, AliDriveSignature>()
 
-    suspend fun login1() = client.get("https://api.kukuqaq.com/alidrive/qrcode").body<AliDriveQrcode>()
+    suspend fun login1(): AliDriveQrcode {
+        val url = "https://passport.aliyundrive.com/mini_login.htm?lang=zh_cn&appName=aliyun_drive&appEntrance=web_default&styleType=auto&bizParams=&notLoadSsoView=false&notKeepLogin=false&isMobile=false&ad__pass__q__rememberLogin=true&ad__pass__q__rememberLoginDefaultValue=true&ad__pass__q__forgotPassword=true&ad__pass__q__licenseMargin=true&ad__pass__q__loginType=normal&hidePhoneCode=true&rnd=0.${MyUtils.randomNum(17)}"
+        val html = OkHttpKtUtils.getStr(url,
+            mapOf("user-agent" to UA.PC.value, "referer" to "https://auth.aliyundrive.com/"))
+        val jsonStr = MyUtils.regex("window.viewData = ", ";", html)!!
+        val jsonNode = Jackson.parse(jsonStr)
+        val loginJsonNode = jsonNode["loginFormData"]
+        val csrfToken = loginJsonNode["_csrf_token"].asText()
+        val idToken = loginJsonNode["umidToken"].asText()
+        val hs = loginJsonNode["hsiz"].asText()
+        val qrcodeJsonNode = OkHttpKtUtils.getJson("https://passport.aliyundrive.com/newlogin/qrcode/generate.do?appName=aliyun_drive&appName=aliyun_drive&fromSite=52&fromSite=52&appEntrance=web&_csrf_token=$csrfToken&umidToken=$idToken&isMobile=false&lang=zh_CN&returnUrl=&hsiz=$hs&bizParams=&_bx-v=2.0.31",
+            OkUtils.headers("", url, UA.PC))
+        val contentJsonNode = qrcodeJsonNode["content"]
+        val contentDataJsonNode = contentJsonNode["data"]
+        return if (!contentJsonNode["success"].asBoolean()) error(contentDataJsonNode["titleMsg"].asText())
+        else {
+            val qrcodeUrl = contentDataJsonNode["codeContent"].asText()
+            val t = contentDataJsonNode["t"].asLong()
+            val ck = contentDataJsonNode["ck"].asText()
+            AliDriveQrcode(qrcodeUrl, ck, csrfToken, idToken, hs, t)
+        }
+    }
 
-    suspend fun login2(qrcode: AliDriveQrcode): CommonResult<AliDriveEntity> {
-        val jsonNode = client.post("https://api.kukuqaq.com/alidrive/qrcode") {
-            setJsonBody(qrcode)
-        }.body<JsonNode>()
-        return if (jsonNode.has("code")) {
-            CommonResult.fail(message = jsonNode["message"].asText(), code = jsonNode["code"].asInt())
-        } else CommonResult.success(AliDriveEntity().also {
-            it.refreshToken = jsonNode["refreshToken"].asText()
-        })
+    suspend fun login2(aliDriveQrcode: AliDriveQrcode): CommonResult<AliDriveEntity> {
+        val jsonNode = OkHttpKtUtils.postJson("https://passport.aliyundrive.com/newlogin/qrcode/query.do?appName=aliyun_drive&fromSite=52&_bx-v=2.0.50",
+            mapOf("t" to aliDriveQrcode.t.toString(), "ck" to aliDriveQrcode.ck, "ua" to "null", "appName" to "aliyun_drive",
+                "appEntrance" to "web", "_csrf_token" to aliDriveQrcode.csrfToken, "umidToken" to aliDriveQrcode.idToken,
+                "isMobile" to "false", "lang" to "zh_CN", "returnUrl" to "", "hsiz" to aliDriveQrcode.hs, "fromSite" to "52",
+                "bizParams" to "", "navlanguage" to "zh-CN", "navUserAgent" to "null",
+                "navPlatform" to "win32", "deviceId" to ""),  OkUtils.headers("", "",  UA.PC)
+        )
+        val contentJsonNode = jsonNode["content"]
+        val contentDataJsonNode = contentJsonNode["data"]
+        return if (!contentJsonNode["success"].asBoolean()) CommonResult.failure(contentDataJsonNode["titleMsg"].asText(), null)
+        else {
+            when (contentDataJsonNode["qrCodeStatus"].asText()) {
+                "NEW" -> CommonResult.failure("二维码未扫描", null, 0)
+                "EXPIRED" -> CommonResult.failure("二维码已失效", null, 505)
+                "SCANED" -> CommonResult.failure("二维码已扫描", null, 0)
+                "CANCELED" -> CommonResult.failure("二维码已失效", null, 505)
+                "CONFIRMED" -> {
+                    val bizExt = contentDataJsonNode["bizExt"].asText()
+                    val jsonStr = Base64.getDecoder().decode(bizExt).toString(StandardCharsets.UTF_8)
+                    val loginJsonNode = Jackson.parse(jsonStr)
+                    val refreshToken = loginJsonNode["pds_login_result"]["refreshToken"].asText()
+                    CommonResult.success(AliDriveEntity().also {
+                        it.refreshToken = refreshToken
+                    })
+                }
+                else -> CommonResult.failure("未知的状态码", null)
+            }
+        }
     }
 
     private suspend fun accessToken(aliDriveEntity: AliDriveEntity): String {

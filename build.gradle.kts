@@ -32,6 +32,7 @@ dependencies {
         exclude("commons-logging", "commons-logging")
     }
     kapt("org.springframework.boot:spring-boot-configuration-processor")
+    implementation("com.google.zxing:javase:3.5.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 

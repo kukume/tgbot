@@ -93,8 +93,20 @@ class AliDriveScheduled(
         val list = aliDriveService.findByReceiveTask(Status.ON)
         for (aliDriveEntity in list) {
             logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
-                aliDriveLogic.receiveTask(aliDriveEntity)
                 delay(1000 * 60)
+                var message: String? = null
+                try {
+                    aliDriveLogic.receiveTask(aliDriveEntity)
+                } catch (e: Exception) {
+                    try {
+                        aliDriveLogic.receiveTask(aliDriveEntity)
+                    } catch (ex: Exception) {
+                        message = ex.message
+                    }
+                }
+                message?.let {
+                    error(message)
+                }
             }
         }
     }
