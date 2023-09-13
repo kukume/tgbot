@@ -112,30 +112,29 @@ class AliDriveLogic(
                 append("Authorization", accessToken)
             }
         }.body<JsonNode>()
-        return if (jsonNode["success"]?.asBoolean() == true) {
-            val result = jsonNode["result"]
-            val sign = AliDriveSign()
-            sign.subject = result["subject"].asText()
-            sign.customMessage = "签到成功，本月已签到${jsonNode["result"]["signInCount"].asInt()}次"
-            sign.title = result["title"].asText()
-            sign.isReward = result["isReward"].asBoolean()
-            sign.blessing = result["blessing"].asText()
-            sign.signInCount = result["signInCount"].asInt()
-            for (node in result["signInLogs"]) {
-                val signInLog = AliDriveSign.SignInLog()
-                signInLog.day = node["day"].asInt()
-                signInLog.status = node["status"].asText()
-                signInLog.type = node["type"].asText()
-                signInLog.rewardAmount = node["rewardAmount"].asInt()
-                signInLog.themes = node["themes"].asText()
-                signInLog.calendarChinese = node["calendarChinese"].asText()
-                signInLog.calendarDay = node["calendarDay"].asInt()
-                signInLog.calendarMonth = node["calendarMonth"].asText()
-                signInLog.isReward = node["isReward"].asBoolean()
-                sign.signInLogs.add(signInLog)
-            }
-            sign
-        } else error(jsonNode["code"].asText())
+        jsonNode.check()
+        val result = jsonNode["result"]
+        val sign = AliDriveSign()
+        sign.subject = result["subject"].asText()
+        sign.customMessage = "签到成功，本月已签到${jsonNode["result"]["signInCount"].asInt()}次"
+        sign.title = result["title"].asText()
+        sign.isReward = result["isReward"].asBoolean()
+        sign.blessing = result["blessing"].asText()
+        sign.signInCount = result["signInCount"].asInt()
+        for (node in result["signInLogs"]) {
+            val signInLog = AliDriveSign.SignInLog()
+            signInLog.day = node["day"].asInt()
+            signInLog.status = node["status"].asText()
+            signInLog.type = node["type"].asText()
+            signInLog.rewardAmount = node["rewardAmount"].asInt()
+            signInLog.themes = node["themes"].asText()
+            signInLog.calendarChinese = node["calendarChinese"].asText()
+            signInLog.calendarDay = node["calendarDay"].asInt()
+            signInLog.calendarMonth = node["calendarMonth"].asText()
+            signInLog.isReward = node["isReward"].asBoolean()
+            sign.signInLogs.add(signInLog)
+        }
+        return sign
     }
 
     context(HttpRequestBuilder)
