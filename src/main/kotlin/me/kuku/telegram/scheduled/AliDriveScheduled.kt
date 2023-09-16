@@ -94,19 +94,8 @@ class AliDriveScheduled(
         for (aliDriveEntity in list) {
             logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
                 delay(1000 * 60)
-                var message: String? = null
-                try {
-                    aliDriveLogic.receiveTask(aliDriveEntity)
-                } catch (e: Exception) {
-                    try {
-                        aliDriveLogic.receiveTask(aliDriveEntity)
-                    } catch (ex: Exception) {
-                        message = ex.message
-                    }
-                }
-                message?.let {
-                    error(message)
-                }
+                aliDriveLogic.signInList(aliDriveEntity)
+                aliDriveLogic.receiveTask(aliDriveEntity)
             }
         }
     }

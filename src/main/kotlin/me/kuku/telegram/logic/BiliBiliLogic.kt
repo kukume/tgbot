@@ -61,7 +61,7 @@ object BiliBiliLogic {
             if (biliBiliPojo.userId.isEmpty()) {
                 val collectionJsonNode = cardJsonNode["collection"]
                 biliBiliPojo.userId = collectionJsonNode.getString("id")
-                biliBiliPojo.name = collectionJsonNode.getString("name")
+                biliBiliPojo.name = collectionJsonNode["name"]?.asText() ?: ""
             }
             val itemJsonNode = cardJsonNode["item"]
             text = cardJsonNode["dynamic"]?.asText()

@@ -389,12 +389,20 @@ class AliDriveLogic(
         return jsonNode.convertValue()
     }
 
-    private suspend fun batch(aliDriveEntity: AliDriveEntity, aliDriveBatch: AliDriveBatch) {
+    private suspend fun batch(aliDriveEntity: AliDriveEntity, aliDriveBatch: AliDriveBatch, header: Map<String, String> = mapOf()) {
         val jsonNode = client.post("https://api.aliyundrive.com/v2/batch") {
             setJsonBody(aliDriveBatch)
             aliDriveEntity.appendAuth()
+            headers {
+                header.forEach { (k, u) -> append(k, u)  }
+            }
         }.body<JsonNode>()
         jsonNode.check2()
+//        val responses = jsonNode["responses"]
+//        for (node in responses) {
+//            val status = node["status"]
+//
+//        }
     }
 
     suspend fun batchDeleteFile(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
@@ -579,6 +587,45 @@ class AliDriveLogic(
         return jsonNode.convertValue()
     }
 
+    suspend fun saveTo(aliDriveEntity: AliDriveEntity, shareId: String) {
+        val tokenNode = client.post("https://api.aliyundrive.com/v2/share_link/get_share_token") {
+            setJsonBody("""
+                {"share_id":"$shareId","share_pwd":""}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        tokenNode.check2()
+        val shareToken = tokenNode["share_token"].asText()
+        val jsonNode = client.post("https://api.aliyundrive.com/adrive/v2/file/list_by_share") {
+            setJsonBody("""
+                {"share_id":"$shareId","parent_file_id":"root","limit":20,"image_thumbnail_process":"image/resize,w_256/format,jpeg","image_url_process":"image/resize,w_1920/format,jpeg/interlace,1","video_thumbnail_process":"video/snapshot,t_1000,f_jpg,ar_auto,w_256","order_by":"name","order_direction":"DESC"}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+            headers { append("X-Share-Token", shareToken) }
+        }.body<JsonNode>()
+        val page = jsonNode.convertValue<AliDrivePage<AliDriveShareFile>>()
+        val file = page.items.random()
+        val fileId = file.fileId
+//        val jsonNode = client.post("https://api.aliyundrive.com/adrive/v3/share_link/get_share_by_anonymous?share_id=$shareId") {
+//            setJsonBody("""{"share_id":"$shareId"}""")
+//            aliDriveEntity.appendAuth()
+//        }.body<JsonNode>()
+//        jsonNode.check2()
+//        val fileId = jsonNode["file_infos"][0]["file_id"].asText()
+        val batch = AliDriveBatch()
+        val request = AliDriveBatch.Request()
+        request.id = "0"
+        request.url = "/file/copy"
+        val body = AliDriveBatch.SaveShareFileBody()
+        body.fileId = fileId
+        body.shareId = shareId
+        val userGet = userGet(aliDriveEntity)
+        body.toDriveId = userGet.resourceDriveId.toString()
+        request.body = body
+        batch.requests.add(request)
+        batch(aliDriveEntity, batch, mapOf("X-Share-Token" to shareToken))
+    }
+
     private fun encryptKey(): AliDriveKey {
         val privateExponent = BigInteger(256, Random())
         val curveParams = CustomNamedCurves.getByName("secp256k1")
@@ -736,6 +783,14 @@ class AliDriveLogic(
                 )
                 quickShare(aliDriveEntity, backupDriveId, complete.fileId)
             }
+            "分享好运口令（点击分享-> 今日好运卡）" -> {
+                shareGoodLuckCard(aliDriveEntity)
+            }
+            "接好运瓶并转存任意1个文件" -> {
+                val bottleFish = bottleFish(aliDriveEntity)
+                val shareId = bottleFish.shareId
+                saveTo(aliDriveEntity, shareId)
+            }
             else -> error("不支持的任务，${reward.remind}")
         }
     }
@@ -764,6 +819,14 @@ class AliDriveLogic(
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
         jsonNode.check2()
+    }
+
+    suspend fun shareGoodLuckCard(aliDriveEntity: AliDriveEntity) {
+        val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/complement_task_detail?_rx-s=mobile") {
+            setJsonBody("{}")
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check()
     }
 
 }
@@ -1003,6 +1066,19 @@ class AliDriveBatch {
         @JsonProperty("file_id")
         var fileId: String = ""
     )
+
+    data class SaveShareFileBody(
+        @JsonProperty("file_id")
+        var fileId: String = "",
+        @JsonProperty("share_id")
+        var shareId: String = "",
+        @JsonProperty("auto_rename")
+        var autoRename: Boolean = true,
+        @JsonProperty("to_parent_file_id")
+        var toParentFileId: String = "root",
+        @JsonProperty("to_drive_id")
+        var toDriveId: String = ""
+    )
 }
 
 class AliDriveShareAlbumInvite {
@@ -1018,4 +1094,25 @@ class AliDriveShareAlbumInvite {
         return MyUtils.regex("(?<=album/).*", url) ?: error("找不到共享相册code")
     }
 
+}
+
+class AliDrivePage<T> {
+    var items: MutableList<T> = mutableListOf()
+    @JsonProperty("next_marker")
+    var nextMarker: String = ""
+}
+
+class AliDriveShareFile {
+    @JsonProperty("drive_id")
+    var driveId: String = ""
+    @JsonProperty("domain_id")
+    var domainId: String = ""
+    @JsonProperty("file_id")
+    var fileId: String = ""
+    @JsonProperty("share_id")
+    var shareId: String = ""
+    var name: String = ""
+    var type: String = ""
+    @JsonProperty("parent_file_id")
+    var parentFileId: String = ""
 }
