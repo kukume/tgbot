@@ -18,7 +18,7 @@ class MiHoYoScheduled(
         val list = miHoYoService.findBySign(Status.ON)
         for (miHoYoEntity in list) {
             logService.log(miHoYoEntity.tgId, LogType.GenShin) {
-                miHoYoLogic.sign(miHoYoEntity)
+                miHoYoLogic.sign(miHoYoEntity, miHoYoEntity.tgId)
             }
             delay(3000)
         }
