@@ -19,7 +19,7 @@ class LeiShenScheduled(
 ) {
 
 
-    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.HOURS)
+    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.HOURS)
     suspend fun leiShenRemind() {
         val entities = leiShenService.findByStatus(Status.ON)
         for (entity in entities) {
@@ -48,7 +48,7 @@ class LeiShenScheduled(
             }
             if (userInfo.pauseStatusId == 0) {
                 val sendMessage = SendMessage(entity.tgId, """
-                    #雷神加速器未暂停时间提醒 1小时提醒一次
+                    #雷神加速器未暂停时间提醒 2小时提醒一次
                     您的雷神加速器未暂停时间，如果您未在玩游戏，请尽快暂停
                 """.trimIndent()).replyMarkup(InlineKeyboardMarkup(inlineKeyboardButton("暂停时间", "leiShenPause")))
                 telegramBot.execute(sendMessage)

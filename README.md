@@ -8,11 +8,23 @@ Demo：https://t.me/kukume_bot （可能不稳定）
 
 JDK17 + Mongodb
 
+或许等apt源有JDK21，将升级JDK到21
+
 ## Commands
 
 * /login - 登陆账号
 * /exec - 手动执行签到
 * /manager - 管理自动签到状态，默认自动签到全为关
+
+## Beg
+
+| price  | link                                      |
+|--------|-------------------------------------------|
+| 0.5EUR | https://buy.stripe.com/bIYaG75j0ci1bte28a |
+| 1EUR   | https://buy.stripe.com/4gw4hJdPwci1apa6or |
+| 2EUR   | https://buy.stripe.com/7sIaG7fXE5TDapacMQ |
+| 10EUR  | https://buy.stripe.com/28ocOffXE2Hr8h2aEF |
+
 
 ## Docker
 
@@ -53,7 +65,7 @@ kuku:
 ## Log
 
 * `/info`可查看发送人的`id` ，设置`creatorId`，`/setting`中可下载日志
-* `/log`中可下载失败任务日志
+* `/log`中可查看失败任务日志
 
 ## LICENSE
 `AGPLv3`

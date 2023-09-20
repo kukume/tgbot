@@ -21,7 +21,7 @@ class LogEntity: BaseEntity() {
 
     fun sendFailMessage(message: String? = null) {
         val telegramBot = SpringUtils.getBean<TelegramBot>()
-        val sendMessage = SendMessage(tgId, "#自动签到失败提醒\n${type.value}自动签到失败，${message ?: "未知异常原因，请重新执行指令以查看原因"}")
+        val sendMessage = SendMessage(tgId, "#自动签到失败提醒\n${type.value}执行失败，${message ?: "未知异常原因，请重新执行指令以查看原因"}")
         telegramBot.execute(sendMessage)
     }
 

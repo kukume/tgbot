@@ -302,9 +302,9 @@ class ExecExtension(
             editMessageText("程序正在后台为您完成任务，任务完成时间会很长")
             kotlin.runCatching {
                 aliDriveLogic.finishTask(firstArg())
-                sendMessage("#手动执行结果：\n阿里云盘完成任务成功")
+                sendMessage("#手动执行结果\n阿里云盘完成任务成功")
             }.onFailure {
-                sendMessage("#手动执行结果：\n阿里云盘完成任务失败，失败原因：${it.message}")
+                sendMessage("#手动执行结果\n阿里云盘完成任务失败，失败原因：${it.message}")
             }
         }
         callback("aliDriveReceiveTask") {

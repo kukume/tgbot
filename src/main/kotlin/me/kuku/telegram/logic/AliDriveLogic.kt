@@ -153,8 +153,9 @@ class AliDriveLogic(
             val aliDriveSignature = signatureCache[tgId]!!
             if (aliDriveSignature.isExpire()) {
                 aliDriveSignature.nonce += 1
-                encrypt(entity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
+                val encrypt = encrypt(entity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
                     aliDriveSignature.deviceId, aliDriveSignature.userid)
+                aliDriveSignature.signature = encrypt.signature
                 aliDriveSignature.expireRefresh()
                 aliDriveSignature
             } else aliDriveSignature
@@ -822,8 +823,8 @@ class AliDriveLogic(
     }
 
     suspend fun shareGoodLuckCard(aliDriveEntity: AliDriveEntity) {
-        val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/complement_task_detail?_rx-s=mobile") {
-            setJsonBody("{}")
+        val jsonNode = client.post("https://member.aliyundrive.com/v1/activity/behave?_rx-s=mobile") {
+            setJsonBody("""{"behave":"share-signIn-code"}""")
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
         jsonNode.check()
