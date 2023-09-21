@@ -756,9 +756,11 @@ class AliDriveLogic(
                     50.123)
             }
             "创建共享相簿邀请成员加入并上传10张照片" -> {
-                val albumList = albumList(aliDriveEntity)
-                val find = albumList.find { it.name == "kuku的共享相册任务" }
-                val id = find?.id ?: createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
+                val albumList = shareAlbum(aliDriveEntity)
+                albumList.filter { it.name == "kuku的共享相册任务" }.forEach {
+                    deleteShareAlbum(aliDriveEntity, it.shareAlbumId)
+                }
+                val id = createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
                 val shareAlbumInvite = shareAlbumInvite(aliDriveEntity, id)
                 runCatching {
                     val filterEntity = aliDriveService.findAll().filter { it.id != aliDriveEntity.id }.random()
@@ -791,6 +793,13 @@ class AliDriveLogic(
                 val bottleFish = bottleFish(aliDriveEntity)
                 val shareId = bottleFish.shareId
                 saveTo(aliDriveEntity, shareId)
+            }
+            "创建1个共享相簿即可领取奖励" -> {
+                val albumList = shareAlbum(aliDriveEntity)
+                albumList.filter { it.name == "kuku的共享相册任务" }.forEach {
+                    deleteShareAlbum(aliDriveEntity, it.shareAlbumId)
+                }
+                createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
             }
             else -> error("不支持的任务，${reward.remind}")
         }
