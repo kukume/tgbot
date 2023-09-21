@@ -471,8 +471,8 @@ class AliDriveLogic(
     }
 
     suspend fun deleteShareAlbum(aliDriveEntity: AliDriveEntity, id: String) {
-        val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/sharedAlbum/delete") {
-            setJsonBody("""{"shareAlbumId": "$id"}""")
+        val jsonNode = client.post("https://api.alipan.com/adrive/v1/sharedAlbum/delete") {
+            setJsonBody("""{"sharedAlbumId":"$id"}""")
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
         jsonNode.check2()
@@ -762,10 +762,9 @@ class AliDriveLogic(
                 }
                 val id = createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
                 val shareAlbumInvite = shareAlbumInvite(aliDriveEntity, id)
-                runCatching {
-                    val filterEntity = aliDriveService.findAll().filter { it.id != aliDriveEntity.id }.random()
-                    joinShareAlbum(filterEntity, shareAlbumInvite.code())
-                }
+                val filterEntity = aliDriveService.findAll().filter { it.id != aliDriveEntity.id }.randomOrNull()
+                    ?: error("数据库中未拥有其他阿里云盘账号，无法邀请成员加入共享相簿")
+                joinShareAlbum(filterEntity, shareAlbumInvite.code())
                 repeat(12) {
                     delay(3000)
                     val bytes = picture()
@@ -967,6 +966,7 @@ class AliDriveVideo {
 }
 
 class AliDriveShareAlbum {
+    @JsonProperty("sharedAlbumId")
     var shareAlbumId: String = ""
     var name: String = ""
     var description: String = ""
