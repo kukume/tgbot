@@ -153,8 +153,13 @@ class AliDriveLogic(
             val aliDriveSignature = signatureCache[tgId]!!
             if (aliDriveSignature.isExpire()) {
                 aliDriveSignature.nonce += 1
-                val encrypt = encrypt(entity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
-                    aliDriveSignature.deviceId, aliDriveSignature.userid)
+                val encrypt = try {
+                    encrypt(entity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
+                        aliDriveSignature.deviceId, aliDriveSignature.userid)
+                } catch (e: Exception) {
+                    encrypt(entity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
+                        aliDriveSignature.deviceId, aliDriveSignature.userid)
+                }
                 aliDriveSignature.signature = encrypt.signature
                 aliDriveSignature.expireRefresh()
                 aliDriveSignature
@@ -167,7 +172,11 @@ class AliDriveLogic(
             }
             val deviceId = entity.deviceId
             val encryptKey = encryptKey()
-            val encrypt = encrypt(entity, encryptKey, deviceId, userGet.userid)
+            val encrypt = try {
+                encrypt(entity, encryptKey, deviceId, userGet.userid)
+            } catch (e: Exception) {
+                encrypt(entity, encryptKey, deviceId, userGet.userid)
+            }
             val aliDriveSignature = AliDriveSignature(encryptKey.privateKey)
             aliDriveSignature.deviceId = deviceId
             aliDriveSignature.publicKey = encryptKey.publicKey
@@ -343,10 +352,10 @@ class AliDriveLogic(
     }
 
     @Suppress("DuplicatedCode")
-    suspend fun uploadFileToBackupDrive(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray, parentId: String = "root"): AliDriveUploadComplete {
+    suspend fun uploadFileToBackupDrive(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray, parentId: String = "root", scene: AliDriveBackupScene = AliDriveBackupScene.Upload): AliDriveUploadComplete {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v2/file/createWithFolders") {
             setJsonBody("""
-                {"drive_id":"$driveId","part_info_list":[{"part_number":1}],"parent_file_id":"$parentId","name":"$fileName","type":"file","check_name_mode":"auto_rename","size":${byteArray.size},"create_scene":"file_upload","device_name":""}
+                {"drive_id":"$driveId","part_info_list":[{"part_number":1}],"parent_file_id":"$parentId","name":"$fileName","type":"file","check_name_mode":"auto_rename","size":${byteArray.size},"create_scene":"${scene.value}","device_name":""}
             """.trimIndent())
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
@@ -800,6 +809,21 @@ class AliDriveLogic(
                 }
                 createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
             }
+            "开启自动备份并备份满10个文件" -> {
+                backup(aliDriveEntity)
+                val userGet = userGet(aliDriveEntity)
+                val backupDriveId = userGet.backupDriveId
+                val searchFile = searchFile(aliDriveEntity, "kuku的上传文件任务", listOf(backupDriveId.toString()))
+                val fileId = if (searchFile.isEmpty())
+                    createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
+                else searchFile[0].fileId
+                repeat(12) {
+                    delay(3000)
+                    val bytes = picture()
+                    uploadFileToBackupDrive(aliDriveEntity, backupDriveId,
+                        "${MyUtils.random(10)}.jpg", bytes, fileId, AliDriveBackupScene.Backup)
+                }
+            }
             else -> error("不支持的任务，${reward.remind}")
         }
     }
@@ -834,6 +858,17 @@ class AliDriveLogic(
         val jsonNode = client.post("https://member.aliyundrive.com/v1/activity/behave?_rx-s=mobile") {
             setJsonBody("""{"behave":"share-signIn-code"}""")
             aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check()
+    }
+
+    suspend fun backup(aliDriveEntity: AliDriveEntity, status: Boolean = true) {
+        val jsonNode = client.post("https://api.alipan.com/users/v1/users/update_device_extras") {
+            setJsonBody("""
+                {"albumAccessAuthority":true,"albumBackupLeftFileTotal":103,"albumBackupLeftFileTotalSize":184486173,"albumFile":108,"autoBackupStatus":$status,"brand":"redmi","systemVersion":"Android 12","totalSize":242965508096,"umid":"H7cBV1ZLPB6vPAKKwraHgfgPAkPWWKER","useSize":122022363136,"utdid":"Y90sZAck9L8DAO5WYKs2lFge"}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+            aliDriveEntity.appendEncrypt()
         }.body<JsonNode>()
         jsonNode.check()
     }
@@ -1125,4 +1160,9 @@ class AliDriveShareFile {
     var type: String = ""
     @JsonProperty("parent_file_id")
     var parentFileId: String = ""
+}
+
+enum class AliDriveBackupScene(val value: String) {
+    Upload("file_upload"),
+    Backup("album_autobackup")
 }
