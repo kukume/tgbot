@@ -1,9 +1,11 @@
+@file:Suppress("VulnerableLibrariesLocal")
+
 plugins {
     val kotlinVersion = "1.9.10"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     kotlin("kapt") version kotlinVersion
-    id("org.springframework.boot") version "3.1.3"
+    id("org.springframework.boot") version "3.1.4"
     id("io.spring.dependency-management") version "1.1.0"
 }
 
@@ -33,6 +35,8 @@ dependencies {
     }
     kapt("org.springframework.boot:spring-boot-configuration-processor")
     implementation("com.google.zxing:javase:3.5.2")
+    implementation("net.consensys.cava:cava-bytes:0.5.0")
+    implementation("net.consensys.cava:cava-crypto:0.5.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 

@@ -57,4 +57,6 @@ class AliDriveService(
     suspend fun findByReceiveTask(task: Status) = aliDriveRepository.findByReceiveTask(task)
 
     suspend fun findAll() = aliDriveRepository.findAll().toList()
+
+    suspend fun findById(id: String) = aliDriveRepository.findById(id)
 }

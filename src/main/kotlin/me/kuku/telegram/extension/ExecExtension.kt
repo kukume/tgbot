@@ -285,6 +285,7 @@ class ExecExtension(
                 阿里云盘
                 完成任务会在你的云盘上上传图片、视频、新建文件夹等，介意勿用
                 完成任务如出现device offline错误，请找到阿里云盘的登录设备管理，下线一些设备即可
+                如果任务是'开启手机自动备份并持续至少一小时'，且你的手机没有开启自动备份，请在完成任务后一个小时内不要打开手机app，一个小时之后再打开app
             """.trimIndent(), inlineKeyboardMarkup)
         }
         callback("aliDriveSign") {

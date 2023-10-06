@@ -10,18 +10,16 @@ import me.kuku.pojo.UA
 import me.kuku.telegram.entity.AliDriveEntity
 import me.kuku.telegram.entity.AliDriveService
 import me.kuku.utils.*
+import net.consensys.cava.bytes.Bytes32
+import net.consensys.cava.crypto.Hash
+import net.consensys.cava.crypto.SECP256K1
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.bouncycastle.crypto.digests.SHA256Digest
-import org.bouncycastle.crypto.ec.CustomNamedCurves
-import org.bouncycastle.crypto.params.ECDomainParameters
-import org.bouncycastle.crypto.params.ECPrivateKeyParameters
-import org.bouncycastle.crypto.params.ECPublicKeyParameters
-import org.bouncycastle.crypto.signers.ECDSASigner
-import org.bouncycastle.crypto.signers.HMacDSAKCalculator
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.encoders.Hex
 import org.springframework.stereotype.Service
 import java.io.ByteArrayInputStream
-import java.math.BigInteger
 import java.nio.charset.StandardCharsets
+import java.security.Security
 import java.time.LocalDate
 import java.util.*
 import javax.imageio.ImageIO
@@ -31,8 +29,14 @@ class AliDriveLogic(
     private val aliDriveService: AliDriveService
 ) {
 
+    init {
+        if (Security.getProvider("BC") == null) {
+            Security.addProvider(BouncyCastleProvider())
+        }
+    }
+
     private val cache = mutableMapOf<Long, AliDriveAccessToken>()
-    private val signatureCache = mutableMapOf<Long, AliDriveSignature>()
+    private val signatureCache = mutableMapOf<String, AliDriveSignature>()
 
     suspend fun login1(): AliDriveQrcode {
         val url = "https://passport.aliyundrive.com/mini_login.htm?lang=zh_cn&appName=aliyun_drive&appEntrance=web_default&styleType=auto&bizParams=&notLoadSsoView=false&notKeepLogin=false&isMobile=false&ad__pass__q__rememberLogin=true&ad__pass__q__rememberLoginDefaultValue=true&ad__pass__q__forgotPassword=true&ad__pass__q__licenseMargin=true&ad__pass__q__loginType=normal&hidePhoneCode=true&rnd=0.${MyUtils.randomNum(17)}"
@@ -98,8 +102,9 @@ class AliDriveLogic(
             val token = "${jsonNode["token_type"].asText()} ${jsonNode["access_token"].asText()}"
             cache[aliDriveEntity.tgId] = AliDriveAccessToken(token, System.currentTimeMillis() + jsonNode["expires_in"].asLong() * 1000)
             val newRefreshToken = jsonNode["refresh_token"].asText()
-            aliDriveEntity.refreshToken = newRefreshToken
-            aliDriveService.save(aliDriveEntity)
+            val newEntity = aliDriveService.findById(aliDriveEntity.id!!)!!
+            newEntity.refreshToken = newRefreshToken
+            aliDriveService.save(newEntity)
             token
         } else accessToken.accessToken
     }
@@ -146,20 +151,17 @@ class AliDriveLogic(
     }
 
     context(HttpRequestBuilder)
-    private suspend fun AliDriveEntity.appendEncrypt() {
+    private suspend fun AliDriveEntity.appendEncrypt(device: AliDriveDevice = AliDriveDevice()) {
         val entity = this@AliDriveEntity
-        val tgId = entity.tgId
-        val aliDriveSignature = if (signatureCache.containsKey(tgId)) {
-            val aliDriveSignature = signatureCache[tgId]!!
+        val deviceId = entity.deviceId
+        val key = "${entity.tgId}$deviceId"
+        val aliDriveSignature = if (signatureCache.containsKey(key)) {
+            val aliDriveSignature = signatureCache[key]!!
             if (aliDriveSignature.isExpire()) {
                 aliDriveSignature.nonce += 1
-                val encrypt = try {
-                    encrypt(entity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
-                        aliDriveSignature.deviceId, aliDriveSignature.userid)
-                } catch (e: Exception) {
-                    encrypt(entity, AliDriveKey(aliDriveSignature.privateKey, aliDriveSignature.publicKey),
-                        aliDriveSignature.deviceId, aliDriveSignature.userid)
-                }
+                val encrypt = encrypt(entity, aliDriveSignature.key,
+                    aliDriveSignature.deviceId, aliDriveSignature.userid, aliDriveSignature.nonce,
+                    device.deviceName, device.deviceModel)
                 aliDriveSignature.signature = encrypt.signature
                 aliDriveSignature.expireRefresh()
                 aliDriveSignature
@@ -170,18 +172,14 @@ class AliDriveLogic(
                 entity.deviceId = UUID.randomUUID().toString()
                 aliDriveService.save(entity)
             }
-            val deviceId = entity.deviceId
             val encryptKey = encryptKey()
-            val encrypt = try {
-                encrypt(entity, encryptKey, deviceId, userGet.userid)
-            } catch (e: Exception) {
-                encrypt(entity, encryptKey, deviceId, userGet.userid)
-            }
-            val aliDriveSignature = AliDriveSignature(encryptKey.privateKey)
+            val encrypt =
+                encrypt(entity, encryptKey, deviceId, userGet.userid, 0, device.deviceName, device.deviceModel)
+            val aliDriveSignature = AliDriveSignature(encryptKey)
             aliDriveSignature.deviceId = deviceId
-            aliDriveSignature.publicKey = encryptKey.publicKey
             aliDriveSignature.signature = encrypt.signature
-            signatureCache[tgId] = aliDriveSignature
+            aliDriveSignature.userid = userGet.userid
+            signatureCache[key] = aliDriveSignature
             aliDriveSignature
         }
         headers {
@@ -233,6 +231,7 @@ class AliDriveLogic(
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/sign_in_info") {
             setJsonBody("{}")
             aliDriveEntity.appendAuth()
+            aliDriveEntity.appendEncrypt()
         }.body<JsonNode>()
         jsonNode.check()
         return jsonNode["result"].convertValue()
@@ -268,13 +267,15 @@ class AliDriveLogic(
     }
 
     @Suppress("DuplicatedCode")
-    suspend fun uploadFileToAlbums(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray): AliDriveUploadComplete {
-        // 有code 异常
+    suspend fun uploadFileToAlbums(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray,
+                                   scene: AliDriveScene = AliDriveScene.ManualBackup, deviceName: String = ""): AliDriveUploadComplete {
+        val suffix = fileName.substring(fileName.lastIndexOf('.') + 1)
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/biz/albums/file/create") {
             setJsonBody("""
-                {"drive_id":"$driveId","part_info_list":[{"part_number":1}],"parent_file_id":"root","name":"$fileName","type":"file","check_name_mode":"auto_rename","size":${byteArray.size},"create_scene":"album_manualbackup","device_name":""}
+                {"drive_id":"$driveId","part_info_list":[{"part_number":1}],"parent_file_id":"root","name":"$fileName","type":"file","check_name_mode":"auto_rename","size":${byteArray.size},"create_scene":"${scene.value}","device_name":"$deviceName","hidden":false,"content_type":"image/$suffix"}
             """.trimIndent())
             aliDriveEntity.appendAuth()
+            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
         }.body<JsonNode>()
         jsonNode.check2()
         val fileId = jsonNode["file_id"].asText()
@@ -292,6 +293,7 @@ class AliDriveLogic(
                 {"drive_id":"$driveId","upload_id":"$uploadId","file_id":"$fileId"}
             """.trimIndent())
             aliDriveEntity.appendAuth()
+            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
         }.body<JsonNode>()
         return complete.convertValue()
     }
@@ -352,7 +354,7 @@ class AliDriveLogic(
     }
 
     @Suppress("DuplicatedCode")
-    suspend fun uploadFileToBackupDrive(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray, parentId: String = "root", scene: AliDriveBackupScene = AliDriveBackupScene.Upload): AliDriveUploadComplete {
+    suspend fun uploadFileToBackupDrive(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray, parentId: String = "root", scene: AliDriveScene = AliDriveScene.Upload): AliDriveUploadComplete {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v2/file/createWithFolders") {
             setJsonBody("""
                 {"drive_id":"$driveId","part_info_list":[{"part_number":1}],"parent_file_id":"$parentId","name":"$fileName","type":"file","check_name_mode":"auto_rename","size":${byteArray.size},"create_scene":"${scene.value}","device_name":""}
@@ -637,52 +639,60 @@ class AliDriveLogic(
     }
 
     private fun encryptKey(): AliDriveKey {
-        val privateExponent = BigInteger(256, Random())
-        val curveParams = CustomNamedCurves.getByName("secp256k1")
-        val privateKeyParams = ECPrivateKeyParameters(privateExponent, ECDomainParameters(curveParams))
-        val publicKeyParams = ECPublicKeyParameters(
-            curveParams.curve.decodePoint(privateKeyParams.parameters.g.getEncoded(false)), privateKeyParams.parameters
-        )
-
-        val publicBytes = publicKeyParams.q.getEncoded(false)
-        val publicKey = publicBytes.joinToString("") { "%02x".format(it) }
-        return AliDriveKey(privateKeyParams, publicKey)
+        val byteArray = ByteArray(32)
+        Random().nextBytes(byteArray)
+        val privateKey = HexUtils.byteArrayToHex(byteArray)
+        val publicKey = generatePublicKey(privateKey)
+        return AliDriveKey(privateKey, publicKey)
     }
 
-    private suspend fun encrypt(aliDriveEntity: AliDriveEntity, encryptKey: AliDriveKey, deviceId: String, userid: String, nonce: Int = 0): AliDriveEncrypt {
+    private fun generatePublicKey(privateKey: String): String {
+        val fromBytes = SECP256K1.SecretKey.fromBytes(Bytes32.wrap(Hex.decode(privateKey)))
+        val keyPair = SECP256K1.KeyPair.fromSecretKey(fromBytes)
+        return Hex.toHexString(keyPair.publicKey().bytesArray())
+    }
+
+    private suspend fun encrypt(aliDriveEntity: AliDriveEntity, encryptKey: AliDriveKey, deviceId: String, userid: String,
+                                nonce: Int = 0, deviceName: String = "Chrome浏览器", modelName: String = "Windows网页版"): AliDriveEncrypt {
+        val phone = deviceName != "Chrome浏览器"
         val privateKey = encryptKey.privateKey
         val publicKey = encryptKey.publicKey
-        val appId = "5dde4e1bdf9e4966b387ba58f4b3fdc3"
-        val data = "$appId:$deviceId:$userid:$nonce"
-        val ecdsaSigner = ECDSASigner(HMacDSAKCalculator(SHA256Digest()))
-        ecdsaSigner.init(true, privateKey)
-
-        val message = data.toByteArray()
-        val sig = ecdsaSigner.generateSignature(message)
-
-        val signatureStr = sig.joinToString("") { "%02x".format(it) } + "01"
+        val appId = if (!phone) "5dde4e1bdf9e4966b387ba58f4b3fdc3"
+        else "81c38d8c0d224d5d981f5f4e6db2d587"
+        val data = "$appId:$deviceId:$userid:$nonce".toByteArray()
+        val fromBytes = SECP256K1.SecretKey.fromBytes(Bytes32.wrap(Hex.decode(privateKey)))
+        val keyPair = SECP256K1.KeyPair.fromSecretKey(fromBytes)
+        val signature = Hex.toHexString(SECP256K1.signHashed(Hash.sha2_256(data), keyPair).bytes().toArray())
         val accessToken = accessToken(aliDriveEntity)
         val jsonNode = if (nonce == 0) {
-            OkHttpUtils.postJson("https://api.aliyundrive.com/users/v1/users/device/create_session",
-                OkUtils.json("""{"deviceName":"Chrome浏览器","modelName":"Windows网页版","pubKey":"$publicKey"}"""),
-                mapOf(
-                    "x-device-id" to deviceId,
-                    "x-signature" to signatureStr,
-                    "authorization" to accessToken
-                )
-            )
+            client.post("https://api.aliyundrive.com/users/v1/users/device/create_session") {
+                setJsonBody("""
+                    {"deviceName":"$deviceName","modelName":"$modelName","nonce":"0","pubKey":"$publicKey","refreshToken":"${aliDriveEntity.refreshToken}"}
+                """.trimIndent())
+                headers {
+                    append("x-device-id", deviceId)
+                    append("x-signature", signature)
+                    append("authorization", accessToken)
+                    if (phone) {
+                        append("X-Canary", "client=Android,app=adrive,version=v4.1.0")
+                    }
+                }
+            }.body<JsonNode>()
         } else {
             client.post("https://api.aliyundrive.com/users/v1/users/device/renew_session") {
                 setJsonBody("{}")
                 headers {
                     append("x-device-id", deviceId)
-                    append("x-signature", signatureStr)
+                    append("x-signature", signature)
                     append("authorization", accessToken)
+                    if (phone) {
+                        append("X-Canary", "client=Android,app=adrive,version=v4.1.0")
+                    }
                 }
             }.body<JsonNode>()
         }
         jsonNode.check()
-        return AliDriveEncrypt(deviceId, signatureStr)
+        return AliDriveEncrypt(deviceId, signature)
     }
 
     @Suppress("DuplicatedCode")
@@ -810,19 +820,31 @@ class AliDriveLogic(
                 createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
             }
             "开启自动备份并备份满10个文件" -> {
-                backup(aliDriveEntity)
-                val userGet = userGet(aliDriveEntity)
-                val backupDriveId = userGet.backupDriveId
-                val searchFile = searchFile(aliDriveEntity, "kuku的上传文件任务", listOf(backupDriveId.toString()))
-                val fileId = if (searchFile.isEmpty())
-                    createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
-                else searchFile[0].fileId
+                val deviceList = deviceList(aliDriveEntity)
+                val random = deviceList.randomOrNull() ?: error("请在app上登陆阿里云盘")
+                aliDriveEntity.deviceId = random.deviceId
+                backup(aliDriveEntity, random.deviceName, random.deviceSystemVersion)
+                val driveId = albumsDriveId(aliDriveEntity)
                 repeat(12) {
                     delay(3000)
                     val bytes = picture()
-                    uploadFileToBackupDrive(aliDriveEntity, backupDriveId,
-                        "${MyUtils.random(10)}.jpg", bytes, fileId, AliDriveBackupScene.Backup)
+                    uploadFileToAlbums(aliDriveEntity, driveId,
+                        "${MyUtils.random(10)}.jpg", bytes, scene = AliDriveScene.AutoBackup, deviceName = "${random.deviceName} ${random.deviceModel}")
                 }
+            }
+            "开启手机自动备份并持续至少一小时" -> {
+                val deviceList = deviceList(aliDriveEntity)
+                val random = deviceList.randomOrNull() ?: error("请在app上登陆阿里云盘")
+                aliDriveEntity.deviceId = random.deviceId
+                backup(aliDriveEntity, random.deviceName, random.deviceSystemVersion)
+                val driveId = albumsDriveId(aliDriveEntity)
+                val bytes = picture()
+                uploadFileToAlbums(aliDriveEntity, driveId,
+                    "${MyUtils.random(10)}.jpg", bytes, scene = AliDriveScene.AutoBackup, deviceName = "${random.deviceName} ${random.deviceModel}")
+                JobManager.delay(1000 * 60 * 70) {
+                    signInInfo(aliDriveEntity)
+                }
+
             }
             else -> error("不支持的任务，${reward.remind}")
         }
@@ -862,15 +884,31 @@ class AliDriveLogic(
         jsonNode.check()
     }
 
-    suspend fun backup(aliDriveEntity: AliDriveEntity, status: Boolean = true) {
+    suspend fun backup(aliDriveEntity: AliDriveEntity, brand: String, systemVersion: String, status: Boolean = true) {
         val jsonNode = client.post("https://api.alipan.com/users/v1/users/update_device_extras") {
             setJsonBody("""
-                {"albumAccessAuthority":true,"albumBackupLeftFileTotal":103,"albumBackupLeftFileTotalSize":184486173,"albumFile":108,"autoBackupStatus":$status,"brand":"redmi","systemVersion":"Android 12","totalSize":242965508096,"umid":"H7cBV1ZLPB6vPAKKwraHgfgPAkPWWKER","useSize":122022363136,"utdid":"Y90sZAck9L8DAO5WYKs2lFge"}
+                {"albumAccessAuthority":true,"albumBackupLeftFileTotal":103,"albumBackupLeftFileTotalSize":184486173,"albumFile":108,"autoBackupStatus":$status,"brand":"$brand","systemVersion":"$systemVersion","totalSize":242965508096,"useSize":122022363136}
             """.trimIndent())
             aliDriveEntity.appendAuth()
-            aliDriveEntity.appendEncrypt()
+            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
         }.body<JsonNode>()
         jsonNode.check()
+    }
+
+    suspend fun deviceList(aliDriveEntity: AliDriveEntity): List<AliDriveDevice> {
+        val newEntity = aliDriveService.findById(aliDriveEntity.id!!)!!
+        val jsonNode = client.post("https://api.alipan.com/adrive/v2/backup/device_applet_list_summary") {
+            setJsonBody("{}")
+            newEntity.appendAuth()
+            newEntity.appendEncrypt()
+        }.body<JsonNode>()
+        jsonNode.check2()
+        return jsonNode["deviceItems"].convertValue()
+    }
+
+    suspend fun findDevice(aliDriveEntity: AliDriveEntity): AliDriveDevice {
+        val list = deviceList(aliDriveEntity)
+        return list.find { it.deviceId == aliDriveEntity.deviceId } ?: AliDriveDevice()
     }
 
 }
@@ -963,6 +1001,8 @@ class AliDriveSignInInfo {
         var name: String = ""
         var type: String = ""
         var remind: String = ""
+        var status: String = ""
+        var position: Int = 0
     }
 }
 
@@ -1015,10 +1055,9 @@ class AliDriveBottle {
 
 data class AliDriveEncrypt(val deviceId: String, val signature: String)
 
-data class AliDriveKey(val privateKey: ECPrivateKeyParameters, val publicKey: String)
+data class AliDriveKey(val privateKey: String, val publicKey: String)
 
-class AliDriveSignature(val privateKey: ECPrivateKeyParameters) {
-    var publicKey: String = ""
+class AliDriveSignature(val key: AliDriveKey) {
     var nonce: Int = 0
     var deviceId: String = ""
     var signature: String = ""
@@ -1162,7 +1201,27 @@ class AliDriveShareFile {
     var parentFileId: String = ""
 }
 
-enum class AliDriveBackupScene(val value: String) {
+enum class AliDriveScene(val value: String) {
     Upload("file_upload"),
-    Backup("album_autobackup")
+    AutoBackup("album_autobackup"),
+    ManualBackup("album_manualbackup")
+}
+
+class AliDriveDevice {
+    var fileCount: Int = 0
+    var totalSize: String = ""
+    var latestBackupTime: Long = 0
+    var earlyBackupTime: Long = 0
+    var enable: Boolean = false
+    var defaultDriveFileCount: Int = 0
+    var albumDriveFileCount: Int = 0
+    var defaultDriveFileSize: String = ""
+    var albumDriveFileSize: String = ""
+    var deviceId: String = ""
+    var deviceName: String = "Chrome浏览器"
+    var deviceModel: String = "Windows网页版"
+    var deviceType: String = ""
+    var deviceSystemVersion: String = ""
+    var deviceRegisterDay: Int = 0
+    var updateTime: Long = 0
 }

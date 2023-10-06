@@ -54,7 +54,9 @@ class AliDriveScheduled(
                     for (signInLog in signList.signInLogs) {
                         if (!signInLog.isReward) {
                             delay(3000)
-                            aliDriveLogic.receive(aliDriveEntity, signInLog.day)
+                            kotlin.runCatching {
+                                aliDriveLogic.receive(aliDriveEntity, signInLog.day)
+                            }
                         }
                     }
                 }
@@ -65,9 +67,11 @@ class AliDriveScheduled(
                     val signList = aliDriveLogic.signInList(aliDriveEntity)
                     for (signInInfo in signList.signInInfos) {
                         signInInfo.rewards.lastOrNull()?.let { reward ->
-                            if (reward.status == "verification") {
+                            if (reward.status == "finished") {
                                 delay(3000)
-                                aliDriveLogic.receiveTask(aliDriveEntity, signInInfo.day)
+                                kotlin.runCatching {
+                                    aliDriveLogic.receiveTask(aliDriveEntity, signInInfo.day)
+                                }
                             }
                         }
                     }
@@ -88,7 +92,7 @@ class AliDriveScheduled(
         }
     }
 
-    @Scheduled(cron = "43 10 4 * * ?")
+    @Scheduled(cron = "43 30 4 * * ?")
     suspend fun receiveTodayTask() {
         val list = aliDriveService.findByReceiveTask(Status.ON)
         for (aliDriveEntity in list) {
