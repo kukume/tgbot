@@ -22,7 +22,7 @@ class AliDriveScheduled(
                 delay(3000)
                 aliDriveLogic.sign(aliDriveEntity)
                 if (aliDriveEntity.receive == Status.ON) {
-                    text = aliDriveLogic.receive(aliDriveEntity)
+                    show = aliDriveLogic.receive(aliDriveEntity)
                 }
             }
         }
@@ -99,7 +99,7 @@ class AliDriveScheduled(
             logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
                 delay(1000 * 60)
                 aliDriveLogic.signInList(aliDriveEntity)
-                aliDriveLogic.receiveTask(aliDriveEntity)
+                show = aliDriveLogic.receiveTask(aliDriveEntity)
             }
         }
     }

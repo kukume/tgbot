@@ -19,7 +19,7 @@ class LogExtension(
         val list = mutableListOf<Array<InlineKeyboardButton>>()
         for (logEntity in logList) {
             val button = InlineKeyboardButton("${logEntity.type.value} - ${logEntity.text}")
-            if (logEntity.success()) button.callbackData("logSuccess")
+            if (logEntity.success()) button.callbackData("logSuccess-${logEntity.id}")
             else button.callbackData("logErrReason-${logEntity.id}")
             val single = arrayOf(button)
             list.add(single)
@@ -39,7 +39,7 @@ class LogExtension(
     fun AbilitySubscriber.logShow() {
         sub("log") {
             val before = LocalDate.now().atTime(0, 0)
-            sendMessage("${DateTimeFormatterUtils.format(before, "yyyy-MM-dd")}的自动签到日志，点击可查看异常原因",
+            sendMessage("${DateTimeFormatterUtils.format(before, "yyyy-MM-dd")}的自动签到日志，点击可查看详情",
                 replyMarkup(before, before.plusDays(1), tgId))
         }
     }
@@ -53,7 +53,9 @@ class LogExtension(
                 returnButton = false)
         }
         callback("logSuccess") {
-            answerCallbackQuery("执行成功了，没有异常原因", showAlert = true)
+            val id = query.data().substring(13)
+            val logEntity = logService.findById(id)!!
+            answerCallbackQuery(logEntity.show, showAlert = true)
         }
         callback("logNone") {
             answerCallbackQuery("这是给你看的，不是给你点的")

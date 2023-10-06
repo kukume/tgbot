@@ -1,5 +1,9 @@
 package me.kuku.telegram.logic
 
+import com.fasterxml.jackson.databind.JsonNode
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.KuGouEntity
@@ -230,6 +234,23 @@ class KuGouLogic {
         val code = jsonNode.getInteger("error_code")
         return if (code == 0 || code == 130012) "成功"
         else error(jsonNode.getString("error_msg"))
+    }
+
+    suspend fun watchAd(kuGouEntity: KuGouEntity) {
+        val map = mutableMapOf("userid" to kuGouEntity.userid.toString(), "token" to kuGouEntity.token,
+            "appid" to "3116", "clientver" to "10780", "clienttime" to (System.currentTimeMillis() / 1000).toString(),
+            "mid" to kuGouEntity.mid, "uuid" to MyUtils.randomLetter(32), "dfid" to "-")
+        val now = System.currentTimeMillis()
+        val before = now - 15 * 1423
+        val other = """
+            {"ad_id":"12424568007","play_start":$before,"play_end":$now}
+        """.trimIndent()
+        val jsonNode = client.post("https://gateway.kugou.com/youth/v1/ad/play_report?${signature3(map, other)}") {
+            setJsonBody(other)
+            userAgent("Android12-1070-10780-130-0-AdPlayStatusProtocol-3gnet(20)")
+        }.body<JsonNode>()
+        // {"error_msg":"","data":{"remain_vip_hour":9,"total":8,"done":5,"remain":3,"award_vip_hour":3},"status":1,"error_code":0}
+        if (jsonNode["error_code"].asInt() !in listOf(0, 30002)) error(jsonNode["error_msg"].asText())
     }
 
 }

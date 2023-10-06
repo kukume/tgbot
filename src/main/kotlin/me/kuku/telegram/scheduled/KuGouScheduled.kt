@@ -20,6 +20,10 @@ class KuGouScheduled(
             logService.log(kuGouEntity.tgId, LogType.KuGou) {
                 kuGouLogic.musicianSign(kuGouEntity)
                 kuGouLogic.listenMusic(kuGouEntity)
+                repeat(8) {
+                    delay(1000 * 25)
+                    kuGouLogic.watchAd(kuGouEntity)
+                }
             }
             delay(3000)
         }

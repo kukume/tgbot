@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service
 
 @Service
 class ExecExtension(
-    private val configService: ConfigService,
     private val baiduService: BaiduService, private val baiduLogic: BaiduLogic,
     private val biliBiliService: BiliBiliService,
     private val hostLocService: HostLocService,
@@ -126,8 +125,9 @@ class ExecExtension(
         callback("kuGouExec") {
             val kuGouMusicianSignButton = InlineKeyboardButton("音乐人").callbackData("kuGouMusicianSign")
             val kuGouListenButton = InlineKeyboardButton("概念版听歌得vip").callbackData("kuGouListen")
-            val markup = InlineKeyboardMarkup(arrayOf(kuGouMusicianSignButton), arrayOf(kuGouListenButton))
-            editMessageText("酷狗", markup)
+            val watchAd = InlineKeyboardButton("概念版看广告").callbackData("kuGouWatchAd")
+            val markup = InlineKeyboardMarkup(arrayOf(kuGouMusicianSignButton), arrayOf(kuGouListenButton), arrayOf(watchAd))
+            editMessageText("酷狗音乐", markup)
         }
         callback("kuGouMusicianSign") {
             kuGouLogic.musicianSign(firstArg())
@@ -135,7 +135,11 @@ class ExecExtension(
         }
         callback("kuGouListen") {
             kuGouLogic.listenMusic(firstArg())
-            editMessageText("酷狗听歌得vip成功")
+            editMessageText("酷狗概念版听歌得vip成功")
+        }
+        callback("kuGouWatchAd") {
+            kuGouLogic.watchAd(firstArg())
+            editMessageText("酷狗概念版看广告成功")
         }
     }
 

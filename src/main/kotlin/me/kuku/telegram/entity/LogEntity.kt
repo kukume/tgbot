@@ -16,6 +16,7 @@ class LogEntity: BaseEntity() {
     var id: String? = null
     var type: LogType = LogType.None
     var text: String = "成功"
+    var show: String = ""
     var errReason: String = ""
     var exceptionStack: String = ""
 
