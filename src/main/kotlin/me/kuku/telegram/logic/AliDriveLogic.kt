@@ -158,7 +158,6 @@ class AliDriveLogic(
         val aliDriveSignature = if (signatureCache.containsKey(key)) {
             val aliDriveSignature = signatureCache[key]!!
             if (aliDriveSignature.isExpire()) {
-                aliDriveSignature.nonce += 1
                 val encrypt = encrypt(entity, aliDriveSignature.key,
                     aliDriveSignature.deviceId, aliDriveSignature.userid, aliDriveSignature.nonce,
                     device.deviceName, device.deviceModel)
@@ -664,7 +663,7 @@ class AliDriveLogic(
         val keyPair = SECP256K1.KeyPair.fromSecretKey(fromBytes)
         val signature = Hex.toHexString(SECP256K1.signHashed(Hash.sha2_256(data), keyPair).bytes().toArray())
         val accessToken = accessToken(aliDriveEntity)
-        val jsonNode = if (nonce == 0) {
+        val jsonNode = /*if (nonce == 0) {*/
             client.post("https://api.aliyundrive.com/users/v1/users/device/create_session") {
                 setJsonBody("""
                     {"deviceName":"$deviceName","modelName":"$modelName","nonce":"0","pubKey":"$publicKey","refreshToken":"${aliDriveEntity.refreshToken}"}
@@ -678,7 +677,7 @@ class AliDriveLogic(
                     }
                 }
             }.body<JsonNode>()
-        } else {
+        /*} else {
             client.post("https://api.aliyundrive.com/users/v1/users/device/renew_session") {
                 setJsonBody("{}")
                 headers {
@@ -690,7 +689,7 @@ class AliDriveLogic(
                     }
                 }
             }.body<JsonNode>()
-        }
+        }*/
         jsonNode.check()
         return AliDriveEncrypt(deviceId, signature)
     }
@@ -837,14 +836,7 @@ class AliDriveLogic(
                 val random = deviceList.randomOrNull() ?: error("请在app上登陆阿里云盘")
                 aliDriveEntity.deviceId = random.deviceId
                 backup(aliDriveEntity, random.deviceName, random.deviceSystemVersion)
-                val driveId = albumsDriveId(aliDriveEntity)
-                val bytes = picture()
-                uploadFileToAlbums(aliDriveEntity, driveId,
-                    "${MyUtils.random(10)}.jpg", bytes, scene = AliDriveScene.AutoBackup, deviceName = "${random.deviceName} ${random.deviceModel}")
-                JobManager.delay(1000 * 60 * 70) {
-                    signInInfo(aliDriveEntity)
-                }
-
+                signInInfo(aliDriveEntity)
             }
             else -> error("不支持的任务，${reward.remind}")
         }
@@ -887,7 +879,7 @@ class AliDriveLogic(
     suspend fun backup(aliDriveEntity: AliDriveEntity, brand: String, systemVersion: String, status: Boolean = true) {
         val jsonNode = client.post("https://api.alipan.com/users/v1/users/update_device_extras") {
             setJsonBody("""
-                {"albumAccessAuthority":true,"albumBackupLeftFileTotal":103,"albumBackupLeftFileTotalSize":184486173,"albumFile":108,"autoBackupStatus":$status,"brand":"$brand","systemVersion":"$systemVersion","totalSize":242965508096,"useSize":122022363136}
+                {"albumAccessAuthority":true,"albumBackupLeftFileTotal":0,"albumBackupLeftFileTotalSize":0,"albumFile":0,"autoBackupStatus":$status,"brand":"${brand.lowercase()}","systemVersion":"$systemVersion","totalSize":242965508096,"umid":"ZDYBtYRLPNE6gwKLFDrYBaGJ8Q/r8p58","useSize":122042286080,"utdid":"Y90sZAck9L8DAO5WYKs2lFge"}
             """.trimIndent())
             aliDriveEntity.appendAuth()
             aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
@@ -1067,7 +1059,7 @@ class AliDriveSignature(val key: AliDriveKey) {
     fun isExpire() = System.currentTimeMillis() > expire
 
     fun expireRefresh() {
-        expire = System.currentTimeMillis() + 1000 * 60 * 60
+        expire = System.currentTimeMillis() + 1000 * 60 * 30
     }
 }
 
