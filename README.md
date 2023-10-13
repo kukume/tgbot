@@ -6,9 +6,7 @@ Demo：https://t.me/kukume_bot （可能不稳定）
 
 ## Environment
 
-JDK17 + Mongodb
-
-或许等apt源有JDK21，将升级JDK到21
+JDK21 + Mongodb
 
 ## Commands
 

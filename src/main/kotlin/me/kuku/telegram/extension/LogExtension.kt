@@ -52,8 +52,8 @@ class LogExtension(
             editMessageText("${before}的自动签到日志", replyMarkup(beforeTime, beforeTime.plusDays(1), tgId),
                 returnButton = false)
         }
-        callback("logSuccess") {
-            val id = query.data().substring(13)
+        callbackStartsWith("logSuccess-") {
+            val id = query.data().substring(11)
             val logEntity = logService.findById(id)!!
             answerCallbackQuery(logEntity.show, showAlert = true)
         }

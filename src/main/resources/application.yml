@@ -9,6 +9,9 @@ spring:
     scheduling:
       pool:
         size: 10
+  threads:
+    virtual:
+      enabled: true
 logging:
   file:
     path: ./tmp

@@ -4,8 +4,8 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.UpdatesListener
 import com.pengrad.telegrambot.model.Update
 import jakarta.annotation.PostConstruct
+import kotlinx.coroutines.runBlocking
 import me.kuku.telegram.utils.*
-import me.kuku.utils.JobManager
 import okhttp3.OkHttpClient
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.ApplicationEvent
@@ -88,20 +88,22 @@ class TelegramBean(
         telegramBot.setUpdatesListener {
             for (update in it) {
                 applicationContext.publishEvent(TelegramUpdateEvent(update))
-                JobManager.now {
-                    for (function in updateFunction) {
-                        telegramExceptionHandler.invokeHandler(TelegramContext(telegramBot, update)) {
-                            function.function.callSuspend(function.any, update)
+                Thread.startVirtualThread {
+                    runBlocking {
+                        for (function in updateFunction) {
+                            telegramExceptionHandler.invokeHandler(TelegramContext(telegramBot, update)) {
+                                function.function.callSuspend(function.any, update)
+                            }
                         }
-                    }
-                    for (single in abilitySubscriberList) {
+                        for (single in abilitySubscriberList) {
 //                        telegramExceptionHandler.invokeHandler(AbilityContext(telegramBot, update)) {
                             single.invoke(telegramBot, update)
 //                        }
-                    }
-                    for (telegramSubscribe in telegramSubscribeList) {
-                        telegramExceptionHandler.invokeHandler(TelegramContext(telegramBot, update)) {
-                            telegramSubscribe.invoke(telegramBot, update)
+                        }
+                        for (telegramSubscribe in telegramSubscribeList) {
+                            telegramExceptionHandler.invokeHandler(TelegramContext(telegramBot, update)) {
+                                telegramSubscribe.invoke(telegramBot, update)
+                            }
                         }
                     }
                 }
