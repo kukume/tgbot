@@ -4,7 +4,7 @@ plugins {
     val kotlinVersion = "1.9.20-RC"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "3.2.0-SNAPSHOT"
+    id("org.springframework.boot") version "3.2.0-M3"
     id("io.spring.dependency-management") version "1.1.0"
 }
 
@@ -46,6 +46,7 @@ java {
 tasks.compileKotlin {
     kotlinOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict", "-Xcontext-receivers")
+        jvmTarget = "21"
     }
 }
 
