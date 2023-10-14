@@ -10,6 +10,8 @@ class OtherExtension {
         callback("notWrite") {
             answerCallbackQuery("没写")
         }
+        callback("none") {
+        }
     }
 
 }

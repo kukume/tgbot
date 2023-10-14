@@ -1,5 +1,7 @@
 package me.kuku.telegram.extension
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ArrayNode
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.InputMediaPhoto
@@ -16,6 +18,7 @@ import me.kuku.telegram.logic.TwitterLogic
 import me.kuku.telegram.logic.YgoLogic
 import me.kuku.telegram.utils.*
 import me.kuku.utils.*
+import okhttp3.internal.filterList
 import org.springframework.stereotype.Service
 
 @Service
@@ -59,6 +62,21 @@ class ToolExtension(
                 chatId: `$id`
                 messageThreadId: `$messageThreadId`
             """.trimIndent(), parseMode = ParseMode.Markdown)
+        }
+        sub("update") {
+            val jsonNode = client.get("https://api.github.com/repos/kukume/tgbot/commits").body<JsonNode>()
+            val list = mutableListOf<Array<InlineKeyboardButton>>()
+            for (node in jsonNode) {
+                val commit = node["commit"]
+                val message = commit["message"].asText()
+                val dateStr = commit["committer"]["date"].asText()
+                    .replace("T", " ").replace("Z", "")
+                val zero = DateTimeFormatterUtils.parseToLocalDateTime(dateStr, "yyyy-MM-dd HH:mm:ss")
+                val right = zero.plusHours(8)
+                val date = DateTimeFormatterUtils.format(right, "yyyy-MM-dd HH:mm:ss")
+                list.add(arrayOf(InlineKeyboardButton("$date - $message").callbackData("none")))
+            }
+            sendMessage("更新日志", InlineKeyboardMarkup(*list.stream().limit(6).toList().toTypedArray()))
         }
     }
 

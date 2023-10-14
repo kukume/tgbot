@@ -153,7 +153,7 @@ class AliDriveLogic(
     context(HttpRequestBuilder)
     private suspend fun AliDriveEntity.appendEncrypt(device: AliDriveDevice = AliDriveDevice()) {
         val entity = this@AliDriveEntity
-        val deviceId = entity.deviceId
+        val deviceId = if(device.deviceId.isEmpty()) entity.deviceId else device.deviceId
         val key = "${entity.tgId}$deviceId"
         val aliDriveSignature = if (signatureCache.containsKey(key)) {
             val aliDriveSignature = signatureCache[key]!!
@@ -230,7 +230,7 @@ class AliDriveLogic(
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/sign_in_info") {
             setJsonBody("{}")
             aliDriveEntity.appendAuth()
-            aliDriveEntity.appendEncrypt()
+            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
         }.body<JsonNode>()
         jsonNode.check()
         return jsonNode["result"].convertValue()
@@ -819,23 +819,17 @@ class AliDriveLogic(
                 createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
             }
             "开启自动备份并备份满10个文件" -> {
-                val deviceList = deviceList(aliDriveEntity)
-                val random = deviceList.randomOrNull() ?: error("请在app上登陆阿里云盘")
-                aliDriveEntity.deviceId = random.deviceId
-                backup(aliDriveEntity, random.deviceName, random.deviceSystemVersion)
+                backup(aliDriveEntity, "kuku", "Android 12")
                 val driveId = albumsDriveId(aliDriveEntity)
                 repeat(12) {
                     delay(3000)
                     val bytes = picture()
                     uploadFileToAlbums(aliDriveEntity, driveId,
-                        "${MyUtils.random(10)}.jpg", bytes, scene = AliDriveScene.AutoBackup, deviceName = "${random.deviceName} ${random.deviceModel}")
+                        "${MyUtils.random(10)}.jpg", bytes, scene = AliDriveScene.AutoBackup, deviceName = "ku ku")
                 }
             }
             "开启手机自动备份并持续至少一小时" -> {
-                val deviceList = deviceList(aliDriveEntity)
-                val random = deviceList.randomOrNull() ?: error("请在app上登陆阿里云盘")
-                aliDriveEntity.deviceId = random.deviceId
-                backup(aliDriveEntity, random.deviceName, random.deviceSystemVersion)
+                backup(aliDriveEntity, "kuku", "Android 12")
                 signInInfo(aliDriveEntity)
             }
             else -> error("不支持的任务，${reward.remind}")
@@ -855,6 +849,7 @@ class AliDriveLogic(
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/sign_in_list?_rx-s=mobile") {
             setJsonBody("{}")
             aliDriveEntity.appendAuth()
+            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
         }.body<JsonNode>()
         jsonNode.check()
         return jsonNode["result"].convertValue()
@@ -877,12 +872,20 @@ class AliDriveLogic(
     }
 
     suspend fun backup(aliDriveEntity: AliDriveEntity, brand: String, systemVersion: String, status: Boolean = true) {
+        var backupDeviceId = aliDriveEntity.backupDeviceId
+        if (backupDeviceId.isEmpty()) backupDeviceId = UUID.randomUUID().toString()
+        aliDriveEntity.backupDeviceId = backupDeviceId
+        aliDriveService.save(aliDriveEntity)
+        val aliDriveDevice = AliDriveDevice()
+        aliDriveDevice.deviceId = backupDeviceId
+        aliDriveDevice.deviceName = "kuku"
+        aliDriveDevice.deviceModel = "kuku"
         val jsonNode = client.post("https://api.alipan.com/users/v1/users/update_device_extras") {
             setJsonBody("""
                 {"albumAccessAuthority":true,"albumBackupLeftFileTotal":0,"albumBackupLeftFileTotalSize":0,"albumFile":0,"autoBackupStatus":$status,"brand":"${brand.lowercase()}","systemVersion":"$systemVersion","totalSize":242965508096,"umid":"ZDYBtYRLPNE6gwKLFDrYBaGJ8Q/r8p58","useSize":122042286080,"utdid":"Y90sZAck9L8DAO5WYKs2lFge"}
             """.trimIndent())
             aliDriveEntity.appendAuth()
-            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
+            aliDriveEntity.appendEncrypt(aliDriveDevice)
         }.body<JsonNode>()
         jsonNode.check()
     }
@@ -900,7 +903,8 @@ class AliDriveLogic(
 
     suspend fun findDevice(aliDriveEntity: AliDriveEntity): AliDriveDevice {
         val list = deviceList(aliDriveEntity)
-        return list.find { it.deviceId == aliDriveEntity.deviceId } ?: AliDriveDevice()
+        val matchDeviceId = aliDriveEntity.backupDeviceId.ifEmpty { aliDriveEntity.deviceId }
+        return list.find { it.deviceId == matchDeviceId } ?: AliDriveDevice()
     }
 
 }
