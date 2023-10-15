@@ -6,6 +6,7 @@ import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.LeiShenLogic
+import me.kuku.telegram.logic.LeiShenUserInfo
 import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Service
 
@@ -38,7 +39,7 @@ class ManagerExtension(
         val hostLocButton = InlineKeyboardButton("HostLoc").callbackData("hostLocManager")
         val huYaButton = InlineKeyboardButton("虎牙").callbackData("huYaManager")
         val kuGouButton = InlineKeyboardButton("酷狗").callbackData("kuGouManager")
-        val miHoYoButton = InlineKeyboardButton("米忽悠").callbackData("miHoYoManager")
+        val miHoYoButton = InlineKeyboardButton("米哈游").callbackData("miHoYoManager")
         val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseManager")
         val xiaomiStepButton = InlineKeyboardButton("刷步数").callbackData("stepManager")
         val weiboButton = InlineKeyboardButton("微博").callbackData("weiboManager")
@@ -73,19 +74,16 @@ class ManagerExtension(
     fun TelegramSubscribe.baiduManager() {
         before { set(baiduService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定百度账号")) }
         callback("baiduManager") {}
-        callback("baiduSignOpen") { firstArg<BaiduEntity>().sign = Status.ON }
-        callback("baiduSignClose") { firstArg<BaiduEntity>().sign = Status.OFF }
+        callback("baiduSignSwitch") { firstArg<BaiduEntity>().sign = firstArg<BaiduEntity>().sign.reverse() }
         after {
             val baiduEntity = firstArg<BaiduEntity>()
             baiduService.save(baiduEntity)
-            val signOpenButton = inlineKeyboardButton("自动签到（开）", "baiduSignOpen")
-            val signCloseButton = inlineKeyboardButton("自动签到（关）", "baiduSignClose")
+            val signOpenButton = inlineKeyboardButton("${baiduEntity.sign.str()}自动签到", "baiduSignSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(signOpenButton, signCloseButton)
+                arrayOf(signOpenButton)
             )
             editMessageText("""
-                百度自动签到管理，当前状态：
-                自动签到：${baiduEntity.sign.str()}
+                百度自动签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -93,30 +91,25 @@ class ManagerExtension(
     fun TelegramSubscribe.biliBiliManager() {
         before { set(biliBiliService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定哔哩哔哩账号")) }
         callback("biliBiliManager") {}
-        callback("biliBiliPushOpen") { firstArg<BiliBiliEntity>().push = Status.ON }
-        callback("biliBiliPushClose") { firstArg<BiliBiliEntity>().push = Status.OFF }
-        callback("biliBiliSignOpen") { firstArg<BiliBiliEntity>().sign = Status.ON }
-        callback("biliBiliSignClose") { firstArg<BiliBiliEntity>().sign = Status.OFF }
-        callback("biliBiliLiveOpen") { firstArg<BiliBiliEntity>().live = Status.ON }
-        callback("biliBiliLiveClose") { firstArg<BiliBiliEntity>().live = Status.OFF }
+        callback("biliBiliPushSwitch") { firstArg<BiliBiliEntity>().also { it.push = it.push.reverse() } }
+        callback("biliBiliSignSwitch") { firstArg<BiliBiliEntity>().also { it.sign = it.sign.reverse() } }
+        callback("biliBiliLiveSwitch") { firstArg<BiliBiliEntity>().also { it.live = it.live.reverse() } }
         after {
             val biliBiliEntity = firstArg<BiliBiliEntity>()
-            val pushOpenButton = InlineKeyboardButton("动态推送（开）").callbackData("biliBiliPushOpen")
-            val pushCloseButton = InlineKeyboardButton("动态推送（关）").callbackData("biliBiliPushClose")
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("biliBiliSignOpen")
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("biliBiliSignClose")
-            val liveOpenButton = InlineKeyboardButton("开播提醒（开）").callbackData("biliBiliLiveOpen")
-            val liveCloseButton = InlineKeyboardButton("开播提醒（关）").callbackData("biliBiliLiveClose")
+            biliBiliService.save(biliBiliEntity)
+            val pushButton = InlineKeyboardButton("${biliBiliEntity.push.str()}动态推送")
+                .callbackData("biliBiliPushSwitch")
+            val signButton = InlineKeyboardButton("${biliBiliEntity.sign.str()}自动签到")
+                .callbackData("biliBiliSignSwitch")
+            val liveButton = InlineKeyboardButton("${biliBiliEntity.live.str()}开播提醒")
+                .callbackData("biliBiliLiveSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(pushOpenButton, pushCloseButton),
-                arrayOf(signOpenButton, signCloseButton),
-                arrayOf(liveOpenButton, liveCloseButton)
+                arrayOf(pushButton),
+                arrayOf(signButton),
+                arrayOf(liveButton)
             )
             editMessageText("""
-                哔哩哔哩自动签到管理，当前状态：
-                动态推送：${biliBiliEntity.push.str()}
-                自动签到：${biliBiliEntity.sign.str()}
-                开播提醒：${biliBiliEntity.live.str()}
+                哔哩哔哩自动签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -124,37 +117,31 @@ class ManagerExtension(
     fun TelegramSubscribe.douYuManager() {
         before { set(douYuService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定斗鱼账号")) }
         callback("douYuManager") {}
-        callback("douYuLiveOpen") { firstArg<DouYuEntity>().live = Status.ON }
-        callback("douYuLiveClose") { firstArg<DouYuEntity>().live = Status.OFF }
-        callback("douYuFishOpen") { firstArg<DouYuEntity>().fishGroup = Status.ON }
-        callback("douYuFishClose") { firstArg<DouYuEntity>().fishGroup = Status.OFF }
-        callback("douYuFishPushOpen") { firstArg<DouYuEntity>().push = Status.ON }
-        callback("douYuFishPushClose") { firstArg<DouYuEntity>().push = Status.OFF }
-        callback("douYuTitleChangeOpen") { firstArg<DouYuEntity>().titleChange = Status.ON }
-        callback("douYuTitleChangeClose") { firstArg<DouYuEntity>().titleChange = Status.OFF }
+        callback("douYuLiveTurn") { firstArg<DouYuEntity>().also { it.live = !it.live } }
+        callback("douYuFishTurn") { firstArg<DouYuEntity>().also { it.fishGroup = !it.fishGroup } }
+        callback("douYuFishPushTurn") { firstArg<DouYuEntity>().also { it.push = !it.push } }
+        callback("douYuTitleChangeTurn") { firstArg<DouYuEntity>().also { it.titleChange = !it.titleChange } }
         after {
+            var i = 0
+            i += 1
             val douYuEntity = firstArg<DouYuEntity>()
             douYuService.save(douYuEntity)
-            val liveOpenButton = InlineKeyboardButton("开播提醒（开）").callbackData("douYuLiveOpen")
-            val liveCloseButton = InlineKeyboardButton("开播提醒（关）").callbackData("douYuLiveClose")
-            val fishOpenButton = InlineKeyboardButton("鱼吧签到（开）").callbackData("douYuFishOpen")
-            val fishCloseButton = InlineKeyboardButton("鱼吧签到（关）").callbackData("douYuFishClose")
-            val fishPushOpenButton = InlineKeyboardButton("鱼吧推送（开）").callbackData("douYuFishPushOpen")
-            val fishPushCloseButton = InlineKeyboardButton("鱼吧推送（关）").callbackData("douYuFishPushClose")
-            val titleChangeOpenButton = inlineKeyboardButton("直播标题更新推送（开）", "douYuTitleChangeOpen")
-            val titleChangeCloseButton = inlineKeyboardButton("直播标题更新推送（关）", "douYuTitleChangeClose")
+            val liveButton = InlineKeyboardButton("${douYuEntity.live.str()}开播提醒")
+                .callbackData("douYuLiveTurn")
+            val fishButton = InlineKeyboardButton("${douYuEntity.fishGroup.str()}鱼吧签到")
+                .callbackData("douYuFishTurn")
+            val fishPushButton = InlineKeyboardButton("${douYuEntity.push.str()}鱼吧推送")
+                .callbackData("douYuFishPushTurn")
+            val titleChangeButton = inlineKeyboardButton("${douYuEntity.titleChange.str()}直播标题更新推送",
+                "douYuTitleChangeTurn")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(liveOpenButton, liveCloseButton),
-                arrayOf(fishOpenButton, fishCloseButton),
-                arrayOf(fishPushOpenButton, fishPushCloseButton),
-                arrayOf(titleChangeOpenButton, titleChangeCloseButton)
+                arrayOf(liveButton),
+                arrayOf(fishButton),
+                arrayOf(fishPushButton),
+                arrayOf(titleChangeButton)
             )
             editMessageText("""
-                斗鱼自动签到管理，当前状态：
-                开播提醒：${douYuEntity.live.str()}
-                鱼吧签到：${douYuEntity.fishGroup.str()}
-                鱼吧推送：${douYuEntity.push.str()}
-                直播标题更新推送：${douYuEntity.titleChange.str()}
+                斗鱼自动签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -162,18 +149,17 @@ class ManagerExtension(
     fun TelegramSubscribe.huYaManager() {
         before { set(huYaService.findByTgId(query.from().id()) ?: errorAnswerCallbackQuery("未绑定虎牙账号")) }
         callback("huYaManager") {}
-        callback("huYaLiveOpen") { firstArg<HuYaEntity>().live = Status.ON }
-        callback("huYaLiveClose") { firstArg<HuYaEntity>().live = Status.OFF }
+        callback("huYaLiveTurn") { firstArg<HuYaEntity>().also { it.live = !it.live } }
         after {
             val huYaEntity = firstArg<HuYaEntity>()
-            val liveOpenButton = InlineKeyboardButton("开播提醒（开）").callbackData("huYaLiveOpen")
-            val liveCloseButton = InlineKeyboardButton("开播提醒（关）").callbackData("huYaLiveClose")
+            huYaService.save(huYaEntity)
+            val liveButton = InlineKeyboardButton("${huYaEntity.live.str()}开播提醒")
+                .callbackData("huYaLiveTurn")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(liveOpenButton, liveCloseButton)
+                arrayOf(liveButton)
             )
             editMessageText("""
-                虎牙自动签到管理，当前状态：
-                开播提醒：${huYaEntity.live.str()}
+                虎牙自动签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -181,25 +167,21 @@ class ManagerExtension(
     fun TelegramSubscribe.hostLocManager() {
         before { set(hostLocService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定HostLoc账号")) }
         callback("hostLocManager") {}
-        callback("hostLocPushOpen") { firstArg<HostLocEntity>().push = Status.ON }
-        callback("hostLocPushClose") { firstArg<HostLocEntity>().push = Status.OFF }
-        callback("hostLocSignOpen") { firstArg<HostLocEntity>().sign = Status.ON }
-        callback("hostLocSignClose") { firstArg<HostLocEntity>().sign = Status.OFF }
+        callback("hostLocPushTurn") { firstArg<HostLocEntity>().also { it.push = !it.push } }
+        callback("hostLocSignTurn") { firstArg<HostLocEntity>().also { it.sign = !it.sign } }
         after {
             val hostLocEntity = firstArg<HostLocEntity>()
             hostLocService.save(hostLocEntity)
-            val pushOpenButton = InlineKeyboardButton("动态推送（开）").callbackData("hostLocPushOpen")
-            val pushCloseButton = InlineKeyboardButton("动态推送（关）").callbackData("hostLocPushClose")
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("hostLocSignOpen")
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("hostLocSignClose")
+            val pushButton = InlineKeyboardButton("${hostLocEntity.push}动态推送")
+                .callbackData("hostLocPushTurn")
+            val signButton = InlineKeyboardButton("${hostLocEntity.sign}自动签到")
+                .callbackData("hostLocSignTurn")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(pushOpenButton, pushCloseButton),
-                arrayOf(signOpenButton, signCloseButton)
+                arrayOf(pushButton),
+                arrayOf(signButton)
             )
             editMessageText("""
-                HostLoc自动签到管理，当前状态：
-                动态推送：${hostLocEntity.push.str()}
-                自动签到：${hostLocEntity.sign.str()}
+                HostLoc自动签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -207,19 +189,17 @@ class ManagerExtension(
     fun TelegramSubscribe.kuGouManager() {
         before { set(kuGouService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定酷狗账号")) }
         callback("kuGouManager") {}
-        callback("kuGouSignOpen") { firstArg<KuGouEntity>().sign = Status.ON }
-        callback("kuGouSignClose") { firstArg<KuGouEntity>().sign = Status.OFF }
+        callback("kuGouSignSwitch") { firstArg<KuGouEntity>().also { it.sign = !it.sign } }
         after {
             val kuGouEntity = firstArg<KuGouEntity>()
             kuGouService.save(kuGouEntity)
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("kuGouSignOpen")
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("kuGouSignClose")
+            val signButton = InlineKeyboardButton("${kuGouEntity.sign}自动签到")
+                .callbackData("kuGouSignSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(signOpenButton, signCloseButton)
+                arrayOf(signButton)
             )
             editMessageText("""
-                酷狗自动签到管理，当前状态：
-                自动签到：${kuGouEntity.sign.str()}
+                酷狗自动签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -227,19 +207,17 @@ class ManagerExtension(
     fun TelegramSubscribe.miHoYoManager() {
         before { set(miHoYoService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定米哈游账号")) }
         callback("miHoYoManager") {}
-        callback("miHoYoSignOpen") { firstArg<MiHoYoEntity>().sign = Status.ON }
-        callback("miHoYoSignClose") { firstArg<MiHoYoEntity>().sign = Status.OFF }
+        callback("miHoYoSignSwitch") { firstArg<MiHoYoEntity>().also { it.sign = !it.sign } }
         after {
             val miHoYoEntity = firstArg<MiHoYoEntity>()
             miHoYoService.save(miHoYoEntity)
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("miHoYoSignOpen")
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("miHoYoSignClose")
+            val signButton = InlineKeyboardButton("${miHoYoEntity.sign}自动签到")
+                .callbackData("miHoYoSignSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(signOpenButton, signCloseButton)
+                arrayOf(signButton)
             )
             editMessageText("""
-                米哈游（原神）签到管理，当前状态：
-                自动签到：${miHoYoEntity.sign.str()}
+                米哈游（原神）签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -247,25 +225,21 @@ class ManagerExtension(
     fun TelegramSubscribe.netEaseManager() {
         before { set(netEaseService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定网易云音乐账号")) }
         callback("netEaseManager") {}
-        callback("netEaseSignOpen") { firstArg<NetEaseEntity>().sign = Status.ON }
-        callback("netEaseSignClose") { firstArg<NetEaseEntity>().sign = Status.OFF }
-        callback("netEaseMusicianSignOpen") { firstArg<NetEaseEntity>().musicianSign = Status.ON }
-        callback("netEaseMusicianSignClose") { firstArg<NetEaseEntity>().musicianSign = Status.OFF }
+        callback("netEaseSignSwitch") { firstArg<NetEaseEntity>().also { it.sign = !it.sign } }
+        callback("netEaseMusicianSignSwitch") { firstArg<NetEaseEntity>().also { it.musicianSign = !it.musicianSign } }
         after {
             val netEaseEntity = firstArg<NetEaseEntity>()
             netEaseService.save(netEaseEntity)
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("netEaseSignOpen")
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("netEaseSignClose")
-            val musicianSignOpenButton = InlineKeyboardButton("音乐人自动签到（开）").callbackData("netEaseMusicianSignOpen")
-            val musicianSignCloseButton = InlineKeyboardButton("音乐人自动签到（关）").callbackData("netEaseMusicianSignClose")
+            val signButton = InlineKeyboardButton("${netEaseEntity.sign}自动签到")
+                .callbackData("netEaseSignSwitch")
+            val musicianSignButton = InlineKeyboardButton("${netEaseEntity.musicianSign}音乐人自动签到")
+                .callbackData("netEaseMusicianSignSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(signOpenButton, signCloseButton),
-                arrayOf(musicianSignOpenButton, musicianSignCloseButton)
+                arrayOf(signButton),
+                arrayOf(musicianSignButton)
             )
             editMessageText("""
-                网易云签到管理，当前状态：
-                自动签到：${netEaseEntity.sign.str()}
-                音乐人自动签到：${netEaseEntity.musicianSign.str()}
+                网易云签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -278,22 +252,21 @@ class ManagerExtension(
             editMessageText("请发送需要修改的步数")
             stepEntity.step = nextMessage().text().toIntOrNull() ?: -1
         }
-        callback("stepOffsetOpen") { firstArg<StepEntity>().offset = Status.ON }
-        callback("stepOffsetClose") { firstArg<StepEntity>().offset = Status.OFF }
+        callback("stepOffsetSwitch") { firstArg<StepEntity>().also { it.offset = !it.offset } }
         after {
             val stepEntity = firstArg<StepEntity>()
             stepService.save(stepEntity)
             val modifyStepButton = InlineKeyboardButton("修改步数").callbackData("modifyStep")
-            val stepOffsetOpenButton = InlineKeyboardButton("步数偏移（开）").callbackData("stepOffsetOpen")
-            val stepOffsetCloseButton = InlineKeyboardButton("步数偏移（关）").callbackData("stepOffsetClose")
+            val stepOffsetButton = InlineKeyboardButton("${stepEntity.offset}步数偏移")
+                .callbackData("stepOffsetSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
                 arrayOf(modifyStepButton),
-                arrayOf(stepOffsetOpenButton, stepOffsetCloseButton)
+                arrayOf(stepOffsetButton)
             )
             editMessageText("""
                 刷步数管理，当前状态：
                 自动步数：${stepEntity.step} (小于0为关闭自动刷步数)
-                步数偏移：${stepEntity.offset.str()} （开启则会在设置的自动步数范围中随机修改）
+                步数偏移（开启则会在设置的自动步数范围中随机修改）
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -301,25 +274,21 @@ class ManagerExtension(
     fun TelegramSubscribe.weiboManager() {
         before { set(weiboService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定微博账号")) }
         callback("weiboManager") {}
-        callback("weiboPushOpen") { firstArg<WeiboEntity>().push = Status.ON }
-        callback("weiboPushClose") { firstArg<WeiboEntity>().push = Status.OFF }
-        callback("weiboSignOpen") { firstArg<WeiboEntity>().sign = Status.ON }
-        callback("weiboSignClose") { firstArg<WeiboEntity>().sign = Status.OFF }
+        callback("weiboPushTurn") { firstArg<WeiboEntity>().also { it.push = !it.push } }
+        callback("weiboSignTurn") { firstArg<WeiboEntity>().also { it.sign = !it.sign } }
         after {
             val weiboEntity = firstArg<WeiboEntity>()
             weiboService.save(weiboEntity)
-            val pushOpenButton = InlineKeyboardButton("动态推送（开）").callbackData("weiboPushOpen")
-            val pushCloseButton = InlineKeyboardButton("动态推送（关）").callbackData("weiboPushClose")
-            val signOpenButton = InlineKeyboardButton("自动签到（开）").callbackData("weiboSignOpen")
-            val signCloseButton = InlineKeyboardButton("自动签到（关）").callbackData("weiboSignClose")
+            val pushButton = InlineKeyboardButton("${weiboEntity.push}动态推送")
+                .callbackData("weiboPushTurn")
+            val signButton = InlineKeyboardButton("${weiboEntity.sign}自动签到")
+                .callbackData("weiboSignTurn")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(pushOpenButton, pushCloseButton),
-                arrayOf(signOpenButton, signCloseButton)
+                arrayOf(pushButton),
+                arrayOf(signButton)
             )
             editMessageText("""
-                微博自动签到管理，当前状态：
-                动态推送：${weiboEntity.push.str()}
-                自动签到：${weiboEntity.sign.str()}
+                微博自动签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -327,19 +296,17 @@ class ManagerExtension(
     fun TelegramSubscribe.twitterManager() {
         before { set(twitterService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定Twitter账号")) }
         callback("twitterManager") {}
-        callback("twitterPushOpen") { firstArg<TwitterEntity>().push = Status.ON }
-        callback("twitterPushClose") { firstArg<TwitterEntity>().push = Status.OFF }
+        callback("twitterPushSwitch") { firstArg<TwitterEntity>().also { it.push = !it.push } }
         after {
             val twitterEntity = firstArg<TwitterEntity>()
             twitterService.save(twitterEntity)
-            val pushOpenButton = InlineKeyboardButton("推文推送（开）").callbackData("twitterPushOpen")
-            val pushCloseButton = InlineKeyboardButton("推文推送（关）").callbackData("twitterPushClose")
+            val pushButton = InlineKeyboardButton("${twitterEntity.push}推文推送")
+                .callbackData("twitterPushSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(pushOpenButton, pushCloseButton)
+                arrayOf(pushButton)
             )
             editMessageText("""
-                推特管理，当前状态：
-                推文推送：${twitterEntity.push.str()}
+                推特管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -347,19 +314,17 @@ class ManagerExtension(
     fun TelegramSubscribe.pixivManager() {
         before { set(pixivService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定pixiv")) }
         callback("pixivManager") {}
-        callback("pixivPushOpen") { firstArg<PixivEntity>().push = Status.ON }
-        callback("pixivPushClose") { firstArg<PixivEntity>().push = Status.OFF }
+        callback("pixivPushSwitch") { firstArg<PixivEntity>().also { it.push = !it.push } }
         after {
             val pixivEntity = firstArg<PixivEntity>()
             pixivService.save(pixivEntity)
-            val pushOpenButton = InlineKeyboardButton("插画推送（开）").callbackData("pixivPushOpen")
-            val pushCloseButton = InlineKeyboardButton("插画推送（关）").callbackData("pixivPushClose")
+            val pushButton = InlineKeyboardButton("${pixivEntity.push}插画推送")
+                .callbackData("pixivPushSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(pushOpenButton, pushCloseButton)
+                arrayOf(pushButton)
             )
             editMessageText("""
-                pixiv管理，当前状态：
-                插画推送：${pixivEntity.push.str()}
+                pixiv管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }
@@ -367,17 +332,15 @@ class ManagerExtension(
     fun TelegramSubscribe.douYinManager() {
         before { set(douYinService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定抖音账号")) }
         callback("douYinManager") {}
-        callback("douYinPushOpen") { firstArg<DouYinEntity>().push = Status.ON }
-        callback("douYinPushClose") { firstArg<DouYinEntity>().push = Status.OFF }
+        callback("douYinPushSwitch") { firstArg<DouYinEntity>().also { it.push = !it.push } }
         after {
             val douYinEntity = firstArg<DouYinEntity>()
             douYinService.save(douYinEntity)
-            val pushOpenButton = inlineKeyboardButton("视频推送（开）", "douYinPushOpen")
-            val pushCloseButton = inlineKeyboardButton("视频推送（关）", "douYinPushClose")
-            val markup = InlineKeyboardMarkup(arrayOf(pushOpenButton, pushCloseButton))
+            val pushButton = inlineKeyboardButton("${douYinEntity.push}视频推送",
+                "douYinPushSwitch")
+            val markup = InlineKeyboardMarkup(arrayOf(pushButton))
             editMessageText("""
-                抖音管理，当前状态：
-                视频推送：${douYinEntity.push.str()}
+                抖音管理
             """.trimIndent(), markup, top = true)
         }
     }
@@ -385,17 +348,15 @@ class ManagerExtension(
     fun TelegramSubscribe.smZdmManager() {
         before { set(smZdmService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定什么值得买账号")) }
         callback("smZdmManager") {}
-        callback("smZdmSignOpen") { firstArg<SmZdmEntity>().sign = Status.ON }
-        callback("smZdmSignClose") { firstArg<SmZdmEntity>().sign = Status.OFF }
+        callback("smZdmSignSwitch") { firstArg<SmZdmEntity>().also { it.sign = !it.sign } }
         after {
             val smZdmEntity = firstArg<SmZdmEntity>()
             smZdmService.save(smZdmEntity)
-            val signOpenButton = inlineKeyboardButton("自动签到（开）", "smZdmSignOpen")
-            val signCloseButton = inlineKeyboardButton("自动签到（关）", "smZdmSignClose")
-            val markup = InlineKeyboardMarkup(arrayOf(signOpenButton, signCloseButton))
+            val signButton = inlineKeyboardButton("${smZdmEntity.sign}自动签到",
+                "smZdmSignSwitch")
+            val markup = InlineKeyboardMarkup(arrayOf(signButton))
             editMessageText("""
-                什么值得买管理，当前状态：
-                签到：${smZdmEntity.sign.str()}
+                什么值得买管理
             """.trimIndent(), markup, top = true)
         }
     }
@@ -403,42 +364,31 @@ class ManagerExtension(
     fun TelegramSubscribe.aliDriveManager() {
         before { set(aliDriveService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定阿里云盘账号")) }
         callback("aliDriveManager") {}
-        callback("aliDriveSignOpen") { firstArg<AliDriveEntity>().sign = Status.ON }
-        callback("aliDriveSignClose") { firstArg<AliDriveEntity>().sign = Status.OFF }
-        callback("aliDriveReceiveOpen") { firstArg<AliDriveEntity>().receive = Status.ON }
-        callback("aliDriveReceiveClose") { firstArg<AliDriveEntity>().receive = Status.OFF }
-        callback("aliDrivePkOpen") { firstArg<AliDriveEntity>().joinTeam = Status.ON }
-        callback("aliDrivePkClose") { firstArg<AliDriveEntity>().joinTeam = Status.OFF }
-        callback("aliDriveTaskOpen") { firstArg<AliDriveEntity>().task = Status.ON }
-        callback("aliDriveTaskClose") { firstArg<AliDriveEntity>().task = Status.OFF }
-        callback("aliDriveReceiveTaskOpen") { firstArg<AliDriveEntity>().receiveTask = Status.ON }
-        callback("aliDriveReceiveTaskClose") { firstArg<AliDriveEntity>().receiveTask = Status.OFF }
+        callback("aliDriveSignSwitch") { firstArg<AliDriveEntity>().also { it.sign = !it.sign } }
+        callback("aliDriveReceiveSwitch") { firstArg<AliDriveEntity>().also { it.receive = !it.receive } }
+        callback("aliDrivePkSwitch") { firstArg<AliDriveEntity>().also { it.joinTeam = !it.joinTeam } }
+        callback("aliDriveTaskSwitch") { firstArg<AliDriveEntity>().also { it.task = !it.task } }
+        callback("aliDriveReceiveTaskSwitch") { firstArg<AliDriveEntity>().also { it.receiveTask = !it.receiveTask } }
         after {
             val aliDriveEntity = firstArg<AliDriveEntity>()
             aliDriveService.save(aliDriveEntity)
-            val signOpenButton = inlineKeyboardButton("自动签到（开）", "aliDriveSignOpen")
-            val signCloseButton = inlineKeyboardButton("自动签到（关）", "aliDriveSignClose")
-            val receiveOpenButton = inlineKeyboardButton("自动领取（开）", "aliDriveReceiveOpen")
-            val receiveCloseButton = inlineKeyboardButton("自动领取（关）", "aliDriveReceiveClose")
-            val pkOpen = inlineKeyboardButton("自动PK（开）", "aliDrivePkOpen")
-            val pkClose = inlineKeyboardButton("自动PK（关）", "aliDrivePkClose")
-            val taskOpen = inlineKeyboardButton("完成任务（开）", "aliDriveTaskOpen")
-            val taskClose = inlineKeyboardButton("完成任务（关）", "aliDriveTaskClose")
-            val receiveTaskOpen = inlineKeyboardButton("领取任务奖励（开）", "aliDriveReceiveTaskOpen")
-            val receiveTaskClose = inlineKeyboardButton("领取任务奖励（关）", "aliDriveReceiveTaskClose")
-            val markup = InlineKeyboardMarkup(arrayOf(signOpenButton, signCloseButton), arrayOf(receiveOpenButton, receiveCloseButton),
-                arrayOf(pkOpen, pkClose), arrayOf(taskOpen, taskClose), arrayOf(receiveTaskOpen, receiveTaskClose)
+            val signButton = inlineKeyboardButton("${aliDriveEntity.sign}自动签到",
+                "aliDriveSignSwitch")
+            val receiveButton = inlineKeyboardButton("${aliDriveEntity.receive}自动领取",
+                "aliDriveReceiveSwitch")
+            val pk = inlineKeyboardButton("${aliDriveEntity.joinTeam}自动PK",
+                "aliDrivePkSwitch")
+            val task = inlineKeyboardButton("${aliDriveEntity.task}完成任务",
+                "aliDriveTaskSwitch")
+            val receiveTask = inlineKeyboardButton("${aliDriveEntity.receiveTask}领取任务奖励",
+                "aliDriveReceiveTaskSwitch")
+            val markup = InlineKeyboardMarkup(arrayOf(signButton), arrayOf(receiveButton),
+                arrayOf(pk), arrayOf(task), arrayOf(receiveTask)
             )
             editMessageText("""
                 阿里云盘，如自动签到为关，自动领取不生效
                 完成任务会在你的云盘上上传图片、视频、新建文件夹等，介意勿用
                 完成任务如出现device offline错误，请找到阿里云盘的登录设备管理，下线一些设备即可
-                当前状态：
-                签到：${aliDriveEntity.sign.str()}
-                领取：${aliDriveEntity.receive.str()}
-                PK领补签卡：${aliDriveEntity.joinTeam.str()}
-                完成任务：${aliDriveEntity.task.str()}
-                领取任务奖励：${aliDriveEntity.receiveTask.str()}
             """.trimIndent(), markup, top = true)
         }
     }
@@ -446,33 +396,32 @@ class ManagerExtension(
     fun TelegramSubscribe.leiShenManager() {
         before { set(leiShenService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定雷神加速器账号")) }
         callback("leiShenManager") {}
-        callback("leiShenSignOpen") { firstArg<LeiShenEntity>().status = Status.ON }
-        callback("leiShenSignClose") { firstArg<LeiShenEntity>().status = Status.OFF }
-        callback("leiShenPause") {
-            LeiShenLogic.pause(firstArg())
-        }
-        callback("leiShenRecover") {
-            LeiShenLogic.recover(firstArg())
+        callback("leiShenSignSwitch") { firstArg<LeiShenEntity>().also { it.status = !it.status } }
+        callback("leiShenPauseRecover") {
+            val userInfo = LeiShenLogic.userInfo(firstArg())
+            if (userInfo.pauseStatusId == 1)
+                LeiShenLogic.recover(firstArg())
+            else
+                LeiShenLogic.pause(firstArg())
         }
         after {
             val leiShenEntity: LeiShenEntity = firstArg()
             leiShenService.save(leiShenEntity)
-            val signOpenButton = inlineKeyboardButton("自动签到（开）", "leiShenSignOpen")
-            val signCloseButton = inlineKeyboardButton("自动签到（关）", "leiShenSignClose")
+            val signButton = inlineKeyboardButton("${leiShenEntity.status}未暂停时间提醒",
+                "leiShenSignSwitch")
             val split = inlineKeyboardButton("以下是手动暂停与恢复时间按钮", "not")
-            val pause = inlineKeyboardButton("暂停时间", "leiShenPause")
-            val recover = inlineKeyboardButton("恢复时间", "leiShenRecover")
+            val info = try {
+                secondArg<LeiShenUserInfo>()
+            } catch (e: Exception) { LeiShenLogic.userInfo(leiShenEntity) }
+            val infoStr = if (info.pauseStatusId == 1) "暂停" else "恢复"
+            val pause = inlineKeyboardButton("（$infoStr）暂停/恢复时间", "leiShenPauseRecover")
             val markup = InlineKeyboardMarkup(
-                arrayOf(signOpenButton, signCloseButton),
+                arrayOf(signButton),
                 arrayOf(split),
-                arrayOf(pause),
-                arrayOf(recover)
+                arrayOf(pause)
             )
-            val userInfo = LeiShenLogic.userInfo(leiShenEntity)
             editMessageText("""
-                雷神加速器，当前状态：
-                未暂停时间提醒：${leiShenEntity.status.str()}
-                时间状态：${if (userInfo.pauseStatusId == 1) "正在暂停中" else "没有在暂停哦"}
+                雷神加速器
             """.trimIndent(), markup, top = true)
         }
     }
@@ -480,22 +429,25 @@ class ManagerExtension(
     fun TelegramSubscribe.nodeSeekManager() {
         before { set(nodeSeekService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定NodeSeek账号")) }
         callback("nodeSeekManager") {}
-        callback("nodeSeekOpenRandom") { firstArg<NodeSeekEntity>().sign = NodeSeekEntity.Sign.Random }
-        callback("nodeSeekOpenFix") { firstArg<NodeSeekEntity>().sign = NodeSeekEntity.Sign.Fix }
-        callback("nodeSeekClose") { firstArg<NodeSeekEntity>().sign = NodeSeekEntity.Sign.None }
+        callback("nodeSeekSwitch") {
+            val entity = firstArg<NodeSeekEntity>()
+            val sign = entity.sign
+            when (sign) {
+                NodeSeekEntity.Sign.None -> entity.sign = NodeSeekEntity.Sign.Random
+                NodeSeekEntity.Sign.Random -> entity.sign = NodeSeekEntity.Sign.Fix
+                NodeSeekEntity.Sign.Fix -> entity.sign = NodeSeekEntity.Sign.None
+            }
+        }
         after {
             val nodeSeekEntity: NodeSeekEntity = firstArg()
             nodeSeekService.save(nodeSeekEntity)
             val markup = InlineKeyboardMarkup(
                 arrayOf(
-                    inlineKeyboardButton("自动签到（随机）", "nodeSeekOpenRandom"),
-                    inlineKeyboardButton("自动签到（固定）", "nodeSeekOpenFix"),
-                    inlineKeyboardButton("自动签到（关闭）", "nodeSeekClose")
+                    inlineKeyboardButton("（${nodeSeekEntity.sign.value}）自动签到", "nodeSeekSwitch")
                 )
             )
             editMessageText("""
-                NodeSeek，当前状态：
-                自动签到：${nodeSeekEntity.sign.value}
+                NodeSeek
             """.trimIndent(), markup, top = true)
         }
     }
@@ -503,20 +455,17 @@ class ManagerExtension(
     fun TelegramSubscribe.glaDosManager() {
         before { set(glaDosService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定GlaDos账号")) }
         callback("glaDosManager") {}
-        callback("glaDosSignOpen") { firstArg<GlaDosEntity>().sign = Status.ON }
-        callback("glaDosSignClose") { firstArg<GlaDosEntity>().sign = Status.OFF }
+        callback("glaDosSignSwitch") { firstArg<GlaDosEntity>().also { it.sign = !it.sign } }
         after {
             val glaDosEntity: GlaDosEntity = firstArg()
             glaDosService.save(glaDosEntity)
             val markup = InlineKeyboardMarkup(
                 arrayOf(
-                    inlineKeyboardButton("自动签到（开）", "glaDosSignOpen"),
-                    inlineKeyboardButton("自动签到（关）", "glaDosSignClose")
+                    inlineKeyboardButton("${glaDosEntity.sign}自动签到", "glaDosSignSwitch"),
                 )
             )
             editMessageText("""
-                GlaDos，当前状态：
-                自动签到：${glaDosEntity.sign.str()}
+                GlaDos
             """.trimIndent(), markup, top = true)
         }
     }

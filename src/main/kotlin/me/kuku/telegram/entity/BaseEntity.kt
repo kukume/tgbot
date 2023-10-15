@@ -28,6 +28,18 @@ enum class Status {
     OFF, ON;
 
     fun str() : String{
-        return if (this.name == "ON") "开" else "关"
+        return if (this.name == "ON") "√" else "×"
+    }
+
+    fun reverse(): Status {
+        return if (this.name == "ON") OFF else ON
+    }
+
+    operator fun not(): Status {
+        return this.reverse()
+    }
+
+    override fun toString(): String {
+        return str()
     }
 }
