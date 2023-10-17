@@ -369,6 +369,7 @@ class ManagerExtension(
         callback("aliDrivePkSwitch") { firstArg<AliDriveEntity>().also { it.joinTeam = !it.joinTeam } }
         callback("aliDriveTaskSwitch") { firstArg<AliDriveEntity>().also { it.task = !it.task } }
         callback("aliDriveReceiveTaskSwitch") { firstArg<AliDriveEntity>().also { it.receiveTask = !it.receiveTask } }
+        callback("aliDriveDeviceRoomTurn") { firstArg<AliDriveEntity>().also { it.deviceRoom = !it.deviceRoom } }
         after {
             val aliDriveEntity = firstArg<AliDriveEntity>()
             aliDriveService.save(aliDriveEntity)
@@ -382,8 +383,10 @@ class ManagerExtension(
                 "aliDriveTaskSwitch")
             val receiveTask = inlineKeyboardButton("${aliDriveEntity.receiveTask}领取任务奖励",
                 "aliDriveReceiveTaskSwitch")
+            val deviceRoom = InlineKeyboardButton("${aliDriveEntity.deviceRoom}时光设备间")
+                .callbackData("aliDriveDeviceRoomTurn")
             val markup = InlineKeyboardMarkup(arrayOf(signButton), arrayOf(receiveButton),
-                arrayOf(pk), arrayOf(task), arrayOf(receiveTask)
+                arrayOf(pk), arrayOf(task), arrayOf(receiveTask), arrayOf(deviceRoom)
             )
             editMessageText("""
                 阿里云盘，如自动签到为关，自动领取不生效

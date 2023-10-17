@@ -267,14 +267,16 @@ class AliDriveLogic(
 
     @Suppress("DuplicatedCode")
     suspend fun uploadFileToAlbums(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray,
-                                   scene: AliDriveScene = AliDriveScene.ManualBackup, deviceName: String = ""): AliDriveUploadComplete {
+                                   scene: AliDriveScene = AliDriveScene.ManualBackup, deviceName: String = "",
+                                   aliDriveDevice: AliDriveDevice? = null): AliDriveUploadComplete {
+        val newDevice = aliDriveDevice ?: findDevice(aliDriveEntity)
         val suffix = fileName.substring(fileName.lastIndexOf('.') + 1)
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/biz/albums/file/create") {
             setJsonBody("""
                 {"drive_id":"$driveId","part_info_list":[{"part_number":1}],"parent_file_id":"root","name":"$fileName","type":"file","check_name_mode":"auto_rename","size":${byteArray.size},"create_scene":"${scene.value}","device_name":"$deviceName","hidden":false,"content_type":"image/$suffix"}
             """.trimIndent())
             aliDriveEntity.appendAuth()
-            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
+            aliDriveEntity.appendEncrypt(newDevice)
         }.body<JsonNode>()
         jsonNode.check2()
         val fileId = jsonNode["file_id"].asText()
@@ -292,7 +294,7 @@ class AliDriveLogic(
                 {"drive_id":"$driveId","upload_id":"$uploadId","file_id":"$fileId"}
             """.trimIndent())
             aliDriveEntity.appendAuth()
-            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
+            aliDriveEntity.appendEncrypt(newDevice)
         }.body<JsonNode>()
         return complete.convertValue()
     }
@@ -423,6 +425,20 @@ class AliDriveLogic(
             val request = AliDriveBatch.Request()
             request.id = deleteFileBody.fileId
             request.url = "/recyclebin/trash"
+            request.body = deleteFileBody
+            batch.requests.add(request)
+        }
+        batch(aliDriveEntity, batch)
+    }
+
+    suspend fun batchDeleteFile2(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
+        if (list.isEmpty()) return
+        list.forEach { it.permanently = true }
+        val batch = AliDriveBatch()
+        for (deleteFileBody in list) {
+            val request = AliDriveBatch.Request()
+            request.id = deleteFileBody.fileId
+            request.url = "/file/delete"
             request.body = deleteFileBody
             batch.requests.add(request)
         }
@@ -871,21 +887,25 @@ class AliDriveLogic(
         jsonNode.check()
     }
 
-    suspend fun backup(aliDriveEntity: AliDriveEntity, brand: String, systemVersion: String, status: Boolean = true) {
+    suspend fun backup(aliDriveEntity: AliDriveEntity, brand: String, systemVersion: String, status: Boolean = true,
+                       aliDriveDevice: AliDriveDevice? = null) {
         var backupDeviceId = aliDriveEntity.backupDeviceId
         if (backupDeviceId.isEmpty()) backupDeviceId = UUID.randomUUID().toString()
         aliDriveEntity.backupDeviceId = backupDeviceId
         aliDriveService.save(aliDriveEntity)
-        val aliDriveDevice = AliDriveDevice()
-        aliDriveDevice.deviceId = backupDeviceId
-        aliDriveDevice.deviceName = "kuku"
-        aliDriveDevice.deviceModel = "kuku"
+        val newAliDriveDevice = aliDriveDevice ?: run {
+            val device = AliDriveDevice()
+            device.deviceId = backupDeviceId
+            device.deviceName = "kuku"
+            device.deviceModel = "kuku"
+            device
+        }
         val jsonNode = client.post("https://api.alipan.com/users/v1/users/update_device_extras") {
             setJsonBody("""
                 {"albumAccessAuthority":true,"albumBackupLeftFileTotal":0,"albumBackupLeftFileTotalSize":0,"albumFile":0,"autoBackupStatus":$status,"brand":"${brand.lowercase()}","systemVersion":"$systemVersion","totalSize":242965508096,"umid":"ZDYBtYRLPNE6gwKLFDrYBaGJ8Q/r8p58","useSize":122042286080,"utdid":"Y90sZAck9L8DAO5WYKs2lFge"}
             """.trimIndent())
             aliDriveEntity.appendAuth()
-            aliDriveEntity.appendEncrypt(aliDriveDevice)
+            aliDriveEntity.appendEncrypt(newAliDriveDevice)
         }.body<JsonNode>()
         jsonNode.check()
     }
@@ -901,11 +921,79 @@ class AliDriveLogic(
         return jsonNode["deviceItems"].convertValue()
     }
 
-    suspend fun findDevice(aliDriveEntity: AliDriveEntity): AliDriveDevice {
+    suspend fun findDevice(aliDriveEntity: AliDriveEntity, deviceId: String? = null): AliDriveDevice {
         val list = deviceList(aliDriveEntity)
-        val matchDeviceId = aliDriveEntity.backupDeviceId.ifEmpty { aliDriveEntity.deviceId }
+        val matchDeviceId = deviceId ?: aliDriveEntity.backupDeviceId.ifEmpty { aliDriveEntity.deviceId }
         return list.find { it.deviceId == matchDeviceId } ?: AliDriveDevice()
     }
+
+    suspend fun deviceFileList(aliDriveEntity: AliDriveEntity, deviceId: String? = null): AliDrivePage<AliDriveFile> {
+        val driveId = albumsDriveId(aliDriveEntity)
+        val jsonNode = client.post("https://api.alipan.com/adrive/v2/backup/device/file_list") {
+            setJsonBody("""
+                {"backupView":"album","deviceId":"$deviceId","deviceType":"Android","driveId":"$driveId","limit":50}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check2()
+        return jsonNode.convertValue()
+    }
+
+    suspend fun deviceRoom(aliDriveEntity: AliDriveEntity): List<AliDriveDeviceRoom> {
+        val jsonNode = client.post("https://user.aliyundrive.com/v1/deviceRoom/listDevice") {
+            setJsonBody("{}")
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check2()
+        return jsonNode["items"].convertValue()
+    }
+
+    suspend fun receiveDeviceRoom(aliDriveEntity: AliDriveEntity, deviceId: String): String {
+        val jsonNode = client.post("https://member.aliyundrive.com/v1/deviceRoom/rewardEnergy") {
+            setJsonBody("""
+                {"deviceId":"$deviceId"}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+        }.body<JsonNode>()
+        jsonNode.check()
+        return "已领取${jsonNode["result"]["size"].asInt()}M空间"
+    }
+
+    suspend fun finishDeviceRoom(aliDriveEntity: AliDriveEntity): String {
+        var deviceList = deviceList(aliDriveEntity)
+        if (deviceList.size < 5) {
+            for (i in 0 until 5 - deviceList.size) {
+                val aliDriveDevice = AliDriveDevice()
+                val deviceId = UUID.randomUUID().toString()
+                aliDriveDevice.deviceName = "kuku"
+                aliDriveDevice.deviceModel = MyUtils.randomLetterLower(2)
+                aliDriveDevice.deviceId = deviceId
+                backup(aliDriveEntity, "kuku", "Android 12", true,
+                    aliDriveDevice
+                )
+            }
+        }
+        deviceList = deviceList(aliDriveEntity)
+        val driveId = albumsDriveId(aliDriveEntity)
+        for (aliDriveDevice in deviceList) {
+            repeat(2) {
+                delay(3000)
+                val bytes = picture()
+                aliDriveEntity.backupDeviceId = aliDriveDevice.deviceId
+                uploadFileToAlbums(aliDriveEntity, driveId,
+                    "${MyUtils.random(10)}.jpg", bytes, scene = AliDriveScene.AutoBackup,
+                    deviceName = "ku ku", aliDriveDevice)
+            }
+        }
+        val deviceRoom = deviceRoom(aliDriveEntity)
+        val sb = StringBuilder()
+        for (aliDriveDeviceRoom in deviceRoom) {
+            delay(1000)
+            sb.append(receiveDeviceRoom(aliDriveEntity, aliDriveDeviceRoom.id)).append(",")
+        }
+        return sb.toString().ifEmpty { "领取容量成功" }
+    }
+
 
 }
 
@@ -1144,7 +1232,8 @@ class AliDriveBatch {
         @JsonProperty("drive_id")
         var driveId: String = "",
         @JsonProperty("file_id")
-        var fileId: String = ""
+        var fileId: String = "",
+        var permanently: Boolean? = null
     )
 
     data class SaveShareFileBody(
@@ -1220,4 +1309,30 @@ class AliDriveDevice {
     var deviceSystemVersion: String = ""
     var deviceRegisterDay: Int = 0
     var updateTime: Long = 0
+}
+
+class AliDriveDeviceRoom {
+    var gmtCollectEnergy: String? = null
+    var gmtGenerateEnergy: String = ""
+    var deviceNameInfo: DeviceNameInfo = DeviceNameInfo()
+    var new: Boolean = false
+    var order: Int = 0
+    @JsonProperty("isNew")
+    var repeatNew: Boolean = false
+    var canCollectEnergy: Boolean = false
+    var type: String = ""
+    var name: String = ""
+    var icon: String = ""
+    var id: String = ""
+    var gmCreate: String = ""
+    var gmtModified: String? = null
+
+    class DeviceNameInfo {
+        var deviceType: String = ""
+        var deviceName: String = ""
+        var deviceModel: String = ""
+        var displayName: String = ""
+    }
+
+
 }

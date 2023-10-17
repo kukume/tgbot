@@ -284,7 +284,10 @@ class ExecExtension(
             val receive = inlineKeyboardButton("领取", "aliDriveReceive")
             val task = inlineKeyboardButton("完成任务", "aliDriveTask")
             val receiveTask = inlineKeyboardButton("领取任务奖励", "aliDriveReceiveTask")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(arrayOf(signButton), arrayOf(receive), arrayOf(task), arrayOf(receiveTask))
+            val deviceRoom = inlineKeyboardButton("时光设备间", "aliDriveDeviceRoom")
+            val inlineKeyboardMarkup = InlineKeyboardMarkup(
+                arrayOf(signButton), arrayOf(receive), arrayOf(task), arrayOf(receiveTask), arrayOf(deviceRoom)
+            )
             editMessageText("""
                 阿里云盘
                 完成任务会在你的云盘上上传图片、视频、新建文件夹等，介意勿用
@@ -303,7 +306,7 @@ class ExecExtension(
             editMessageText(result)
         }
         callback("aliDriveTask") {
-            editMessageText("程序正在后台为您完成任务，任务完成时间会很长")
+            editMessageText("完成阿里云盘每日任务，程序正在后台为您完成任务，任务完成时间会很长")
             kotlin.runCatching {
                 aliDriveLogic.finishTask(firstArg())
                 sendMessage("#手动执行结果\n阿里云盘完成任务成功")
@@ -317,6 +320,14 @@ class ExecExtension(
             aliDriveLogic.signInInfo(firstArg())
             val result = aliDriveLogic.receiveTask(firstArg(), day)
             editMessageText(result)
+        }
+        callback("aliDriveDeviceRoom") {
+            editMessageText("完成阿里云盘时光设备间，程序正在后台为您完成任务，任务完成时间会很长")
+            kotlin.runCatching {
+                aliDriveLogic.finishDeviceRoom(firstArg())
+            }.onFailure {
+                sendMessage("#手动执行结果\n阿里云盘完成时光设备间失败，失败原因：${it.message}")
+            }
         }
     }
 

@@ -97,9 +97,20 @@ class AliDriveScheduled(
         val list = aliDriveService.findByReceiveTask(Status.ON)
         for (aliDriveEntity in list) {
             logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
-                delay(1000 * 60)
+                delay(3000)
                 aliDriveLogic.signInList(aliDriveEntity)
                 show = aliDriveLogic.receiveTask(aliDriveEntity)
+            }
+        }
+    }
+
+    @Scheduled(cron = "32 50 4 * * ?")
+    suspend fun finishDeviceRoom() {
+        val list = aliDriveService.findByDeviceRoom(Status.ON)
+        for (aliDriveEntity in list) {
+            logService.log(aliDriveEntity.tgId, LogType.AliDriveDeviceRoom) {
+                delay(3000)
+                show = aliDriveLogic.finishDeviceRoom(aliDriveEntity)
             }
         }
     }

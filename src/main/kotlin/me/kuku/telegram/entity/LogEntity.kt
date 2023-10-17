@@ -48,6 +48,7 @@ enum class LogType(val value: String) {
     AliDriveReceiveTaskToday("阿里云盘领取当日任务奖励"),
     ALiDriveReceive("阿里云盘月末领取签到奖励"),
     ALiDriveReceiveTask("阿里云盘月末领取任务奖励"),
+    AliDriveDeviceRoom("阿里云盘时光设备间"),
     NodeSeek("NodeSeek"),
     GlaDos("GlaDos")
 }
