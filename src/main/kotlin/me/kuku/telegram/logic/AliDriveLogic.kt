@@ -963,6 +963,7 @@ class AliDriveLogic(
         var deviceList = deviceList(aliDriveEntity)
         if (deviceList.size < 5) {
             for (i in 0 until 5 - deviceList.size) {
+                delay(3000)
                 val aliDriveDevice = AliDriveDevice()
                 val deviceId = UUID.randomUUID().toString()
                 aliDriveDevice.deviceName = "kuku"
@@ -989,7 +990,8 @@ class AliDriveLogic(
         val sb = StringBuilder()
         for (aliDriveDeviceRoom in deviceRoom) {
             delay(1000)
-            sb.append(receiveDeviceRoom(aliDriveEntity, aliDriveDeviceRoom.id)).append(",")
+            if (aliDriveDeviceRoom.canCollectEnergy)
+                sb.append(receiveDeviceRoom(aliDriveEntity, aliDriveDeviceRoom.id)).append(",")
         }
         return sb.toString().ifEmpty { "领取容量成功" }
     }
