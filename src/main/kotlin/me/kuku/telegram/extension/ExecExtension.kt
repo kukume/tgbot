@@ -63,7 +63,10 @@ class ExecExtension(
             val tieBaSignButton = InlineKeyboardButton("贴吧签到").callbackData("tieBaSign")
             val ybbSignButton = InlineKeyboardButton("游帮帮加速器签到").callbackData("ybbSign")
             val ybbWatchAdButton = InlineKeyboardButton("游帮帮加速器看广告").callbackData("ybbWatchAd")
-            val markup = InlineKeyboardMarkup(arrayOf(tieBaSignButton), arrayOf(ybbSignButton), arrayOf(ybbWatchAdButton))
+            val exchangeVip = InlineKeyboardButton("游帮帮加速器兑换手游会员").callbackData("ybbExchangeVip")
+            val markup = InlineKeyboardMarkup(
+                arrayOf(tieBaSignButton), arrayOf(ybbSignButton), arrayOf(ybbWatchAdButton), arrayOf(exchangeVip)
+            )
             editMessageText("百度", markup)
         }
         callback("tieBaSign") {
@@ -82,6 +85,10 @@ class ExecExtension(
         callback("ybbWatchAd") {
             baiduLogic.ybbWatchAd(firstArg(), "v3")
             editMessageText("游帮帮观看广告成功")
+        }
+        callback("ybbExchangeVip") {
+            baiduLogic.ybbExchangeVip(firstArg())
+            editMessageText("游帮帮加速器兑换会员成功")
         }
     }
 

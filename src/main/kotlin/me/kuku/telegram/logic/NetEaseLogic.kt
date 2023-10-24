@@ -97,7 +97,7 @@ object NetEaseLogic {
 
     suspend fun sign(netEaseEntity: NetEaseEntity): CommonResult<Void> {
         val map = mapOf("type" to "0")
-        val jsonNode = OkHttpKtUtils.postJson("$domain/weapi/point/dailyTask?csrf_token=${netEaseEntity.csrf}", prepare(map),
+        val jsonNode = OkHttpKtUtils.postJson("$domain/weapi/point/dailyTask", prepare(map),
             mapOf("cookie" to netEaseEntity.cookie(), "crypto" to "webapi", "referer" to "https://music.163.com/discover",
                 "user-agent" to UA.PC.value, "origin" to "https://music.163.com")
         )

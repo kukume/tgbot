@@ -1,5 +1,8 @@
 package me.kuku.telegram.logic
 
+import com.fasterxml.jackson.databind.JsonNode
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
@@ -55,7 +58,8 @@ class BaiduLogic (
     }
 
     suspend fun ybbWatchAd(baiduEntity: BaiduEntity, version: String = "v2"): String {
-        val preJsonNode = OkHttpKtUtils.getJson("https://api-gt.baidu.com/v1/server/task?version=$version", ybbDefaultHeader().also {
+        val preJsonNode = OkHttpKtUtils.getJson("https" +
+                "://api-gt.baidu.com/v1/server/task?version=$version", ybbDefaultHeader().also {
             it["cookie"] = baiduEntity.cookie
         })
         if (!preJsonNode.getBoolean("success")) error(preJsonNode["errors"]["message_cn"].asText())
@@ -89,6 +93,23 @@ class BaiduLogic (
             OkUtils.json("""{"type": "daily"}"""), map)
         return if (jsonObject.getBoolean("success")) "成功"
         else error(jsonObject["errors"]["message_cn"].asText())
+    }
+
+    private fun JsonNode.check() {
+        if (!this["success"].asBoolean()) error(this["errors"]["message_cn"].asText())
+    }
+
+    suspend fun ybbExchangeVip(baiduEntity: BaiduEntity) {
+        val jsonNode = client.post("https://api-gt.baidu.com/v1/server/reward_records") {
+            setJsonBody("""{"award_id":48}""")
+            headers {
+                ybbDefaultHeader().forEach { (t, u) ->
+                    append(t, u)
+                }
+                append("cookie", baiduEntity.cookie)
+            }
+        }.body<JsonNode>()
+        jsonNode.check()
     }
 
     private suspend fun getSToken(baiduEntity: BaiduEntity, url: String): String {
