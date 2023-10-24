@@ -58,8 +58,7 @@ class BaiduLogic (
     }
 
     suspend fun ybbWatchAd(baiduEntity: BaiduEntity, version: String = "v2"): String {
-        val preJsonNode = OkHttpKtUtils.getJson("https" +
-                "://api-gt.baidu.com/v1/server/task?version=$version", ybbDefaultHeader().also {
+        val preJsonNode = OkHttpKtUtils.getJson("https://api-gt.baidu.com/v1/server/task?version=$version", ybbDefaultHeader().also {
             it["cookie"] = baiduEntity.cookie
         })
         if (!preJsonNode.getBoolean("success")) error(preJsonNode["errors"]["message_cn"].asText())
