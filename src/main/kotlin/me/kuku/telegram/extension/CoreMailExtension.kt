@@ -3,10 +3,10 @@ package me.kuku.telegram.extension
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.ParseMode
+import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.CoreMailEntity
 import me.kuku.telegram.entity.CoreMailService
 import me.kuku.telegram.logic.CoreMailLogic
-import me.kuku.telegram.utils.*
 import me.kuku.utils.MyUtils
 import org.springframework.stereotype.Component
 

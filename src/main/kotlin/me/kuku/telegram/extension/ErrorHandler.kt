@@ -1,8 +1,8 @@
 package me.kuku.telegram.extension
 
-import me.kuku.telegram.utils.AnswerCallbackQueryException
-import me.kuku.telegram.utils.MessageExpiredException
-import me.kuku.telegram.utils.TelegramExceptionHandler
+import me.kuku.telegram.context.AnswerCallbackQueryException
+import me.kuku.telegram.context.MessageExpiredException
+import me.kuku.telegram.context.TelegramExceptionHandler
 import org.springframework.stereotype.Component
 import java.net.SocketException
 import kotlin.IllegalStateException

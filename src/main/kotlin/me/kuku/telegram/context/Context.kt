@@ -1,6 +1,6 @@
 @file:Suppress("UNCHECKED_CAST")
 
-package me.kuku.telegram.utils
+package me.kuku.telegram.context
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.CallbackQuery
@@ -12,6 +12,7 @@ import com.pengrad.telegrambot.model.request.Keyboard
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.*
 import com.pengrad.telegrambot.response.SendResponse
+import me.kuku.telegram.utils.SpringUtils
 import me.kuku.utils.JobManager
 import org.ehcache.CacheManager
 import org.ehcache.config.builders.CacheConfigurationBuilder
@@ -120,20 +121,20 @@ class TelegramContext(override val bot: TelegramBot, val update: Update): Contex
         if (lastCallbackData == data && lastButton.text() == "返回" && history.find { it.data == lastCallbackData } == null) {
             errorAnswerCallbackQuery("该返回按钮不可用，缓存已过期")
         }
-        if (history.isEmpty() || (history.last != null && history.last.data != data)) {
+        if (history.isEmpty() || (history.lastOrNull() != null && history.last().data != data)) {
             if (history.lastOrNull() == null) {
                 history.addLast(History(message, "return_${UUID.randomUUID()}"))
             } else {
-                history.last.message = message
+                history.last().message = message
             }
             history.add(History(null, data))
             callbackHistory.put(historyKey, history)
         }
         val key = if (top) {
-            history.first.data
+            history.first().data
         } else {
             val hit = history.find { it.data == data }!!
-            if (hit != history.last) {
+            if (hit != history.last()) {
                 val index = history.indexOf(hit)
                 for (i in 0 until history.size - index - 1) history.removeLast()
                 history[index - 1].data
@@ -213,7 +214,7 @@ class MonitorReturn(
         if (data.startsWith("return_")) {
             val returnKey = "$tgId$mes"
             val list = callbackHistory.get(returnKey) as? LinkedList<History>
-            val first = list?.first
+            val first = list?.first()
             if (first?.data == data) {
                 val message = first.message!!
                 val editMessageText = EditMessageText(tgId, mes, message.text())

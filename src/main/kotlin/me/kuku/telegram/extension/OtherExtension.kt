@@ -1,6 +1,6 @@
 package me.kuku.telegram.extension
 
-import me.kuku.telegram.utils.TelegramSubscribe
+import me.kuku.telegram.context.TelegramSubscribe
 import org.springframework.stereotype.Component
 
 @Component

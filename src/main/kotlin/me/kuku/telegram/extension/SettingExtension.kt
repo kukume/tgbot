@@ -4,9 +4,9 @@ import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.SendDocument
 import me.kuku.telegram.config.TelegramConfig
+import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.BotConfigEntity
 import me.kuku.telegram.entity.BotConfigService
-import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Component
 import java.io.File
 import java.io.FileOutputStream

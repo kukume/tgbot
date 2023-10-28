@@ -1,4 +1,4 @@
-package me.kuku.telegram.utils
+package me.kuku.telegram.context
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Message
@@ -97,7 +97,8 @@ suspend fun TelegramContext.nextMessage(maxTime: Long = 30000, errMessage: Strin
 class CancelNextMessageException: RuntimeException()
 
 private suspend fun waitNextMessageCommon(code: String, maxTime: Long, errMessage: String, lastMessage: LastMessage,
-                                          filter: FilterMessage): Message? {
+                                          filter: FilterMessage
+): Message? {
     return withContext(Dispatchers.IO) {
         try {
             withTimeout(maxTime){

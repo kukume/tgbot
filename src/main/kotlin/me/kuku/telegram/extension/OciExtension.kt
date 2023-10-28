@@ -8,10 +8,10 @@ import com.oracle.bmc.model.BmcException
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import kotlinx.coroutines.delay
+import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.OciEntity
 import me.kuku.telegram.entity.OciService
 import me.kuku.telegram.logic.OciLogic
-import me.kuku.telegram.utils.*
 import org.ehcache.CacheManager
 import org.ehcache.config.builders.CacheConfigurationBuilder
 import org.ehcache.config.builders.ExpiryPolicyBuilder

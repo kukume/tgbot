@@ -1,4 +1,4 @@
-package me.kuku.telegram.utils
+package me.kuku.telegram.context
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Chat
@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.config.telegramExceptionHandler
 import me.kuku.telegram.entity.BotConfigService
+import me.kuku.telegram.utils.SpringUtils
 
 class AbilitySubscriber {
 
@@ -22,31 +23,36 @@ class AbilitySubscriber {
     }
 
     fun sub(name: String, input: Int = 0, locality: Locality = Locality.USER,
-            privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody) {
+            privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody
+    ) {
         val ability = ability(name, input, locality, privacy, block)
         abilityMap[name] = ability
     }
 
     fun userSub(name: String, input: Int = 0, locality: Locality = Locality.USER,
-                privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody) {
+                privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody
+    ) {
         val ability = ability(name, input, locality, privacy, block)
         abilityMap[name] = ability
     }
 
     fun groupSub(name: String, input: Int = 0, locality: Locality = Locality.GROUP,
-                 privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody) {
+                 privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody
+    ) {
         val ability = ability(name, input, locality, privacy, block)
         abilityMap[name] = ability
     }
 
     fun allSub(name: String, input: Int = 0, locality: Locality = Locality.ALL,
-                 privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody) {
+               privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody
+    ) {
         val ability = ability(name, input, locality, privacy, block)
         abilityMap[name] = ability
     }
 
     private fun ability(name: String, input: Int = 0, locality: Locality = Locality.USER,
-                        privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody): Ability {
+                        privacy: Privacy = Privacy.PUBLIC, block: AbilityContextBody
+    ): Ability {
         return Ability(name, input, locality, privacy, block)
     }
 
@@ -127,7 +133,8 @@ private val botUsername: String by lazy {
 }
 
 data class Ability(val name: String,
-                   val input: Int, val locality: Locality, val privacy: Privacy, val block: AbilityContextBody)
+                   val input: Int, val locality: Locality, val privacy: Privacy, val block: AbilityContextBody
+)
 
 private typealias AbilityContextBody = suspend AbilityContext.() -> Unit
 private typealias CallbackBody = suspend TelegramContext.() -> Unit

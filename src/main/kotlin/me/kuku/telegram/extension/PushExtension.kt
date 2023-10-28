@@ -16,9 +16,9 @@ import io.ktor.server.util.*
 import me.kuku.ktor.plugins.getOrFail
 import me.kuku.ktor.plugins.receiveJsonNode
 import me.kuku.pojo.CommonResult
+import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.PushEntity
 import me.kuku.telegram.entity.PushService
-import me.kuku.telegram.utils.*
 import me.kuku.utils.client
 import org.springframework.stereotype.Component
 import java.util.UUID

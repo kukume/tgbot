@@ -1,7 +1,7 @@
 package me.kuku.telegram.entity
 
 import com.fasterxml.jackson.annotation.JsonFormat
-import me.kuku.telegram.utils.TelegramContext
+import me.kuku.telegram.context.TelegramContext
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.mongodb.core.index.Indexed

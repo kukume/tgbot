@@ -6,8 +6,8 @@ import com.pengrad.telegrambot.request.SendMessage
 import me.kuku.telegram.entity.LeiShenService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.LeiShenLogic
-import me.kuku.telegram.utils.inlineKeyboardButton
-import me.kuku.telegram.utils.sendTextMessage
+import me.kuku.telegram.context.inlineKeyboardButton
+import me.kuku.telegram.context.sendTextMessage
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.concurrent.TimeUnit

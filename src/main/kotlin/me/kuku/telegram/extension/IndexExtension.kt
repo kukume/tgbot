@@ -1,7 +1,7 @@
 package me.kuku.telegram.extension
 
 import com.pengrad.telegrambot.model.request.ParseMode
-import me.kuku.telegram.utils.AbilitySubscriber
+import me.kuku.telegram.context.AbilitySubscriber
 import org.springframework.stereotype.Service
 
 @Service

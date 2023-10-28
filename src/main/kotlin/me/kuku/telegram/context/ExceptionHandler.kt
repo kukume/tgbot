@@ -1,6 +1,6 @@
 @file:Suppress("DuplicatedCode")
 
-package me.kuku.telegram.utils
+package me.kuku.telegram.context
 
 import org.slf4j.LoggerFactory
 import kotlin.reflect.KClass

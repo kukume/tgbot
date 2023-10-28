@@ -14,7 +14,7 @@ import kotlin.concurrent.thread
 suspend fun ffmpeg(command: String) {
     val runtime = Runtime.getRuntime()
     val process = withContext(Dispatchers.IO) {
-        runtime.exec("${if (System.getProperty("os.name").contains("Windows")) "cmd /C " else ""}$command")
+        runtime.exec("${if (System.getProperty("os.name").contains("Windows")) "cmd /C " else ""}$command".split(" ").toTypedArray())
     }
     thread(true) {
         BufferedReader(InputStreamReader(process.inputStream)).use { br ->

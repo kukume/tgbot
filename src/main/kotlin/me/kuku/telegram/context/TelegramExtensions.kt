@@ -1,4 +1,4 @@
-package me.kuku.telegram.utils
+package me.kuku.telegram.context
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.File
@@ -11,6 +11,7 @@ import com.pengrad.telegrambot.request.SendPhoto
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import me.kuku.telegram.config.TelegramConfig
+import me.kuku.telegram.utils.SpringUtils
 import me.kuku.utils.client
 
 fun inlineKeyboardButton(text: String, callbackData: String): InlineKeyboardButton = InlineKeyboardButton(text).callbackData(callbackData)

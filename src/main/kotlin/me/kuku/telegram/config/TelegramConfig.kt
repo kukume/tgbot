@@ -5,7 +5,7 @@ import com.pengrad.telegrambot.UpdatesListener
 import com.pengrad.telegrambot.model.Update
 import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.runBlocking
-import me.kuku.telegram.utils.*
+import me.kuku.telegram.context.*
 import okhttp3.OkHttpClient
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.ApplicationEvent
@@ -23,6 +23,7 @@ import kotlin.reflect.full.declaredMemberExtensionFunctions
 import kotlin.reflect.full.extensionReceiverParameter
 import kotlin.reflect.jvm.jvmName
 
+@Suppress("UNCHECKED_CAST")
 @Component
 class TelegramBean(
     private val telegramConfig: TelegramConfig
@@ -51,11 +52,11 @@ class TelegramBean(
                 val type = function.extensionReceiverParameter?.type
                 val kClass = type?.classifier as? KClass<*>
                 when (kClass?.jvmName) {
-                    "me.kuku.telegram.utils.AbilitySubscriber" -> {
+                    "me.kuku.telegram.context.AbilitySubscriber" -> {
                         val obj = applicationContext.getBean(clazz)
                         function.call(obj, abilitySubscriber)
                     }
-                    "me.kuku.telegram.utils.TelegramSubscribe" -> {
+                    "me.kuku.telegram.context.TelegramSubscribe" -> {
                         val telegramSubscribe = TelegramSubscribe()
                         val obj = applicationContext.getBean(clazz)
                         function.call(obj, telegramSubscribe)
@@ -64,11 +65,11 @@ class TelegramBean(
                     "com.pengrad.telegrambot.model.Update" -> {
                         updateFunction.add(UpdateFunction(function, applicationContext.getBean(clazz)))
                     }
-                    "me.kuku.telegram.utils.TelegramExceptionHandler" -> {
+                    "me.kuku.telegram.context.TelegramExceptionHandler" -> {
                         val obj = applicationContext.getBean(clazz)
                         function.call(obj, telegramExceptionHandler)
                     }
-                    "me.kuku.telegram.utils.MixSubscribe" -> {
+                    "me.kuku.telegram.context.MixSubscribe" -> {
                         val mixSubscribe = MixSubscribe()
                         val obj = applicationContext.getBean(clazz)
                         function.call(obj, mixSubscribe)
@@ -150,7 +151,7 @@ class TelegramConfig {
     fun dockerInit() {
         val runtime = Runtime.getRuntime()
         val process = try {
-            runtime.exec("/usr/bin/env")
+            runtime.exec(arrayOf("/usr/bin/env"))
         } catch (e: Exception) {
             return
         }

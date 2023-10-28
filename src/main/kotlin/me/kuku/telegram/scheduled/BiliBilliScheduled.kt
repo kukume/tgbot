@@ -11,7 +11,7 @@ import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.BiliBiliPojo
-import me.kuku.telegram.utils.sendPic
+import me.kuku.telegram.context.sendPic
 import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
