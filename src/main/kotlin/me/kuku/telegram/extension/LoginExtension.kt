@@ -10,7 +10,12 @@ import com.pengrad.telegrambot.request.SendPhoto
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
+import me.kuku.telegram.context.AbilitySubscriber
+import me.kuku.telegram.context.TelegramSubscribe
+import me.kuku.telegram.context.inlineKeyboardButton
+import me.kuku.telegram.context.nextMessage
 import me.kuku.telegram.entity.*
+import me.kuku.telegram.exception.QrcodeScanException
 import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
 import me.kuku.utils.*
@@ -637,7 +642,7 @@ class LoginExtension(
 
     fun TelegramSubscribe.buffLogin() {
         callback("buffLogin") {
-            val loginButton = inlineKeyboardButton("使用手机验证码登陆", "buffLoginByPhoneCode")
+            val loginButton = inlineKeyboardButton("使用app扫码登陆", "buffLoginByQrcode")
             val cookieButton = inlineKeyboardButton("cookie登录", "buffLoginByCookie")
             val markup = InlineKeyboardMarkup(
                 arrayOf(loginButton),
@@ -645,26 +650,29 @@ class LoginExtension(
             )
             editMessageText("请选择网易buff登录方式", markup)
         }
-        callback("buffLoginByPhoneCode") {
-            editMessageText("请发送网易Buff的手机号")
-            val phone = nextMessage().text()
-            var s = false
-            for (i in 0..2) {
-                s = kotlin.runCatching {
-                    BuffLogic.login1(phone)
-                    true
-                }.getOrDefault(false)
-                delay(1000)
+        callback("buffLoginByQrcode") {
+            val qrcode = BuffLogic.login1()
+            val byteArray = qrcode(qrcode.url)
+            val photo = SendPhoto(chatId, byteArray)
+            val photoMessage = bot.execute(photo).message()
+            editMessageText("请使用网易buffApp扫码登录", returnButton = false)
+            while (true) {
+                delay(3000)
+                try {
+                    val buffEntity = BuffLogic.login2(qrcode)
+                    val saveEntity = buffService.findByTgId(tgId) ?: BuffEntity().also { entity -> entity.tgId = tgId }
+                    saveEntity.csrf = buffEntity.csrf
+                    saveEntity.cookie = buffEntity.cookie
+                    buffService.save(saveEntity)
+                    editMessageText("绑定网易buff成功")
+                    break
+                } catch (_: QrcodeScanException) {
+                } catch (e: Exception) {
+                    editMessageText(e.message ?: "未知错误")
+                    break
+                }
             }
-            if (!s) error("验证码识别失败，请重试")
-            editMessageText("请发送网易buff的验证码")
-            val code = nextMessage().text()
-            val buffEntity = BuffLogic.login2(phone, code)
-            val saveEntity = buffService.findByTgId(tgId) ?: BuffEntity().also { entity -> entity.tgId = tgId }
-            saveEntity.csrf = buffEntity.csrf
-            saveEntity.cookie = buffEntity.cookie
-            buffService.save(saveEntity)
-            editMessageText("绑定网易buff成功")
+            photoMessage.delete()
         }
         callback("buffLoginByCookie") {
             editMessageText("请发送网易buff的cookie")

@@ -7,28 +7,63 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.BuffEntity
+import me.kuku.telegram.exception.qrcodeExpire
+import me.kuku.telegram.exception.qrcodeNotScanned
+import me.kuku.telegram.exception.qrcodeScanned
 import me.kuku.utils.*
 import java.lang.IllegalStateException
 
 object BuffLogic {
 
-    private const val api = "https://api.jpa.cc"
 
-    suspend fun login1(phone: String) {
-        val jsonNode = client.get("$api/buff/login?phone=$phone").body<JsonNode>()
-        if (!jsonNode["success"].asBoolean()) error(jsonNode["message"].asText())
-        val sliderJsonNode = client.get("$api/buff/slider?phone=$phone").body<JsonNode>()
-        if (!sliderJsonNode["success"].asBoolean()) error(sliderJsonNode["message"].asText())
+    suspend fun login1(): BuffQrcode {
+        val response = client.get("https://buff.163.com/account/api/qr_code_login_open?_=${System.currentTimeMillis()}")
+        val cookie = response.cookie()
+        val jsonNode = client.post("https://buff.163.com/account/api/qr_code_create") {
+            setJsonBody("""
+                {"code_type":1,"extra_param":"{}"}
+            """.trimIndent())
+            userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
+            cookieString(cookie)
+        }.body<JsonNode>()
+        return BuffQrcode(jsonNode["data"]["url"].asText(), jsonNode["data"]["code_id"].asText(), cookie)
     }
 
-    suspend fun login2(phone: String, code: String): BuffEntity {
-        val jsonNode = client.get("$api/buff/code?phone=$phone&code=$code").body<JsonNode>()
-        if (jsonNode["success"]?.asBoolean() == false) error(jsonNode["message"].asText())
-        val cookie = jsonNode["data"].asText()
-        val csrf = OkUtils.cookie(cookie, "csrf_token") ?: error("cookie无效，请重新登陆")
-        return BuffEntity().also {
-            it.cookie = cookie
-            it.csrf = csrf
+    suspend fun login2(qrcode: BuffQrcode): BuffEntity {
+        val response = client.get("https://buff.163.com/account/api/qr_code_poll?item_id=${qrcode.code.toUrlEncode()}&_=${System.currentTimeMillis()}") {
+            headers {
+                cookieString(qrcode.cookie)
+            }
+            userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
+        }
+        val jsonNode = response.body<JsonNode>()
+        val state = jsonNode["data"]["state"].asInt()
+        return when(state) {
+            1 -> qrcodeNotScanned()
+            2 -> qrcodeScanned()
+            3 -> {
+                val cookie = response.cookie() + qrcode.cookie
+                val csrfToken = OkUtils.cookie(cookie, "csrf_token") ?: error("获取token失败，登陆失败")
+                val loginResponse = client.post("https://buff.163.com/account/api/qr_code_login") {
+                    setJsonBody("""
+                        {"item_id":"${qrcode.code}"}
+                    """.trimIndent())
+                    cookieString(cookie)
+                    referer("https://buff.163.com/")
+                    userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0")
+                    headers {
+                        append("X-CSRFToken", csrfToken)
+                    }
+                }
+                val newCookie = loginResponse.cookie()
+                val newCsrfToken = OkUtils.cookie(cookie, "csrf_token") ?: error("获取token失败，登陆失败")
+                BuffEntity().also {
+                    it.cookie = newCookie
+                    it.csrf = newCsrfToken
+                }
+            }
+            5 -> qrcodeExpire()
+            else -> qrcodeExpire()
         }
     }
 
@@ -180,3 +215,5 @@ data class Accessory(val goodsId: Int, var sellId: String, val name: String, val
 }
 
 data class GoodsInfo(val id: Int, val name: String, val hashName: String, val shortName: String, val steamPrice: Double, val steamPriceCny: Double)
+
+data class BuffQrcode(val url: String, val code: String, val cookie: String)
