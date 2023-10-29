@@ -194,7 +194,7 @@ class BuffExtension(
             val uuid = query.data().split("-")[1]
             editMessageText("请选择更改的监控类型，由推送更改为购买请补充磨损率以及价格要求\n推送：每隔一段时间推送该饰品的价格\n购买：每隔一段时间检测价格，符合要求直接购买\n取消：什么都不做",
                 InlineKeyboardMarkup(
-                    arrayOf(inlineKeyboardButton("推送", "editBuffType2-$-$uuid-1")),
+                    arrayOf(inlineKeyboardButton("推送", "editBuffType2-$uuid-1")),
                     arrayOf(inlineKeyboardButton("购买", "editBuffType2-$uuid-2")),
                     arrayOf(inlineKeyboardButton("取消", "editBuffType2-$uuid-3"))
                 ))
