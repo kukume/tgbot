@@ -115,4 +115,18 @@ class AliDriveScheduled(
         }
     }
 
+    @Scheduled(cron = "32 51 5 * * ?")
+    suspend fun receiveDeviceRoom() {
+        val list = aliDriveService.findByDeviceRoom(Status.ON)
+        for (aliDriveEntity in list) {
+            delay(3000)
+            val deviceRoom = aliDriveLogic.deviceRoom(aliDriveEntity)
+            for (aliDriveDeviceRoom in deviceRoom) {
+                if (aliDriveDeviceRoom.canCollectEnergy) {
+                    aliDriveLogic.receiveDeviceRoom(aliDriveEntity, aliDriveDeviceRoom.id)
+                }
+            }
+        }
+    }
+
 }

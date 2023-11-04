@@ -153,14 +153,16 @@ class AliDriveLogic(
     context(HttpRequestBuilder)
     private suspend fun AliDriveEntity.appendEncrypt(device: AliDriveDevice = AliDriveDevice()) {
         val entity = this@AliDriveEntity
-        val deviceId = if(device.deviceId.isEmpty()) entity.deviceId else device.deviceId
+        val deviceId = device.deviceId.ifEmpty {
+            device.deviceId = entity.deviceId
+            entity.deviceId
+        }
         val key = "${entity.tgId}$deviceId"
         val aliDriveSignature = if (signatureCache.containsKey(key)) {
             val aliDriveSignature = signatureCache[key]!!
             if (aliDriveSignature.isExpire()) {
-                val encrypt = encrypt(entity, aliDriveSignature.key,
-                    aliDriveSignature.deviceId, aliDriveSignature.userid, aliDriveSignature.nonce,
-                    device.deviceName, device.deviceModel)
+                val encrypt = encrypt(entity, aliDriveSignature.key, aliDriveSignature.userid,
+                    aliDriveSignature.nonce, device)
                 aliDriveSignature.signature = encrypt.signature
                 aliDriveSignature.expireRefresh()
                 aliDriveSignature
@@ -173,7 +175,7 @@ class AliDriveLogic(
             }
             val encryptKey = encryptKey()
             val encrypt =
-                encrypt(entity, encryptKey, deviceId, userGet.userid, 0, device.deviceName, device.deviceModel)
+                encrypt(entity, encryptKey, userGet.userid, 0, device)
             val aliDriveSignature = AliDriveSignature(encryptKey)
             aliDriveSignature.deviceId = deviceId
             aliDriveSignature.signature = encrypt.signature
@@ -667,9 +669,12 @@ class AliDriveLogic(
         return Hex.toHexString(keyPair.publicKey().bytesArray())
     }
 
-    private suspend fun encrypt(aliDriveEntity: AliDriveEntity, encryptKey: AliDriveKey, deviceId: String, userid: String,
-                                nonce: Int = 0, deviceName: String = "Chrome浏览器", modelName: String = "Windows网页版"): AliDriveEncrypt {
-        val phone = deviceName != "Chrome浏览器"
+    private suspend fun encrypt(aliDriveEntity: AliDriveEntity, encryptKey: AliDriveKey, userid: String, nonce: Int = 0,
+                                device: AliDriveDevice): AliDriveEncrypt {
+        val deviceName = device.deviceName
+        val modelName = device.deviceModel
+        val deviceId = device.deviceId
+        val phone = device.phone()
         val privateKey = encryptKey.privateKey
         val publicKey = encryptKey.publicKey
         val appId = if (!phone) "5dde4e1bdf9e4966b387ba58f4b3fdc3"
@@ -688,8 +693,12 @@ class AliDriveLogic(
                     append("x-device-id", deviceId)
                     append("x-signature", signature)
                     append("authorization", accessToken)
-                    if (phone) {
-                        append("X-Canary", "client=Android,app=adrive,version=v4.1.0")
+                    if (device.desktop) {
+                        append("X-Canary", "client=windows,app=adrive,version=v4.9.14")
+                    } else {
+                        if (phone) {
+                            append("X-Canary", "client=Android,app=adrive,version=v4.1.0")
+                        }
                     }
                 }
             }.body<JsonNode>()
@@ -848,6 +857,10 @@ class AliDriveLogic(
                 backup(aliDriveEntity, "kuku", "Android 12")
                 signInInfo(aliDriveEntity)
             }
+            "开启「自动同步电脑文件夹至少一小时」" -> {
+                backupDesktop(aliDriveEntity)
+                signInInfo(aliDriveEntity)
+            }
             else -> error("不支持的任务，${reward.remind}")
         }
     }
@@ -906,6 +919,27 @@ class AliDriveLogic(
             """.trimIndent())
             aliDriveEntity.appendAuth()
             aliDriveEntity.appendEncrypt(newAliDriveDevice)
+        }.body<JsonNode>()
+        jsonNode.check()
+    }
+
+    suspend fun backupDesktop(aliDriveEntity: AliDriveEntity, status: Boolean = true) {
+        var backupDesktopDeviceId = aliDriveEntity.backupDesktopDeviceId
+        if (backupDesktopDeviceId.isEmpty()) backupDesktopDeviceId = UUID.randomUUID().toString()
+        aliDriveEntity.backupDesktopDeviceId = backupDesktopDeviceId
+        aliDriveService.save(aliDriveEntity)
+        val aliDriveDevice = AliDriveDevice().also {
+            it.deviceId = backupDesktopDeviceId
+            it.deviceName = "kuku's PC"
+            it.deviceModel = "Windows客户端"
+            it.desktop = true
+        }
+        val jsonNode = client.post("https://api.aliyundrive.com/users/v1/users/update_device_extras") {
+            setJsonBody("""
+                {"autoBackupStatus":$status}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+            aliDriveEntity.appendEncrypt(aliDriveDevice)
         }.body<JsonNode>()
         jsonNode.check()
     }
@@ -1311,6 +1345,9 @@ class AliDriveDevice {
     var deviceSystemVersion: String = ""
     var deviceRegisterDay: Int = 0
     var updateTime: Long = 0
+    var desktop: Boolean = false
+
+    fun phone() = deviceName != "Chrome浏览器"
 }
 
 class AliDriveDeviceRoom {
