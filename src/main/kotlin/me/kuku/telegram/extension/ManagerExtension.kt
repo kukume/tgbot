@@ -366,7 +366,6 @@ class ManagerExtension(
         callback("aliDriveManager") {}
         callback("aliDriveSignSwitch") { firstArg<AliDriveEntity>().also { it.sign = !it.sign } }
         callback("aliDriveReceiveSwitch") { firstArg<AliDriveEntity>().also { it.receive = !it.receive } }
-        callback("aliDrivePkSwitch") { firstArg<AliDriveEntity>().also { it.joinTeam = !it.joinTeam } }
         callback("aliDriveTaskSwitch") { firstArg<AliDriveEntity>().also { it.task = !it.task } }
         callback("aliDriveReceiveTaskSwitch") { firstArg<AliDriveEntity>().also { it.receiveTask = !it.receiveTask } }
         callback("aliDriveDeviceRoomTurn") { firstArg<AliDriveEntity>().also { it.deviceRoom = !it.deviceRoom } }
@@ -377,8 +376,6 @@ class ManagerExtension(
                 "aliDriveSignSwitch")
             val receiveButton = inlineKeyboardButton("${aliDriveEntity.receive}自动领取",
                 "aliDriveReceiveSwitch")
-            val pk = inlineKeyboardButton("${aliDriveEntity.joinTeam}自动PK",
-                "aliDrivePkSwitch")
             val task = inlineKeyboardButton("${aliDriveEntity.task}完成任务",
                 "aliDriveTaskSwitch")
             val receiveTask = inlineKeyboardButton("${aliDriveEntity.receiveTask}领取任务奖励",
@@ -386,7 +383,7 @@ class ManagerExtension(
             val deviceRoom = InlineKeyboardButton("${aliDriveEntity.deviceRoom}时光设备间")
                 .callbackData("aliDriveDeviceRoomTurn")
             val markup = InlineKeyboardMarkup(arrayOf(signButton), arrayOf(receiveButton),
-                arrayOf(pk), arrayOf(task), arrayOf(receiveTask), arrayOf(deviceRoom)
+                arrayOf(task), arrayOf(receiveTask), arrayOf(deviceRoom)
             )
             editMessageText("""
                 阿里云盘，如自动签到为关，自动领取不生效

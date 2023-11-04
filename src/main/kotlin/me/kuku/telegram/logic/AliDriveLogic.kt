@@ -147,6 +147,7 @@ class AliDriveLogic(
         val accessToken = accessToken(this@AliDriveEntity)
         headers {
             append("Authorization", accessToken)
+            append("user-agent", "AliApp(AYSD/4.9.15.4) com.alicloud.databox/32886297 Channel/36176727979800@rimet_android_4.9.15.4 language/zh-CN /Android Mobile/Redmi M2007J3SC")
         }
     }
 
@@ -155,7 +156,7 @@ class AliDriveLogic(
         val entity = this@AliDriveEntity
         val deviceId = device.deviceId.ifEmpty {
             device.deviceId = entity.deviceId
-            entity.deviceId
+            device.deviceId
         }
         val key = "${entity.tgId}$deviceId"
         val aliDriveSignature = if (signatureCache.containsKey(key)) {
@@ -186,7 +187,22 @@ class AliDriveLogic(
         headers {
             append("x-device-id", aliDriveSignature.deviceId)
             append("x-signature", aliDriveSignature.signature)
+            if (device.desktop) {
+                append("X-Canary", "client=windows,app=adrive,version=v4.9.14")
+            } else {
+                if (device.phone()) {
+                    append("X-Canary", "client=Android,app=adrive,version=v4.9.15.4")
+                } else {
+                    append("X-Canary", "client=web,app=other,version=v0.1.0")
+                }
+            }
         }
+    }
+
+    context(HttpRequestBuilder)
+    private suspend fun AliDriveEntity.appendBackupDeviceEncrypt() {
+        val device = findDevice(this@AliDriveEntity)
+        appendEncrypt(device)
     }
 
     private fun JsonNode.check() {
@@ -221,6 +237,7 @@ class AliDriveLogic(
             headers {
                 append("Authorization", accessToken)
             }
+            aliDriveEntity.appendBackupDeviceEncrypt()
         }.body<JsonNode>()
         jsonNode.check()
         return if (jsonNode["success"]?.asBoolean() == true) {
@@ -232,29 +249,10 @@ class AliDriveLogic(
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/sign_in_info") {
             setJsonBody("{}")
             aliDriveEntity.appendAuth()
-            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
+            aliDriveEntity.appendBackupDeviceEncrypt()
         }.body<JsonNode>()
         jsonNode.check()
         return jsonNode["result"].convertValue()
-    }
-
-    suspend fun queryTeam(aliDriveEntity: AliDriveEntity): AliDriveTeam {
-        val jsonNode = client.post("https://member.aliyundrive.com/v1/activity/sign_in_team?_rx-s=mobile") {
-            setJsonBody("")
-            aliDriveEntity.appendAuth()
-        }.body<JsonNode>()
-        jsonNode.check()
-        val result = jsonNode["result"]
-        return AliDriveTeam(result["id"].asInt(), result["period"].asText(), result["title"].asText(),
-            result["subTitle"].asText(), result["joinTeam"].asText(), result["joinCount"].asInt(), result["endTime"].asLong())
-    }
-
-    suspend fun joinTeam(aliDriveEntity: AliDriveEntity, id: Int, team: String = "blue" /* purple */) {
-        val jsonNode = client.post("https://member.aliyundrive.com/v1/activity/sign_in_team_pk?_rx-s=mobile") {
-            setJsonBody("""{"id": $id, "team": "$team"}""")
-            aliDriveEntity.appendAuth()
-        }.body<JsonNode>()
-        jsonNode.check()
     }
 
     suspend fun albumsDriveId(aliDriveEntity: AliDriveEntity): Int {
@@ -697,7 +695,7 @@ class AliDriveLogic(
                         append("X-Canary", "client=windows,app=adrive,version=v4.9.14")
                     } else {
                         if (phone) {
-                            append("X-Canary", "client=Android,app=adrive,version=v4.1.0")
+                            append("X-Canary", "client=Android,app=adrive,version=v4.9.15.4")
                         }
                     }
                 }
@@ -752,24 +750,7 @@ class AliDriveLogic(
                 }
             }
             "备份10张照片到相册即可领取奖励" -> {
-                val albumsDriveId = albumsDriveId(aliDriveEntity)
-                val albumList = albumList(aliDriveEntity)
-                val findAlbum = albumList.find { it.name == "kuku的上传图片任务" }
-                val id = findAlbum?.id ?: createAlbum(aliDriveEntity, "kuku的上传图片任务").id
-                val fileList = albumFileList(aliDriveEntity, id)
-                val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
-                batchDeleteFile(aliDriveEntity, bodies)
-                repeat(12) {
-                    delay(3000)
-                    val bytes = picture()
-                    val complete = uploadFileToAlbums(
-                        aliDriveEntity,
-                        albumsDriveId,
-                        "${MyUtils.random(10)}.jpg",
-                        bytes
-                    )
-                    addFileToAlbum(aliDriveEntity, albumsDriveId, complete.fileId, id)
-                }
+                finishBackupPhoto(aliDriveEntity, 12)
             }
             "接3次好运瓶即可领取奖励" -> {
                 repeat(3) {
@@ -815,18 +796,7 @@ class AliDriveLogic(
                 }
             }
             "使用快传功能传输任意1个文件即可领取奖励" -> {
-                val userGet = userGet(aliDriveEntity)
-                val backupDriveId = userGet.backupDriveId
-                val searchFile = searchFile(aliDriveEntity, "kuku的上传文件任务", listOf(backupDriveId.toString()))
-                val fileId = if (searchFile.isEmpty())
-                    createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
-                else searchFile[0].fileId
-                val bytes = picture()
-                val complete = uploadFileToBackupDrive(
-                    aliDriveEntity, backupDriveId,
-                    "${MyUtils.random(10)}.jpg", bytes, fileId
-                )
-                quickShare(aliDriveEntity, backupDriveId, complete.fileId)
+                finishQuickShare(aliDriveEntity)
             }
             "分享好运口令（点击分享-> 今日好运卡）" -> {
                 shareGoodLuckCard(aliDriveEntity)
@@ -878,7 +848,7 @@ class AliDriveLogic(
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/sign_in_list?_rx-s=mobile") {
             setJsonBody("{}")
             aliDriveEntity.appendAuth()
-            aliDriveEntity.appendEncrypt(findDevice(aliDriveEntity))
+            aliDriveEntity.appendBackupDeviceEncrypt()
         }.body<JsonNode>()
         jsonNode.check()
         return jsonNode["result"].convertValue()
@@ -1028,6 +998,97 @@ class AliDriveLogic(
                 sb.append(receiveDeviceRoom(aliDriveEntity, aliDriveDeviceRoom.id)).append(",")
         }
         return sb.toString().ifEmpty { "领取容量成功" }
+    }
+
+    suspend fun receiveCard(aliDriveEntity: AliDriveEntity, position: Int) {
+        val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/complement_task?_rx-s=mobile") {
+            setJsonBody("""{"position":$position}""")
+            aliDriveEntity.appendAuth()
+            aliDriveEntity.appendEncrypt()
+        }.body<JsonNode>()
+        jsonNode.check()
+    }
+
+    suspend fun cardDetail(aliDriveEntity: AliDriveEntity): AliDriveCard {
+        val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/complement_task_detail?_rx-s=mobile") {
+            setJsonBody("{}")
+            aliDriveEntity.appendAuth()
+            aliDriveEntity.appendEncrypt()
+        }.body<JsonNode>()
+        jsonNode.check()
+        return jsonNode["result"].convertValue()
+    }
+
+    suspend fun cardAward(aliDriveEntity: AliDriveEntity, period: String, taskId: Int) {
+        val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/complement_task_reward?_rx-s=mobile") {
+            setJsonBody("""
+                {"period":"$period","taskId":$taskId}
+            """.trimIndent())
+            aliDriveEntity.appendAuth()
+            aliDriveEntity.appendEncrypt()
+        }.body<JsonNode>()
+        jsonNode.check()
+    }
+
+    private suspend fun finishBackupPhoto(aliDriveEntity: AliDriveEntity, count: Int = 20) {
+        val albumsDriveId = albumsDriveId(aliDriveEntity)
+        val albumList = albumList(aliDriveEntity)
+        val findAlbum = albumList.find { it.name == "kuku的上传图片任务" }
+        val id = findAlbum?.id ?: createAlbum(aliDriveEntity, "kuku的上传图片任务").id
+        val fileList = albumFileList(aliDriveEntity, id)
+        val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
+        batchDeleteFile(aliDriveEntity, bodies)
+        repeat(count) {
+            delay(3000)
+            val bytes = picture()
+            val complete = uploadFileToAlbums(
+                aliDriveEntity,
+                albumsDriveId,
+                "${MyUtils.random(10)}.jpg",
+                bytes
+            )
+            addFileToAlbum(aliDriveEntity, albumsDriveId, complete.fileId, id)
+        }
+    }
+
+    private suspend fun finishQuickShare(aliDriveEntity: AliDriveEntity) {
+        val userGet = userGet(aliDriveEntity)
+        val backupDriveId = userGet.backupDriveId
+        val searchFile = searchFile(aliDriveEntity, "kuku的上传文件任务", listOf(backupDriveId.toString()))
+        val fileId = if (searchFile.isEmpty())
+            createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
+        else searchFile[0].fileId
+        val bytes = picture()
+        val complete = uploadFileToBackupDrive(
+            aliDriveEntity, backupDriveId,
+            "${MyUtils.random(10)}.jpg", bytes, fileId
+        )
+        quickShare(aliDriveEntity, backupDriveId, complete.fileId)
+    }
+
+    suspend fun finishCard(aliDriveEntity: AliDriveEntity) {
+        runCatching {
+            repeat(3) {
+                receiveCard(aliDriveEntity, it + 1)
+            }
+        }
+        val cardDetail = cardDetail(aliDriveEntity)
+        val map = mutableMapOf<String, suspend (AliDriveEntity) -> Unit>()
+        map["当周使用快传发送文件给好友"] = {
+            finishQuickShare(aliDriveEntity)
+        }
+        map["当周使用好运瓶翻3次"] = {
+            repeat(3) {
+                delay(3000)
+                bottleFish(aliDriveEntity)
+            }
+        }
+        map["当周备份照片满20张"] = {
+            finishBackupPhoto(aliDriveEntity, 22)
+        }
+        val task = cardDetail.tasks.find { map[it.taskName] != null }
+            ?: error("不支持的任务，${cardDetail.tasks.joinToString(",") { it.taskName }}")
+        map[task.taskName]!!.invoke(aliDriveEntity)
     }
 
 
@@ -1372,6 +1433,20 @@ class AliDriveDeviceRoom {
         var deviceModel: String = ""
         var displayName: String = ""
     }
+}
 
+class AliDriveCard {
+    var period: String = ""
+    var tasks: MutableList<Task> = mutableListOf()
 
+    class Task {
+        var taskId: Int = 0
+        var taskName: String = ""
+        var description: String = ""
+        var action: String = ""
+        var category: String = ""
+        var status: String = ""
+        var process: String = ""
+        var position: Int = 0
+    }
 }

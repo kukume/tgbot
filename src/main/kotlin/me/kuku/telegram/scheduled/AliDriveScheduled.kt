@@ -28,19 +28,6 @@ class AliDriveScheduled(
         }
     }
 
-    @Scheduled(cron = "41 4 2 * * ?")
-    suspend fun pk() {
-        val list = aliDriveService.findByJoinTeam(Status.ON)
-        for (aliDriveEntity in list) {
-            kotlin.runCatching {
-                val team = aliDriveLogic.queryTeam(aliDriveEntity)
-                if (team.joinTeam.isEmpty()) {
-                    aliDriveLogic.joinTeam(aliDriveEntity, team.id)
-                }
-            }
-        }
-    }
-
     @Scheduled(cron = "10 4 5 * * ?")
     suspend fun lastDayReceive() {
         val now = LocalDate.now()

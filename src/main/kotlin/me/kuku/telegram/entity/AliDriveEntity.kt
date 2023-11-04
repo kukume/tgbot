@@ -16,7 +16,6 @@ class AliDriveEntity: BaseEntity() {
     var backupDesktopDeviceId: String = ""
     var sign: Status = Status.OFF
     var receive: Status = Status.OFF
-    var joinTeam: Status = Status.OFF
     var task: Status = Status.OFF
     var receiveTask: Status = Status.OFF
     var deviceRoom: Status = Status.OFF
@@ -30,8 +29,6 @@ interface AliDriveRepository: CoroutineCrudRepository<AliDriveEntity, String> {
     suspend fun findBySign(sign: Status): List<AliDriveEntity>
 
     suspend fun deleteByTgId(tgId: Long)
-
-    suspend fun findByJoinTeam(status: Status): List<AliDriveEntity>
 
     suspend fun findByTask(task: Status): List<AliDriveEntity>
 
@@ -54,8 +51,6 @@ class AliDriveService(
     suspend fun delete(aliDriveEntity: AliDriveEntity) = aliDriveRepository.delete(aliDriveEntity)
 
     suspend fun deleteByTgId(tgId: Long) = aliDriveRepository.deleteByTgId(tgId)
-
-    suspend fun findByJoinTeam(status: Status) = aliDriveRepository.findByJoinTeam(status)
 
     suspend fun findByTask(task: Status) = aliDriveRepository.findByTask(task)
 

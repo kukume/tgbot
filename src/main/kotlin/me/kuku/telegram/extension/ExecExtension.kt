@@ -292,8 +292,10 @@ class ExecExtension(
             val task = inlineKeyboardButton("完成任务", "aliDriveTask")
             val receiveTask = inlineKeyboardButton("领取任务奖励", "aliDriveReceiveTask")
             val deviceRoom = inlineKeyboardButton("时光设备间", "aliDriveDeviceRoom")
+            val card = inlineKeyboardButton("领取补签卡", "aliDriveCard")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(signButton), arrayOf(receive), arrayOf(task), arrayOf(receiveTask), arrayOf(deviceRoom)
+                arrayOf(signButton), arrayOf(receive), arrayOf(task), arrayOf(receiveTask), arrayOf(deviceRoom),
+                arrayOf(card)
             )
             editMessageText("""
                 阿里云盘
@@ -335,6 +337,9 @@ class ExecExtension(
             }.onFailure {
                 sendMessage("#手动执行结果\n阿里云盘完成时光设备间失败，失败原因：${it.message}")
             }
+        }
+        callback("aliDriveCard") {
+            errorAnswerCallbackQuery("没写")
         }
     }
 
