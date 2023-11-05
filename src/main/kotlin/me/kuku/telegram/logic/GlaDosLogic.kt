@@ -33,9 +33,10 @@ object GlaDosLogic {
 
     suspend fun sign(entity: GlaDosEntity): String {
         val jsonNode = client.post("https://glados.space/api/user/checkin") {
-            setJsonBody("""{"token":"glados.network"}""")
+            setJsonBody("""{"token":"glados.one"}""")
             cookieString(entity.cookie)
         }.body<JsonNode>()
+        jsonNode.check()
         return jsonNode["message"].asText()
     }
 
