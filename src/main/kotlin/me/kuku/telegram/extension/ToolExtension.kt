@@ -16,6 +16,7 @@ import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.ToolLogic
 import me.kuku.telegram.logic.TwitterLogic
 import me.kuku.telegram.logic.YgoLogic
+import me.kuku.telegram.utils.githubCommit
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
 
@@ -62,17 +63,10 @@ class ToolExtension(
             """.trimIndent(), parseMode = ParseMode.Markdown)
         }
         sub("update") {
-            val jsonNode = client.get("https://api.github.com/repos/kukume/tgbot/commits").body<JsonNode>()
+            val commitList = githubCommit()
             val list = mutableListOf<Array<InlineKeyboardButton>>()
-            for (node in jsonNode) {
-                val commit = node["commit"]
-                val message = commit["message"].asText()
-                val dateStr = commit["committer"]["date"].asText()
-                    .replace("T", " ").replace("Z", "")
-                val zero = DateTimeFormatterUtils.parseToLocalDateTime(dateStr, "yyyy-MM-dd HH:mm:ss")
-                val right = zero.plusHours(8)
-                val date = DateTimeFormatterUtils.format(right, "yyyy-MM-dd HH:mm:ss")
-                list.add(arrayOf(InlineKeyboardButton("$date - $message").callbackData("none")))
+            for (githubCommit in commitList) {
+                list.add(arrayOf(InlineKeyboardButton("${githubCommit.date} - ${githubCommit.message}").callbackData("none")))
             }
             sendMessage("更新日志", InlineKeyboardMarkup(*list.stream().limit(6).toList().toTypedArray()))
         }

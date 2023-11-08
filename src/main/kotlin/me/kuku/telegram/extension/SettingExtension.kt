@@ -3,7 +3,6 @@ package me.kuku.telegram.extension
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.SendDocument
-import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.BotConfigEntity
 import me.kuku.telegram.entity.BotConfigService
@@ -13,11 +12,10 @@ import java.io.FileOutputStream
 
 @Component
 class SettingExtension(
-    private val telegramConfig: TelegramConfig,
     private val botConfigService: BotConfigService
 ) {
 
-    fun settingMarkup(): InlineKeyboardMarkup {
+    suspend fun settingMarkup(): InlineKeyboardMarkup {
         val blackSetting = inlineKeyboardButton("黑名单", "blackSetting")
         val adminSetting = inlineKeyboardButton("管理员", "adminSetting")
         val url = inlineKeyboardButton("设置推送url", "pushUrlSetting")
@@ -25,28 +23,39 @@ class SettingExtension(
         val twoCaptcha = inlineKeyboardButton("设置全局2captcha的key", "settingGlobeTwoCaptcha")
         val sendLog = inlineKeyboardButton("发送日志", "settingsSendLog")
         val clearLog = inlineKeyboardButton("清空日志", "settingsClearLog")
+        val updatePush = inlineKeyboardButton("${init().updatePush}github更新推送", "githubUpdatePushSwitch")
         return InlineKeyboardMarkup(
             arrayOf(blackSetting, adminSetting),
             arrayOf(url),
             arrayOf(rrOcr),
             arrayOf(twoCaptcha),
-            arrayOf(sendLog, clearLog)
+            arrayOf(sendLog, clearLog),
+            arrayOf(updatePush)
         )
+    }
+
+    suspend fun Context.indexMessage() {
+        val entity = init()
+        val text = """
+            请选择设置选项
+            rrocr(https://www.rrocr.com)：${entity.rrOcrKey.ifEmpty { "未设置" }}
+            2captcha(https://2captcha.com)：${entity.twoCaptchaKey.ifEmpty { "未设置" }}
+        """.trimIndent()
+        if (this is AbilityContext) {
+            sendMessage(text, settingMarkup())
+        } else if (this is TelegramContext) {
+            editMessageText(text, settingMarkup())
+        }
     }
 
     fun AbilitySubscriber.setting() {
         sub("setting", privacy = Privacy.CREATOR) {
-            sendMessage("请选择设置选项\nrrocr：https://www.rrocr.com\n2captcha：https://2captcha.com", settingMarkup())
+            indexMessage()
         }
     }
 
     private suspend fun init(): BotConfigEntity {
-        val token = telegramConfig.token
-        return botConfigService.findByToken(token) ?: kotlin.run {
-            val botConfigEntity = BotConfigEntity()
-            botConfigEntity.token = token
-            botConfigEntity.also { botConfigService.save(botConfigEntity) }
-        }
+        return botConfigService.init()
     }
 
     fun TelegramSubscribe.blackSetting() {
@@ -162,6 +171,15 @@ class SettingExtension(
             val file = File("tmp" + File.separator + "spring.log")
             FileOutputStream(file).write("".toByteArray())
             editMessageText("清空日志文件成功")
+        }
+    }
+
+    fun TelegramSubscribe.updateLogSwitch() {
+        callback("githubUpdatePushSwitch") {
+            val entity = init()
+            entity.updatePush = !entity.updatePush
+            botConfigService.save(entity)
+            indexMessage()
         }
     }
 
