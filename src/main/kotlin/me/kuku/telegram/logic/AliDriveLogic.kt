@@ -990,7 +990,7 @@ class AliDriveLogic(
                     deviceName = "ku ku", aliDriveDevice)
             }
         }
-        val deviceRoom = deviceRoom(aliDriveEntity)
+        val deviceRoom = deviceRoom(aliDriveEntity).stream().limit(5).toList()
         val sb = StringBuilder()
         for (aliDriveDeviceRoom in deviceRoom) {
             delay(1000)

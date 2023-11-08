@@ -107,7 +107,7 @@ class AliDriveScheduled(
         val list = aliDriveService.findByDeviceRoom(Status.ON)
         for (aliDriveEntity in list) {
             delay(3000)
-            val deviceRoom = aliDriveLogic.deviceRoom(aliDriveEntity)
+            val deviceRoom = aliDriveLogic.deviceRoom(aliDriveEntity).stream().limit(5).toList()
             for (aliDriveDeviceRoom in deviceRoom) {
                 if (aliDriveDeviceRoom.canCollectEnergy) {
                     aliDriveLogic.receiveDeviceRoom(aliDriveEntity, aliDriveDeviceRoom.id)
