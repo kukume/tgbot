@@ -5,6 +5,7 @@ import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.AliDriveLogic
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 @Component
@@ -112,6 +113,20 @@ class AliDriveScheduled(
                 if (aliDriveDeviceRoom.canCollectEnergy) {
                     aliDriveLogic.receiveDeviceRoom(aliDriveEntity, aliDriveDeviceRoom.id)
                 }
+            }
+        }
+    }
+
+    @Scheduled(cron = "1 23 3 * * ?")
+    suspend fun receiveCard() {
+        val now = LocalDate.now()
+        val dayOfWeek = now.dayOfWeek
+        if (dayOfWeek != DayOfWeek.MONDAY) return
+        val list = aliDriveService.findByCard(Status.ON)
+        for (aliDriveEntity in list) {
+            delay(3000)
+            logService.log(aliDriveEntity.tgId, LogType.AliDriveCard) {
+                aliDriveLogic.finishCard(aliDriveEntity)
             }
         }
     }

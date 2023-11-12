@@ -19,6 +19,7 @@ class AliDriveEntity: BaseEntity() {
     var task: Status = Status.OFF
     var receiveTask: Status = Status.OFF
     var deviceRoom: Status = Status.OFF
+    var card: Status = Status.OFF
 }
 
 @Suppress("SpringDataRepositoryMethodReturnTypeInspection")
@@ -35,6 +36,8 @@ interface AliDriveRepository: CoroutineCrudRepository<AliDriveEntity, String> {
     suspend fun findByReceiveTask(task: Status): List<AliDriveEntity>
 
     suspend fun findByDeviceRoom(deviceRoom: Status): List<AliDriveEntity>
+
+    suspend fun findByCard(card: Status): List<AliDriveEntity>
 }
 
 @Service
@@ -61,4 +64,6 @@ class AliDriveService(
     suspend fun findById(id: String) = aliDriveRepository.findById(id)
 
     suspend fun findByDeviceRoom(deviceRoom: Status) = aliDriveRepository.findByDeviceRoom(deviceRoom)
+
+    suspend fun findByCard(card: Status) = aliDriveRepository.findByCard(card)
 }

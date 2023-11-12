@@ -35,12 +35,13 @@ class BotConfigScheduled(
             for (githubCommit in commitList) {
                 list.add(arrayOf(InlineKeyboardButton("${githubCommit.date} - ${githubCommit.message}").callbackData("none")))
             }
-            val sendMessage = SendMessage(telegramConfig.creatorId, """
-                #github提交推送
-                昨日共有${commitList.size}次提交"
-            """.trimIndent())
-                .replyMarkup(InlineKeyboardMarkup(*list.toTypedArray()))
-            telegramBot.execute(sendMessage)
+            if (list.isNotEmpty()) {
+                val sendMessage = SendMessage(telegramConfig.creatorId, """
+                    #github提交推送
+                    昨日共有${commitList.size}次提交
+                """.trimIndent()).replyMarkup(InlineKeyboardMarkup(*list.toTypedArray()))
+                telegramBot.execute(sendMessage)
+            }
         }
     }
 

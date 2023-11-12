@@ -255,7 +255,7 @@ class AliDriveLogic(
         return jsonNode["result"].convertValue()
     }
 
-    suspend fun albumsDriveId(aliDriveEntity: AliDriveEntity): Int {
+    private suspend fun albumsDriveId(aliDriveEntity: AliDriveEntity): Int {
         // code = 200
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/user/albums_info") {
             aliDriveEntity.appendAuth()
@@ -266,7 +266,7 @@ class AliDriveLogic(
     }
 
     @Suppress("DuplicatedCode")
-    suspend fun uploadFileToAlbums(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray,
+    private suspend fun uploadFileToAlbums(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray,
                                    scene: AliDriveScene = AliDriveScene.ManualBackup, deviceName: String = "",
                                    aliDriveDevice: AliDriveDevice? = null): AliDriveUploadComplete {
         val newDevice = aliDriveDevice ?: findDevice(aliDriveEntity)
@@ -299,7 +299,7 @@ class AliDriveLogic(
         return complete.convertValue()
     }
 
-    suspend fun albumList(aliDriveEntity: AliDriveEntity): List<AliDriveAlbum> {
+    private suspend fun albumList(aliDriveEntity: AliDriveEntity): List<AliDriveAlbum> {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/album/list") {
             setJsonBody("""{"limit":20,"order_by":"created_at","order_direction":"ASC"}""")
             aliDriveEntity.appendAuth()
@@ -315,7 +315,7 @@ class AliDriveLogic(
         return list
     }
 
-    suspend fun albumFileList(aliDriveEntity: AliDriveEntity, albumId: String): AliDriveFileList {
+    private suspend fun albumFileList(aliDriveEntity: AliDriveEntity, albumId: String): AliDriveFileList {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/album/list_files") {
             setJsonBody("""
                 {"album_id":"$albumId","image_thumbnail_process":"image/resize,w_480/format,avif","image_url_process":"image/resize,w_1920/format,avif","video_thumbnail_process":"video/snapshot,t_0,f_jpg,ar_auto,w_480","filter":"","fields":"*","limit":20,"order_by":"joined_at","order_direction":"DESC"}
@@ -326,7 +326,7 @@ class AliDriveLogic(
         return jsonNode.convertValue()
     }
 
-    suspend fun createAlbum(aliDriveEntity: AliDriveEntity, name: String): AliDriveAlbum {
+    private suspend fun createAlbum(aliDriveEntity: AliDriveEntity, name: String): AliDriveAlbum {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/album/create") {
             setJsonBody("""{"name":"$name","description":""}""")
             aliDriveEntity.appendAuth()
@@ -338,7 +338,7 @@ class AliDriveLogic(
         }
     }
 
-    suspend fun deleteAlbum(aliDriveEntity: AliDriveEntity, id: String) {
+    private suspend fun deleteAlbum(aliDriveEntity: AliDriveEntity, id: String) {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/album/delete") {
             setJsonBody("""{"album_id":"$id"}""")
             aliDriveEntity.appendAuth()
@@ -346,7 +346,7 @@ class AliDriveLogic(
         jsonNode.check2()
     }
 
-    suspend fun addFileToAlbum(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String, albumId: String) {
+    private suspend fun addFileToAlbum(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String, albumId: String) {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/album/add_files") {
             setJsonBody("""{"drive_file_list":[{"drive_id":"$driveId","file_id":"$fileId"}],"album_id":"$albumId"}""")
             aliDriveEntity.appendAuth()
@@ -355,7 +355,7 @@ class AliDriveLogic(
     }
 
     @Suppress("DuplicatedCode")
-    suspend fun uploadFileToBackupDrive(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray, parentId: String = "root", scene: AliDriveScene = AliDriveScene.Upload): AliDriveUploadComplete {
+    private suspend fun uploadFileToBackupDrive(aliDriveEntity: AliDriveEntity, driveId: Int, fileName: String, byteArray: ByteArray, parentId: String = "root", scene: AliDriveScene = AliDriveScene.Upload): AliDriveUploadComplete {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v2/file/createWithFolders") {
             setJsonBody("""
                 {"drive_id":"$driveId","part_info_list":[{"part_number":1}],"parent_file_id":"$parentId","name":"$fileName","type":"file","check_name_mode":"auto_rename","size":${byteArray.size},"create_scene":"${scene.value}","device_name":""}
@@ -382,16 +382,16 @@ class AliDriveLogic(
         return complete.convertValue()
     }
 
-    suspend fun createFolder(aliDriveEntity: AliDriveEntity, driveId: Int, name: String, parentId: String = "root"): AliDriveFolder {
+    private suspend fun createFolder(aliDriveEntity: AliDriveEntity, driveId: Int, name: String, parentId: String = "root"): AliDriveFolder {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v2/file/createWithFolders") {
-            setJsonBody("""{"drive_id":"$driveId","parent_file_id":"root","name":"$name","check_name_mode":"refuse","type":"folder"}""")
+            setJsonBody("""{"drive_id":"$driveId","parent_file_id":"$parentId","name":"$name","check_name_mode":"refuse","type":"folder"}""")
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
         jsonNode.check2()
         return jsonNode.convertValue()
     }
 
-    suspend fun fileList(aliDriveEntity: AliDriveEntity, driveId: Int, parentId: String = "root"): AliDriveFileList {
+    private suspend fun fileList(aliDriveEntity: AliDriveEntity, driveId: Int, parentId: String = "root"): AliDriveFileList {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v3/file/list?jsonmask=next_marker%2Citems(name%2Cfile_id%2Cdrive_id%2Ctype%2Csize%2Ccreated_at%2Cupdated_at%2Ccategory%2Cfile_extension%2Cparent_file_id%2Cmime_type%2Cstarred%2Cthumbnail%2Curl%2Cstreams_info%2Ccontent_hash%2Cuser_tags%2Cuser_meta%2Ctrashed%2Cvideo_media_metadata%2Cvideo_preview_metadata%2Csync_meta%2Csync_device_flag%2Csync_flag%2Cpunish_flag)") {
             setJsonBody("""
                 {"drive_id":"$driveId","parent_file_id":"$parentId","limit":20,"all":false,"url_expire_sec":14400,"image_thumbnail_process":"image/resize,w_256/format,avif","image_url_process":"image/resize,w_1920/format,avif","video_thumbnail_process":"video/snapshot,t_1000,f_jpg,ar_auto,w_256","fields":"*","order_by":"updated_at","order_direction":"DESC"}
@@ -418,7 +418,7 @@ class AliDriveLogic(
 //        }
     }
 
-    suspend fun batchDeleteFile(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
+    private suspend fun batchDeleteFile(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
         if (list.isEmpty()) return
         val batch = AliDriveBatch()
         for (deleteFileBody in list) {
@@ -431,7 +431,7 @@ class AliDriveLogic(
         batch(aliDriveEntity, batch)
     }
 
-    suspend fun batchDeleteFile2(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
+    private suspend fun batchDeleteFile2(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
         if (list.isEmpty()) return
         list.forEach { it.permanently = true }
         val batch = AliDriveBatch()
@@ -445,7 +445,7 @@ class AliDriveLogic(
         batch(aliDriveEntity, batch)
     }
 
-    suspend fun searchFile(aliDriveEntity: AliDriveEntity, name: String, driveId: List<String>): List<AliDriveSearch> {
+    private suspend fun searchFile(aliDriveEntity: AliDriveEntity, name: String, driveId: List<String>): List<AliDriveSearch> {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v3/file/search") {
             setJsonBody("""
                 {"limit":20,"query":"name match \"$name\"","image_thumbnail_process":"image/resize,w_256/format,avif","image_url_process":"image/resize,w_1920/format,avif","video_thumbnail_process":"video/snapshot,t_1000,f_jpg,ar_auto,w_256","order_by":"updated_at DESC","drive_id_list":[${driveId.joinToString(",", prefix = "\"", postfix = "\"")}]}
@@ -456,7 +456,7 @@ class AliDriveLogic(
         return jsonNode["items"].convertValue()
     }
 
-    suspend fun userGet(aliDriveEntity: AliDriveEntity): AliDriveUser {
+    private suspend fun userGet(aliDriveEntity: AliDriveEntity): AliDriveUser {
         val jsonNode = client.post("https://user.aliyundrive.com/v2/user/get") {
             aliDriveEntity.appendAuth()
             setJsonBody("{}")
@@ -465,7 +465,7 @@ class AliDriveLogic(
         return jsonNode.convertValue()
     }
 
-    suspend fun videoInfo(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String): AliDriveVideo {
+    private suspend fun videoInfo(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String): AliDriveVideo {
         val jsonNode = client.post("https://api.aliyundrive.com/v2/file/get_video_preview_play_info") {
             setJsonBody("""
                 {"drive_id":"$driveId","file_id":"$fileId","category":"live_transcoding","template_id":"","get_subtitle_info":true}
@@ -477,7 +477,7 @@ class AliDriveLogic(
         return jsonNode.convertValue()
     }
 
-    suspend fun videoUpdate(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String, duration: Double, play: Double) {
+    private suspend fun videoUpdate(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String, duration: Double, play: Double) {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v2/video/update") {
             setJsonBody("""
                 {"drive_id":"$driveId","file_id":"$fileId","play_cursor":"$play","duration":"$duration"}
@@ -487,7 +487,7 @@ class AliDriveLogic(
         jsonNode.check2()
     }
 
-    suspend fun shareAlbum(aliDriveEntity: AliDriveEntity): List<AliDriveShareAlbum> {
+    private suspend fun shareAlbum(aliDriveEntity: AliDriveEntity): List<AliDriveShareAlbum> {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/sharedAlbum/list") {
             setJsonBody("{}")
             aliDriveEntity.appendAuth()
@@ -496,7 +496,7 @@ class AliDriveLogic(
         return jsonNode["items"].convertValue()
     }
 
-    suspend fun deleteShareAlbum(aliDriveEntity: AliDriveEntity, id: String) {
+    private suspend fun deleteShareAlbum(aliDriveEntity: AliDriveEntity, id: String) {
         val jsonNode = client.post("https://api.alipan.com/adrive/v1/sharedAlbum/delete") {
             setJsonBody("""{"sharedAlbumId":"$id"}""")
             aliDriveEntity.appendAuth()
@@ -504,7 +504,7 @@ class AliDriveLogic(
         jsonNode.check2()
     }
 
-    suspend fun createShareAlbum(aliDriveEntity: AliDriveEntity, name: String): String {
+    private suspend fun createShareAlbum(aliDriveEntity: AliDriveEntity, name: String): String {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/sharedAlbum/create") {
             setJsonBody("""{"name":"$name","description":""}""")
             aliDriveEntity.appendAuth()
@@ -513,7 +513,7 @@ class AliDriveLogic(
         return jsonNode["sharedAlbumId"].asText()
     }
 
-    suspend fun uploadFileToShareAlbum(aliDriveEntity: AliDriveEntity, id: String, name: String, byteArray: ByteArray) {
+    private suspend fun uploadFileToShareAlbum(aliDriveEntity: AliDriveEntity, id: String, name: String, byteArray: ByteArray) {
         val activityJsonNode = client.post("https://api.aliyundrive.com/adrive/v1/sharedAlbum/createActivity") {
             setJsonBody("""{"sharedAlbumId":"$id"}""")
             aliDriveEntity.appendAuth()
@@ -556,7 +556,7 @@ class AliDriveLogic(
         }.body<JsonNode>()
     }
 
-    suspend fun shareAlbumInvite(aliDriveEntity: AliDriveEntity, id: String): AliDriveShareAlbumInvite {
+    private suspend fun shareAlbumInvite(aliDriveEntity: AliDriveEntity, id: String): AliDriveShareAlbumInvite {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/sharedAlbumMember/invite") {
             setJsonBody("""
                 {"sharedAlbumId":"$id"}
@@ -576,7 +576,7 @@ class AliDriveLogic(
         return jsonNode["sharedAlbumId"].asText()
     }
 
-    suspend fun joinShareAlbum(aliDriveEntity: AliDriveEntity, code: String) {
+    private suspend fun joinShareAlbum(aliDriveEntity: AliDriveEntity, code: String) {
         val shareAlbumId = albumIdByCode(aliDriveEntity, code)
         val joinNode = client.post("https://api.aliyundrive.com/adrive/v1/sharedAlbumMember/join") {
             setJsonBody("""
@@ -588,7 +588,7 @@ class AliDriveLogic(
         // https://api.alipan.com/adrive/v1/sharedAlbumMember/quit {"sharedAlbumId":""}
     }
 
-    suspend fun quitShareAlbum(aliDriveEntity: AliDriveEntity, id: String) {
+    private suspend fun quitShareAlbum(aliDriveEntity: AliDriveEntity, id: String) {
         val jsonNode = client.post("https://api.alipan.com/adrive/v1/sharedAlbumMember/quit") {
             setJsonBody("""
                 {"sharedAlbumId":"$id"}
@@ -614,7 +614,7 @@ class AliDriveLogic(
         return jsonNode.convertValue()
     }
 
-    suspend fun saveTo(aliDriveEntity: AliDriveEntity, shareId: String) {
+    private suspend fun saveTo(aliDriveEntity: AliDriveEntity, shareId: String) {
         val tokenNode = client.post("https://api.aliyundrive.com/v2/share_link/get_share_token") {
             setJsonBody("""
                 {"share_id":"$shareId","share_pwd":""}
@@ -733,12 +733,9 @@ class AliDriveLogic(
                 createAlbum(aliDriveEntity, "kuku的创建相册任务")
             }
             "上传10个文件到备份盘即可领取奖励" -> {
-                val userGet = userGet(aliDriveEntity)
-                val backupDriveId = userGet.backupDriveId
-                val searchFile = searchFile(aliDriveEntity, "kuku的上传文件任务", listOf(backupDriveId.toString()))
-                val fileId = if (searchFile.isEmpty())
-                    createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
-                else searchFile[0].fileId
+                val info = createAutoFile(aliDriveEntity)
+                val backupDriveId = info.backupDriveId
+                val fileId = info.fileId
                 val fileList = fileList(aliDriveEntity, backupDriveId, fileId)
                 val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
                 batchDeleteFile(aliDriveEntity, bodies)
@@ -759,25 +756,7 @@ class AliDriveLogic(
                 }
             }
             "播放1个视频30秒即可领取奖励" -> {
-                val userGet = userGet(aliDriveEntity)
-                val backupDriveId = userGet.backupDriveId
-                val searchFile = searchFile(aliDriveEntity, "kuku的视频", listOf(backupDriveId.toString()))
-                val fileId = if (searchFile.isEmpty())
-                    createFolder(aliDriveEntity, backupDriveId, "kuku的视频").fileId
-                else searchFile[0].fileId
-                val fileList = fileList(aliDriveEntity, backupDriveId, fileId)
-                val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
-                batchDeleteFile(aliDriveEntity, bodies)
-                val bytes = client.get("https://minio.kuku.me/kuku/BV14s4y1Z7ZAoutput.mp4").body<ByteArray>()
-                val uploadComplete = uploadFileToBackupDrive(
-                    aliDriveEntity, backupDriveId,
-                    "BV14s4y1Z7ZAoutput.mp4", bytes, fileId
-                )
-                val uploadFileId = uploadComplete.fileId
-                val uploadDriveId = uploadComplete.driveId
-                val videoInfo = videoInfo(aliDriveEntity, uploadDriveId, uploadFileId)
-                videoUpdate(aliDriveEntity, uploadDriveId, uploadFileId, videoInfo.videoPreviewPlayInfo.meta.duration,
-                    50.123)
+                watchVideo(aliDriveEntity, 50.123)
             }
             "创建共享相簿邀请成员加入并上传10张照片" -> {
                 val albumList = shareAlbum(aliDriveEntity)
@@ -854,7 +833,7 @@ class AliDriveLogic(
         return jsonNode["result"].convertValue()
     }
 
-    suspend fun quickShare(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String) {
+    private suspend fun quickShare(aliDriveEntity: AliDriveEntity, driveId: Int, fileId: String) {
         val jsonNode = client.post("https://api.aliyundrive.com/adrive/v1/share/create") {
             setJsonBody("""{"drive_file_list":[{"drive_id":"$driveId","file_id":"$fileId"}]}""")
             aliDriveEntity.appendAuth()
@@ -862,7 +841,7 @@ class AliDriveLogic(
         jsonNode.check2()
     }
 
-    suspend fun shareGoodLuckCard(aliDriveEntity: AliDriveEntity) {
+    private suspend fun shareGoodLuckCard(aliDriveEntity: AliDriveEntity) {
         val jsonNode = client.post("https://member.aliyundrive.com/v1/activity/behave?_rx-s=mobile") {
             setJsonBody("""{"behave":"share-signIn-code"}""")
             aliDriveEntity.appendAuth()
@@ -914,7 +893,7 @@ class AliDriveLogic(
         jsonNode.check()
     }
 
-    suspend fun deviceList(aliDriveEntity: AliDriveEntity): List<AliDriveDevice> {
+    private suspend fun deviceList(aliDriveEntity: AliDriveEntity): List<AliDriveDevice> {
         val newEntity = aliDriveService.findById(aliDriveEntity.id!!)!!
         val jsonNode = client.post("https://api.alipan.com/adrive/v2/backup/device_applet_list_summary") {
             setJsonBody("{}")
@@ -925,13 +904,13 @@ class AliDriveLogic(
         return jsonNode["deviceItems"].convertValue()
     }
 
-    suspend fun findDevice(aliDriveEntity: AliDriveEntity, deviceId: String? = null): AliDriveDevice {
+    private suspend fun findDevice(aliDriveEntity: AliDriveEntity, deviceId: String? = null): AliDriveDevice {
         val list = deviceList(aliDriveEntity)
         val matchDeviceId = deviceId ?: aliDriveEntity.backupDeviceId.ifEmpty { aliDriveEntity.deviceId }
         return list.find { it.deviceId == matchDeviceId } ?: AliDriveDevice()
     }
 
-    suspend fun deviceFileList(aliDriveEntity: AliDriveEntity, deviceId: String? = null): AliDrivePage<AliDriveFile> {
+    private suspend fun deviceFileList(aliDriveEntity: AliDriveEntity, deviceId: String? = null): AliDrivePage<AliDriveFile> {
         val driveId = albumsDriveId(aliDriveEntity)
         val jsonNode = client.post("https://api.alipan.com/adrive/v2/backup/device/file_list") {
             setJsonBody("""
@@ -1000,7 +979,7 @@ class AliDriveLogic(
         return sb.toString().ifEmpty { "领取容量成功" }
     }
 
-    suspend fun receiveCard(aliDriveEntity: AliDriveEntity, position: Int) {
+    private suspend fun receiveCard(aliDriveEntity: AliDriveEntity, position: Int) {
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/complement_task?_rx-s=mobile") {
             setJsonBody("""{"position":$position}""")
             aliDriveEntity.appendAuth()
@@ -1009,7 +988,7 @@ class AliDriveLogic(
         jsonNode.check()
     }
 
-    suspend fun cardDetail(aliDriveEntity: AliDriveEntity): AliDriveCard {
+    private suspend fun cardDetail(aliDriveEntity: AliDriveEntity): AliDriveCard {
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/complement_task_detail?_rx-s=mobile") {
             setJsonBody("{}")
             aliDriveEntity.appendAuth()
@@ -1019,7 +998,7 @@ class AliDriveLogic(
         return jsonNode["result"].convertValue()
     }
 
-    suspend fun cardAward(aliDriveEntity: AliDriveEntity, period: String, taskId: Int) {
+    private suspend fun cardAward(aliDriveEntity: AliDriveEntity, period: String, taskId: Int) {
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/complement_task_reward?_rx-s=mobile") {
             setJsonBody("""
                 {"period":"$period","taskId":$taskId}
@@ -1051,19 +1030,48 @@ class AliDriveLogic(
         }
     }
 
-    private suspend fun finishQuickShare(aliDriveEntity: AliDriveEntity) {
+    private suspend fun createAutoFile(aliDriveEntity: AliDriveEntity): AutoInfo {
         val userGet = userGet(aliDriveEntity)
         val backupDriveId = userGet.backupDriveId
         val searchFile = searchFile(aliDriveEntity, "kuku的上传文件任务", listOf(backupDriveId.toString()))
         val fileId = if (searchFile.isEmpty())
             createFolder(aliDriveEntity, backupDriveId, "kuku的上传文件任务").fileId
         else searchFile[0].fileId
+        return AutoInfo(backupDriveId, fileId)
+    }
+
+    data class AutoInfo(val backupDriveId: Int, val fileId: String)
+
+    private suspend fun finishQuickShare(aliDriveEntity: AliDriveEntity) {
+        val info = createAutoFile(aliDriveEntity)
         val bytes = picture()
         val complete = uploadFileToBackupDrive(
-            aliDriveEntity, backupDriveId,
-            "${MyUtils.random(10)}.jpg", bytes, fileId
+            aliDriveEntity, info.backupDriveId,
+            "${MyUtils.random(10)}.jpg", bytes, info.fileId
         )
-        quickShare(aliDriveEntity, backupDriveId, complete.fileId)
+        quickShare(aliDriveEntity, info.backupDriveId, complete.fileId)
+    }
+
+    private suspend fun watchVideo(aliDriveEntity: AliDriveEntity, play: Double) {
+        val userGet = userGet(aliDriveEntity)
+        val backupDriveId = userGet.backupDriveId
+        val searchFile = searchFile(aliDriveEntity, "kuku的视频", listOf(backupDriveId.toString()))
+        val fileId = if (searchFile.isEmpty())
+            createFolder(aliDriveEntity, backupDriveId, "kuku的视频").fileId
+        else searchFile[0].fileId
+        val fileList = fileList(aliDriveEntity, backupDriveId, fileId)
+        val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
+        batchDeleteFile(aliDriveEntity, bodies)
+        val bytes = client.get("https://minio.kuku.me/kuku/BV14s4y1Z7ZAoutput.mp4").body<ByteArray>()
+        val uploadComplete = uploadFileToBackupDrive(
+            aliDriveEntity, backupDriveId,
+            "BV14s4y1Z7ZAoutput.mp4", bytes, fileId
+        )
+        val uploadFileId = uploadComplete.fileId
+        val uploadDriveId = uploadComplete.driveId
+        val videoInfo = videoInfo(aliDriveEntity, uploadDriveId, uploadFileId)
+        videoUpdate(aliDriveEntity, uploadDriveId, uploadFileId, videoInfo.videoPreviewPlayInfo.meta.duration,
+            play)
     }
 
     suspend fun finishCard(aliDriveEntity: AliDriveEntity) {
@@ -1086,9 +1094,13 @@ class AliDriveLogic(
         map["当周备份照片满20张"] = {
             finishBackupPhoto(aliDriveEntity, 22)
         }
+        map["当周观看任意一个电影时间满3分钟"] = {
+            watchVideo(aliDriveEntity, 190.123)
+        }
         val task = cardDetail.tasks.find { map[it.taskName] != null }
             ?: error("不支持的任务，${cardDetail.tasks.joinToString(",") { it.taskName }}")
         map[task.taskName]!!.invoke(aliDriveEntity)
+        cardAward(aliDriveEntity, cardDetail.period, task.taskId)
     }
 
 

@@ -13,6 +13,7 @@ JDK21 + Mongodb
 * /login - 登陆账号
 * /exec - 手动执行签到
 * /manager - 管理自动签到状态，默认自动签到全为关
+* /update - 查看github提交消息
 
 ## Beg
 
@@ -34,6 +35,8 @@ https://pan.kuku.me/tgbot
 
 ## Config
 
+### application.yml
+
 ```yaml
 kuku:
   telegram:
@@ -54,6 +57,40 @@ kuku:
     # 该参数为 /root/telegram-bot-api/data
     # 如果不是使用docker，该参数为 /
     localPath:
+```
+
+### docker-compose.yml
+
+```yaml
+version: "3"
+services:
+  tgbot:
+    image: kukume/tgbot
+    container_name: tgbot
+    ports: 
+      - 8080:8080
+    environment:
+      # @BotFather获取到的token
+      KUKU_TELEGRAM_TOKEN: 
+      # 机器人管理员的id
+      KUKU_TELEGRAM_CREATOR_ID: 0
+      # 代理地址
+      KUKU_TELEGRAM_PROXY_HOST:
+      # 代理端口
+      KUKU_TELEGRAM_PROXY_PORT: 0
+      # 代理类型，可选 DIRECT（不设置代理）、HTTP、SOCKS
+      KUKU_TELEGRAM_PROXY_TYPE: DIRECT
+      # 自建的tg服务器的地址（包含http://或者https://），如果填了，
+      # 上传文件到机器人的功能均会失效，如果不填，动态推送将不能推送50M以上的视频
+      KUKU_TELEGRAM_URL:
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:4
+    volumes:
+      - ./db:/data/db
+      - ./dump:/dump
 ```
 
 ## Features

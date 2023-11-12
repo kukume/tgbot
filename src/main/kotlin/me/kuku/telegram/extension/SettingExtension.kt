@@ -44,7 +44,7 @@ class SettingExtension(
         if (this is AbilityContext) {
             sendMessage(text, settingMarkup())
         } else if (this is TelegramContext) {
-            editMessageText(text, settingMarkup())
+            editMessageText(text, settingMarkup(), returnButton = false)
         }
     }
 

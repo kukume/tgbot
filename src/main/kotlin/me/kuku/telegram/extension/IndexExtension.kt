@@ -13,7 +13,7 @@ class IndexExtension {
                 *kuku*的自动签到机器人。
                 机器人开源地址 https://github.com/kukume/tgbot
                 求求点个star把
-                有问题可以发issues或者email：`kuku@kuku.me`
+                有问题可以发issues
             """.trimIndent(), parseMode = ParseMode.Markdown)
         }
     }
