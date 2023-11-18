@@ -75,14 +75,14 @@ typealias ReturnMessageAfter = TelegramContext.() -> Unit
 private val callbackHistory by lazy {
     SpringUtils.getBean<CacheManager>().createCache("callbackHistory",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.javaObjectType, LinkedList::class.java,
-            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2)))
+            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(5)))
         )
 }
 private val callbackHistoryKey = mutableSetOf<String>()
 private val callbackAfter by lazy {
     SpringUtils.getBean<CacheManager>().createCache("callbackAfter",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.javaObjectType, Any::class.java,
-            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2)))
+            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(5)))
     )
 }
 

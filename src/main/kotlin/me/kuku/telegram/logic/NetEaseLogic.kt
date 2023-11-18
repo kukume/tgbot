@@ -261,7 +261,7 @@ object NetEaseLogic {
     private suspend fun removeDy(netEaseEntity: NetEaseEntity, id: Long): CommonResult<Void> {
         val jsonNode = OkHttpKtUtils.postJson("$domain/weapi/event/delete",
             prepare(mapOf("id" to id.toString())),
-            OkUtils.headers(netEaseEntity.cookie(), domain, UA.PC)
+            OkUtils.headers(netEaseEntity.pcCookie(), domain, UA.PC)
         )
         return if (jsonNode.getInteger("code") == 200) CommonResult.success()
         else CommonResult.failure(jsonNode["message"]?.asText() ?: "删除动态失败")
@@ -393,7 +393,7 @@ object NetEaseLogic {
     private suspend fun deleteMusicComment(netEaseEntity: NetEaseEntity, id: Long, commentId: Long): CommonResult<Void> {
         val jsonNode = OkHttpKtUtils.postJson("$domain/weapi/resource/comments/delete",
             prepare(mapOf("commentId" to commentId.toString(), "threadId" to "R_SO_4_$id")),
-            OkUtils.headers(netEaseEntity.cookie(), domain, UA.PC)
+            OkUtils.headers(netEaseEntity.pcCookie(), domain, UA.PC)
         )
         return if (jsonNode.getInteger("code") == 200) CommonResult.success()
         else CommonResult.failure(jsonNode.getString("message"))

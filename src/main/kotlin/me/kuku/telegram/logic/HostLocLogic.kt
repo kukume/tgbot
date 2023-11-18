@@ -1,7 +1,6 @@
 package me.kuku.telegram.logic
 
 import kotlinx.coroutines.delay
-import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.utils.MyUtils
 import me.kuku.utils.OkHttpKtUtils

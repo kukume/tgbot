@@ -21,6 +21,8 @@ class NetEaseEntity {
     var musicianSign: Status = Status.OFF
 
     fun cookie() = "channel=netease; __remember_me=true; MUSIC_U=$musicU; __csrf=$csrf; "
+
+    fun pcCookie() = "os=pc; ${cookie()}"
 }
 
 interface NetEaseRepository: ReactiveMongoRepository<NetEaseEntity, String> {

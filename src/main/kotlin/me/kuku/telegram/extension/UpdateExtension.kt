@@ -35,7 +35,7 @@ class UpdateExtension {
                 files.forEach {
                     list.add(arrayOf(InlineKeyboardButton(it.name).callbackData("update|${it.name}")))
                 }
-                sendMessage("请选择需要更新的文件", replyKeyboard = InlineKeyboardMarkup(*list.toTypedArray()))
+                sendMessage("请选择需要更新的文件\n/updatelog可查询github提交日志", replyKeyboard = InlineKeyboardMarkup(*list.toTypedArray()))
             }
         }
 
