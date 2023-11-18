@@ -1,3 +1,5 @@
+@file:Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+
 package me.kuku.telegram.entity
 
 import org.springframework.data.annotation.Id
@@ -11,18 +13,29 @@ class IqyEntity: BaseEntity() {
     var id: String? = null
     var platform: String = ""
     var deviceId: String = ""
+    var cookie: String = ""
     var authCookie: String = ""
     var p00001: String = ""
     var qyId: String = ""
     var userid: Long = 0
+    var sign: Status = Status.OFF
 }
 
-interface IqyRepository: CoroutineCrudRepository<IqyEntity, String>
+interface IqyRepository: CoroutineCrudRepository<IqyEntity, String> {
+    suspend fun findByTgId(tgId: Long): IqyEntity?
+    suspend fun findBySign(status: Status): List<IqyEntity>
+}
 
 @Service
 class IqyService(
     private val iqyRepository: IqyRepository
 ) {
+
+    suspend fun findByTgId(tgId: Long) = iqyRepository.findByTgId(tgId)
+
+    suspend fun save(entity: IqyEntity) = iqyRepository.save(entity)
+
+    suspend fun findBySign(status: Status) = iqyRepository.findBySign(status)
 
 
 

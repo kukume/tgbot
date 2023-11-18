@@ -45,7 +45,8 @@ class LoginExtension(
     private val leiShenService: LeiShenService,
     private val youPinService: YouPinService,
     private val nodeSeekService: NodeSeekService,
-    private val glaDosService: GlaDosService
+    private val glaDosService: GlaDosService,
+    private val iqyService: IqyService
 ) {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -69,6 +70,7 @@ class LoginExtension(
         val youPingButton = inlineKeyboardButton("悠悠有品", "youPingLogin")
         val nodeSeekButton = inlineKeyboardButton("NodeSeek", "nodeSeekLogin")
         val gloDos = inlineKeyboardButton("GloDos", "gloDosLogin")
+        val iqy = inlineKeyboardButton("爱奇艺", "iqyLogin")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -79,7 +81,8 @@ class LoginExtension(
             arrayOf(pixivButton, buffButton),
             arrayOf(smZdmButton, aliDriveButton),
             arrayOf(leiShenButton, youPingButton),
-            arrayOf(nodeSeekButton, gloDos)
+            arrayOf(nodeSeekButton, gloDos),
+            arrayOf(iqy)
         )
     }
 
@@ -958,6 +961,48 @@ class LoginExtension(
             entity.cookie = cookie
             glaDosService.save(entity)
             editMessageText("绑定Glados成功")
+        }
+    }
+
+    fun TelegramSubscribe.iqyLogin() {
+        callback("iqyLogin") {
+            editMessageText("请选择爱奇艺的登陆方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("扫码登陆", "iqyQrcodeLogin")),
+            ))
+        }
+        callback("iqyQrcodeLogin") {
+            val qrcode = IqyLogic.login1()
+            var photoMessage: Message?
+            qrcode.imageUrl.let {
+                val sendPhoto = SendPhoto(chatId, it)
+                photoMessage = bot.execute(sendPhoto).message()
+                editMessageText("请使用爱奇艺App扫码登陆", returnButton = false)
+            }
+            var i = 0
+            while (true) {
+                if (++i > 20) {
+                    editMessageText("爱奇艺登陆二维码已过期")
+                    break
+                }
+                delay(3000)
+                val newIqyEntity = try {
+                    IqyLogic.login2(qrcode)
+                } catch (_: QrcodeScanException) {
+                    continue
+                }
+                val iqyEntity = iqyService.findByTgId(tgId) ?: IqyEntity().init()
+                iqyEntity.authCookie = newIqyEntity.authCookie
+                iqyEntity.userid = newIqyEntity.userid
+                iqyEntity.platform = newIqyEntity.platform
+                iqyEntity.deviceId = newIqyEntity.deviceId
+                iqyEntity.qyId = newIqyEntity.qyId
+                iqyEntity.cookie = newIqyEntity.cookie
+                iqyEntity.p00001 = newIqyEntity.p00001
+                iqyService.save(iqyEntity)
+                editMessageText("绑定爱奇艺成功")
+                break
+            }
+            photoMessage?.delete()
         }
     }
 

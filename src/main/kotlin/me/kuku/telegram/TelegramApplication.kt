@@ -1,7 +1,8 @@
 package me.kuku.telegram
 
+import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.runApplication
+import org.springframework.boot.context.ApplicationPidFileWriter
 import org.springframework.data.mongodb.config.EnableReactiveMongoAuditing
 import org.springframework.scheduling.annotation.EnableScheduling
 
@@ -11,5 +12,5 @@ import org.springframework.scheduling.annotation.EnableScheduling
 class TelegramApplication
 
 fun main(args: Array<String>) {
-    runApplication<TelegramApplication>(*args)
+    SpringApplication(TelegramApplication::class.java).also { it.addListeners(ApplicationPidFileWriter()) }.run(*args)
 }

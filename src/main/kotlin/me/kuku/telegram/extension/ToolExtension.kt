@@ -62,7 +62,7 @@ class ToolExtension(
                 messageThreadId: `$messageThreadId`
             """.trimIndent(), parseMode = ParseMode.Markdown)
         }
-        sub("update") {
+        sub("updateLog") {
             val commitList = githubCommit()
             val list = mutableListOf<Array<InlineKeyboardButton>>()
             for (githubCommit in commitList) {

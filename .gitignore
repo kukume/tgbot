@@ -3,3 +3,4 @@
 build/
 /kuku
 tmp/
+application.pid

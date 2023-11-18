@@ -1425,7 +1425,7 @@ class AliDriveDevice {
 
 class AliDriveDeviceRoom {
     var gmtCollectEnergy: String? = null
-    var gmtGenerateEnergy: String = ""
+    var gmtGenerateEnergy: String? = ""
     var deviceNameInfo: DeviceNameInfo = DeviceNameInfo()
     var new: Boolean = false
     var order: Int = 0

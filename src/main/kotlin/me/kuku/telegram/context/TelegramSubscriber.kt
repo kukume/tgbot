@@ -164,6 +164,11 @@ class TelegramSubscribe {
         set(key, value)
     }
 
+    fun Any?.set(message: String = "该值为null") {
+        if (this == null) errorAnswerCallbackQuery(message)
+        set(this)
+    }
+
     inline fun <reified T: Any> get(key: String): T? {
         val cacheMap = threadLocal.get()
         return cacheMap[key] as? T

@@ -22,7 +22,8 @@ class ExecExtension(
     private val smZdmService: SmZdmService, private val smZdmLogic: SmZdmLogic,
     private val aliDriveService: AliDriveService, private val aliDriveLogic: AliDriveLogic,
     private val nodeSeekService: NodeSeekService,
-    private val glaDosService: GlaDosService
+    private val glaDosService: GlaDosService,
+    private val iqyService: IqyService
 ) {
 
     private fun execKeyboardMarkup(): InlineKeyboardMarkup {
@@ -39,6 +40,7 @@ class ExecExtension(
         val aliDrive = inlineKeyboardButton("阿里云盘", "aliDriveExec")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekExec")
         val glaDos = inlineKeyboardButton("GlaDos", "glaDosExec")
+        val iqy = inlineKeyboardButton("爱奇艺", "iqyExec")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(hostLocButton, kuGouButton),
@@ -46,7 +48,7 @@ class ExecExtension(
             arrayOf(stepButton, weiboButton),
             arrayOf(douYuButton, smZdmButton),
             arrayOf(aliDrive, nodeSeek),
-            arrayOf(glaDos)
+            arrayOf(glaDos, iqy)
         )
     }
 
@@ -379,6 +381,22 @@ class ExecExtension(
         callback("glaDosSign") {
             val message = GlaDosLogic.sign(firstArg())
             editMessageText(message)
+        }
+    }
+
+    fun TelegramSubscribe.iqyExec() {
+        before { iqyService.findByTgId(tgId).set("未绑定爱奇艺账号") }
+        callback("iqyExec") {
+            editMessageText("爱奇艺", InlineKeyboardMarkup(
+                arrayOf(
+                    inlineKeyboardButton("签到", "iqySign"),
+                )
+            ))
+        }
+        callback("iqySign") {
+            IqyLogic.taskSign(firstArg())
+
+            editMessageText("爱奇艺签到成功")
         }
     }
 

@@ -4,14 +4,15 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import me.kuku.telegram.entity.IqyEntity
+import me.kuku.telegram.exception.qrcodeNotScanned
+import me.kuku.telegram.exception.qrcodeScanned
 import me.kuku.utils.*
 
 object IqyLogic {
 
     suspend fun login1(): IqyQrcode {
-        val jsonNode = client.post("https://passport.iqiyi.com/apis/qrcode/gen_login_token.action") {
+        val response = client.post("https://passport.iqiyi.com/apis/qrcode/gen_login_token.action") {
             setFormDataContent {
                 append("agenttype", "1")
                 append("app_version", "")
@@ -24,18 +25,21 @@ object IqyLogic {
                 append("device_auth_uid", "")
                 append("new_device_auth", "")
             }
-        }.body<JsonNode>()
+        }
+        val jsonNode = response.body<JsonNode>()
         jsonNode.check()
         val data = jsonNode["data"]
         val token = data["token"].asText()
         val url = data["url"].asText()
         val enUrl = url.toUrlEncode()
         val salt = "35f4223bb8f6c8638dc91d94e9b16f5$enUrl".md5()
-        return IqyQrcode(token, url, "https://qrcode.iqiyipic.com/login/?data=$enUrl&property=0&salt=$salt&width=162&_=0.${MyUtils.randomNum(16)}")
+        val cookie = response.cookie()
+        return IqyQrcode(token, url, "https://qrcode.iqiyipic.com/login/?data=$enUrl&property=0&salt=$salt&width=162&_=0.${MyUtils.randomNum(16)}",
+            cookie)
     }
 
-    suspend fun login2(qrcode: IqyQrcode) {
-        val jsonNode = client.post("https://passport.iqiyi.com/apis/qrcode/is_token_login.action") {
+    suspend fun login2(qrcode: IqyQrcode): IqyEntity {
+        val response = client.post("https://passport.iqiyi.com/apis/qrcode/is_token_login.action") {
             setFormDataContent {
                 append("agenttype", "1")
                 append("app_version", "")
@@ -46,9 +50,32 @@ object IqyLogic {
                 append("token", qrcode.token)
                 append("dfp", "a17fefafa0ba5e426c96ffc2a0e9d1516066b7e9eebfbc3ce429d53c05e305085e")
             }
-        }.body<JsonNode>()
+        }
+        val jsonNode = response.body<JsonNode>()
         // {"msg":"找不到用户登录信息，可能手机端尚未确认","code":"A00001"}
         val code = jsonNode["code"].asText()
+        return when (code) {
+            "A00001" -> qrcodeNotScanned()
+            "P01006" -> qrcodeScanned()
+            "A00000" -> {
+                val data = jsonNode["data"]
+                val authCookie = data["authcookie"].asText()
+                val userid = data["userinfo"]["uid"].asLong()
+                val platform = MyUtils.randomLetterLowerNum(16)
+                val deviceId = MyUtils.randomLetterLowerNum(32)
+                val cookie = response.cookie()
+                val iqyEntity = IqyEntity()
+                iqyEntity.authCookie = authCookie
+                iqyEntity.userid = userid
+                iqyEntity.platform = platform
+                iqyEntity.deviceId = deviceId
+                iqyEntity.qyId = deviceId
+                iqyEntity.cookie = cookie
+                iqyEntity.p00001 = OkUtils.cookie(cookie, "P00001") ?: error("没有找到P00001的cookie")
+                iqyEntity
+            }
+            else -> error("未知错误")
+        }
     }
 
 
@@ -95,7 +122,7 @@ object IqyLogic {
             setJsonBody("""
                 {"$taskCode":{"agentType":1,"agentversion":1,"authCookie":"${iqyEntity.authCookie}","dfp":"","qyid":"${iqyEntity.qyId}","verticalCode":"iQIYI","taskCode":"iQIYI_mofhr"}}
             """.trimIndent())
-        }.also { println(it.request.url) }.body<JsonNode>()
+        }.body<JsonNode>()
         jsonNode.check()
     }
 
@@ -128,4 +155,4 @@ class IqyTask {
     }
 }
 
-data class IqyQrcode(val token: String, val url: String, val imageUrl: String)
+data class IqyQrcode(val token: String, val url: String, val imageUrl: String, val cookie: String)

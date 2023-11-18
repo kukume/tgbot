@@ -29,7 +29,8 @@ class ManagerExtension(
     private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
     private val nodeSeekService: NodeSeekService,
-    private val glaDosService: GlaDosService
+    private val glaDosService: GlaDosService,
+    private val iqyService: IqyService
 ) {
 
     private fun managerKeyboardMarkup(): InlineKeyboardMarkup {
@@ -51,6 +52,7 @@ class ManagerExtension(
         val leiShen = inlineKeyboardButton("雷神加速器", "leiShenManager")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekManager")
         val glaDos = inlineKeyboardButton("Glados", "glaDosManager")
+        val iqy = inlineKeyboardButton("爱奇艺", "iqyManager")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -60,7 +62,8 @@ class ManagerExtension(
             arrayOf(twitterButton, pixivButton),
             arrayOf(douYinButton, smZdmButton),
             arrayOf(aliDrive, leiShen),
-            arrayOf(nodeSeek, glaDos)
+            arrayOf(nodeSeek, glaDos),
+            arrayOf(iqy)
         )
     }
 
@@ -469,6 +472,23 @@ class ManagerExtension(
             )
             editMessageText("""
                 GlaDos
+            """.trimIndent(), markup, top = true)
+        }
+    }
+
+    fun TelegramSubscribe.iqyManager() {
+        before { iqyService.findByTgId(tgId).set("未绑定爱奇艺账号") }
+        callback("iqyManager") {}
+        callback("iqySignSwitch") { firstArg<IqyEntity>().also { it.sign = !it.sign } }
+        after {
+            val entity: IqyEntity = firstArg()
+            val markup = InlineKeyboardMarkup(
+                arrayOf(
+                    inlineKeyboardButton("（${entity.sign}）自动签到", "iqySignSwitch"),
+                )
+            )
+            editMessageText("""
+                爱奇艺
             """.trimIndent(), markup, top = true)
         }
     }
