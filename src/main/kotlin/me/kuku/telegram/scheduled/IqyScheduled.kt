@@ -20,6 +20,7 @@ class IqyScheduled(
         for (entity in list) {
             logService.log(entity.tgId, LogType.Iqy) {
                 IqyLogic.taskSign(entity)
+                IqyLogic.finishTaskWatch(entity)
             }
         }
     }

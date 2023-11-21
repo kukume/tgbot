@@ -390,13 +390,17 @@ class ExecExtension(
             editMessageText("爱奇艺", InlineKeyboardMarkup(
                 arrayOf(
                     inlineKeyboardButton("签到", "iqySign"),
+                    inlineKeyboardButton("观看任务", "iqyWatch")
                 )
             ))
         }
         callback("iqySign") {
             IqyLogic.taskSign(firstArg())
-
             editMessageText("爱奇艺签到成功")
+        }
+        callback("iqyWatch") {
+            IqyLogic.finishTaskWatch(firstArg())
+            editMessageText("爱奇艺观看任务完成成功")
         }
     }
 

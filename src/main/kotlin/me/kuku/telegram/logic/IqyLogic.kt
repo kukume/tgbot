@@ -80,7 +80,7 @@ object IqyLogic {
 
 
     private fun JsonNode.check() {
-        if (this["code"].asText() != "A00000") error(this["msg"].asText())
+        if (this["code"].asText() !in listOf( "A00000", "Q00504")) error(this["msg"].asText())
     }
 
     private fun messageId() = (System.currentTimeMillis() + MyUtils.randomNum(9).toLong()).toString().md5()
@@ -90,19 +90,19 @@ object IqyLogic {
         return str.md5()
     }
 
-    suspend fun receiveTask(iqyEntity: IqyEntity, taskCode: String) {
+    private suspend fun receiveTask(iqyEntity: IqyEntity, taskCode: String) {
         val jsonNode = client.get("https://tc.vip.iqiyi.com/taskCenter/task/joinTask?P00001=${iqyEntity.p00001}&taskCode=${taskCode}&platform=${iqyEntity.platform}&lang=zh_CN&app_lm=cn")
             .body<JsonNode>()
         jsonNode.check()
     }
 
-    suspend fun receiveTaskAward(iqyEntity: IqyEntity, taskCode: String) {
+    private suspend fun receiveTaskAward(iqyEntity: IqyEntity, taskCode: String) {
         val jsonNode = client.get("https://tc.vip.iqiyi.com/taskCenter/task/getTaskRewards?P00001=${iqyEntity.p00001}&taskCode=$taskCode&dfp=&platform=${iqyEntity.platform}&lang=zh_CN&app_lm=cn&deviceID=${iqyEntity.deviceId}&token=&multiReward=1&fv=bed99b2cf5722bfe")
             .body<JsonNode>()
         jsonNode.check()
     }
 
-    suspend fun watchPage(iqyEntity: IqyEntity, taskCode: String) {
+    private suspend fun watchPage(iqyEntity: IqyEntity, taskCode: String) {
         val jsonNode = client.get("https://tc.vip.iqiyi.com/taskCenter/task/notify?taskCode=$taskCode&P00001=${iqyEntity.p00001}&platform=${iqyEntity.platform}&lang=cn&bizSource=component_browse_timing_tasks&_=${System.currentTimeMillis()}")
             .body<JsonNode>()
         jsonNode.check()
@@ -129,6 +129,18 @@ object IqyLogic {
     suspend fun taskSign(iqyEntity: IqyEntity) {
         taskSign(iqyEntity, "natural_month_sign")
         taskSign(iqyEntity, "natural_month_sign_process")
+    }
+
+    private suspend fun taskWatch(iqyEntity: IqyEntity, taskCode: String) {
+        receiveTask(iqyEntity, taskCode)
+        watchPage(iqyEntity, taskCode)
+        receiveTaskAward(iqyEntity, taskCode)
+    }
+
+    suspend fun finishTaskWatch(iqyEntity: IqyEntity) {
+        taskWatch(iqyEntity, "b6e688905d4e7184")
+        taskWatch(iqyEntity, "a7f02e895ccbf416")
+        taskWatch(iqyEntity, "GetReward")
     }
 
 }
