@@ -20,6 +20,9 @@ class AliDriveEntity: BaseEntity() {
     var receiveTask: Status = Status.OFF
     var deviceRoom: Status = Status.OFF
     var card: Status = Status.OFF
+
+    var uploads: MutableList<Upload> = mutableListOf()
+    data class Upload(val driveId: Int, val fileId: String)
 }
 
 @Suppress("SpringDataRepositoryMethodReturnTypeInspection")

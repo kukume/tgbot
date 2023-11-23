@@ -15,6 +15,8 @@ JDK21 + Mongodb
 * /manager - 管理自动签到状态，默认自动签到全为关
 * /update - 更新程序
 * /updatelog - 查看github提交消息
+* /bv {bvid}
+* /x {id}
 
 ## Beg
 

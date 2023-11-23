@@ -296,7 +296,10 @@ class AliDriveLogic(
             aliDriveEntity.appendAuth()
             aliDriveEntity.appendEncrypt(newDevice)
         }.body<JsonNode>()
-        return complete.convertValue()
+        val aliDriveUploadComplete =  complete.convertValue<AliDriveUploadComplete>()
+        aliDriveEntity.uploads.add(AliDriveEntity.Upload(driveId, aliDriveUploadComplete.fileId))
+        aliDriveService.save(aliDriveEntity)
+        return aliDriveUploadComplete
     }
 
     private suspend fun albumList(aliDriveEntity: AliDriveEntity): List<AliDriveAlbum> {
@@ -379,7 +382,10 @@ class AliDriveLogic(
             """.trimIndent())
             aliDriveEntity.appendAuth()
         }.body<JsonNode>()
-        return complete.convertValue()
+        val aliDriveUploadComplete =  complete.convertValue<AliDriveUploadComplete>()
+        aliDriveEntity.uploads.add(AliDriveEntity.Upload(driveId, aliDriveUploadComplete.fileId))
+        aliDriveService.save(aliDriveEntity)
+        return aliDriveUploadComplete
     }
 
     private suspend fun createFolder(aliDriveEntity: AliDriveEntity, driveId: Int, name: String, parentId: String = "root"): AliDriveFolder {
@@ -418,7 +424,7 @@ class AliDriveLogic(
 //        }
     }
 
-    private suspend fun batchDeleteFile(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
+    suspend fun batchDeleteFile(aliDriveEntity: AliDriveEntity, list: List<AliDriveBatch.DeleteFileBody>) {
         if (list.isEmpty()) return
         val batch = AliDriveBatch()
         for (deleteFileBody in list) {

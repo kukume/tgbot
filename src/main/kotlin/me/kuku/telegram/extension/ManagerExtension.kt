@@ -482,9 +482,10 @@ class ManagerExtension(
         callback("iqySignSwitch") { firstArg<IqyEntity>().also { it.sign = !it.sign } }
         after {
             val entity: IqyEntity = firstArg()
+            iqyService.save(entity)
             val markup = InlineKeyboardMarkup(
                 arrayOf(
-                    inlineKeyboardButton("（${entity.sign}）自动签到", "iqySignSwitch"),
+                    inlineKeyboardButton("${entity.sign}自动签到", "iqySignSwitch"),
                 )
             )
             editMessageText("""

@@ -2,11 +2,13 @@ package me.kuku.telegram.scheduled
 
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.*
+import me.kuku.telegram.logic.AliDriveBatch
 import me.kuku.telegram.logic.AliDriveLogic
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.util.concurrent.TimeUnit
 
 @Component
 class AliDriveScheduled(
@@ -127,6 +129,20 @@ class AliDriveScheduled(
             delay(3000)
             logService.log(aliDriveEntity.tgId, LogType.AliDriveCard) {
                 aliDriveLogic.finishCard(aliDriveEntity)
+            }
+        }
+    }
+
+    @Scheduled(cron = "10 21 1 * * ?")
+    suspend fun clearRubbish() {
+        val list = aliDriveService.findAll().filter { it.uploads.isNotEmpty() }
+        for (aliDriveEntity in list) {
+            delay(3000)
+            runCatching {
+                aliDriveLogic.batchDeleteFile(aliDriveEntity, aliDriveEntity.uploads
+                    .map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) })
+                aliDriveEntity.uploads.clear()
+                aliDriveService.save(aliDriveEntity)
             }
         }
     }
