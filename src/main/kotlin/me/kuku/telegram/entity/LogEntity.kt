@@ -52,7 +52,8 @@ enum class LogType(val value: String) {
     AliDriveCard("阿里云盘领取补签卡"),
     NodeSeek("NodeSeek"),
     GlaDos("GlaDos"),
-    Iqy("爱奇艺")
+    Iqy("爱奇艺"),
+    ECloud("天翼云盘")
 }
 
 interface LogRepository: ReactiveMongoRepository<LogEntity, String> {

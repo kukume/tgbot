@@ -46,7 +46,8 @@ class LoginExtension(
     private val youPinService: YouPinService,
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService,
-    private val iqyService: IqyService
+    private val iqyService: IqyService,
+    private val eCloudService: ECloudService
 ) {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -71,6 +72,7 @@ class LoginExtension(
         val nodeSeekButton = inlineKeyboardButton("NodeSeek", "nodeSeekLogin")
         val gloDos = inlineKeyboardButton("GloDos", "gloDosLogin")
         val iqy = inlineKeyboardButton("爱奇艺", "iqyLogin")
+        val eCloud = inlineKeyboardButton("天翼云盘", "eCloudLogin")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -82,7 +84,7 @@ class LoginExtension(
             arrayOf(smZdmButton, aliDriveButton),
             arrayOf(leiShenButton, youPingButton),
             arrayOf(nodeSeekButton, gloDos),
-            arrayOf(iqy)
+            arrayOf(iqy, eCloud)
         )
     }
 
@@ -1003,6 +1005,25 @@ class LoginExtension(
                 break
             }
             photoMessage?.delete()
+        }
+    }
+
+    fun TelegramSubscribe.eCloudLogin() {
+        callback("eCloudLogin") {
+            editMessageText("请选择天翼云盘的登陆方式", InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("密码登录", "eCloudPasswordLogin")),
+            ))
+        }
+        callback("eCloudPasswordLogin") {
+            editMessageText("请发送天翼云盘账号")
+            val username = nextMessage().text()
+            editMessageText("请发送天翼云盘密码")
+            val password = nextMessage().text()
+            val cookie = ECloudLogic.login(username, password)
+            val entity = eCloudService.findByTgId(tgId) ?: ECloudEntity().init()
+            entity.cookie = cookie
+            eCloudService.save(entity)
+            editMessageText("绑定天翼云盘成功")
         }
     }
 

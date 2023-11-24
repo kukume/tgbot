@@ -30,7 +30,8 @@ class ManagerExtension(
     private val leiShenService: LeiShenService,
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService,
-    private val iqyService: IqyService
+    private val iqyService: IqyService,
+    private val eCloudService: ECloudService
 ) {
 
     private fun managerKeyboardMarkup(): InlineKeyboardMarkup {
@@ -53,6 +54,7 @@ class ManagerExtension(
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekManager")
         val glaDos = inlineKeyboardButton("Glados", "glaDosManager")
         val iqy = inlineKeyboardButton("爱奇艺", "iqyManager")
+        val eCloud = inlineKeyboardButton("天翼云盘", "eCloudManager")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -63,7 +65,7 @@ class ManagerExtension(
             arrayOf(douYinButton, smZdmButton),
             arrayOf(aliDrive, leiShen),
             arrayOf(nodeSeek, glaDos),
-            arrayOf(iqy)
+            arrayOf(iqy, eCloud)
         )
     }
 
@@ -490,6 +492,24 @@ class ManagerExtension(
             )
             editMessageText("""
                 爱奇艺
+            """.trimIndent(), markup, top = true)
+        }
+    }
+
+    fun TelegramSubscribe.eCloudManager() {
+        before { iqyService.findByTgId(tgId).set("未绑定天翼云盘账号") }
+        callback("eCloudManager") {}
+        callback("eCloudSignSwitch") { firstArg<ECloudEntity>().also { it.sign = !it.sign } }
+        after {
+            val entity: ECloudEntity = firstArg()
+            eCloudService.save(entity)
+            val markup = InlineKeyboardMarkup(
+                arrayOf(
+                    inlineKeyboardButton("${entity.sign}自动签到", "eCloudSignSwitch"),
+                )
+            )
+            editMessageText("""
+                天翼云盘
             """.trimIndent(), markup, top = true)
         }
     }

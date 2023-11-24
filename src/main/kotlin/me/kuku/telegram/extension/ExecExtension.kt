@@ -23,7 +23,8 @@ class ExecExtension(
     private val aliDriveService: AliDriveService, private val aliDriveLogic: AliDriveLogic,
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService,
-    private val iqyService: IqyService
+    private val iqyService: IqyService,
+    private val eCloudService: ECloudService
 ) {
 
     private fun execKeyboardMarkup(): InlineKeyboardMarkup {
@@ -41,6 +42,7 @@ class ExecExtension(
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekExec")
         val glaDos = inlineKeyboardButton("GlaDos", "glaDosExec")
         val iqy = inlineKeyboardButton("爱奇艺", "iqyExec")
+        val eCloud = inlineKeyboardButton("天翼云盘", "eCloudExec")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(hostLocButton, kuGouButton),
@@ -48,7 +50,8 @@ class ExecExtension(
             arrayOf(stepButton, weiboButton),
             arrayOf(douYuButton, smZdmButton),
             arrayOf(aliDrive, nodeSeek),
-            arrayOf(glaDos, iqy)
+            arrayOf(glaDos, iqy),
+            arrayOf(eCloud)
         )
     }
 
@@ -401,6 +404,19 @@ class ExecExtension(
         callback("iqyWatch") {
             IqyLogic.finishTaskWatch(firstArg())
             editMessageText("爱奇艺观看任务完成成功")
+        }
+    }
+
+    fun TelegramSubscribe.eCloudExec() {
+        before { eCloudService.findByTgId(tgId).set("未绑定天翼云盘账号") }
+        callback("eCloudExec") {
+            editMessageText("天翼云盘", InlineKeyboardMarkup(
+                inlineKeyboardButton("签到", "eCloudSign")
+            ))
+        }
+        callback("eCloudSign") {
+            ECloudLogic.sign(firstArg())
+            editMessageText("天翼云盘签到成功")
         }
     }
 
