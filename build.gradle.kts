@@ -5,7 +5,8 @@ plugins {
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
     id("org.springframework.boot") version "3.2.0"
-    id("io.spring.dependency-management") version "1.1.0"
+    id("io.spring.dependency-management") version "1.1.4"
+    application
 }
 
 group = "me.kuku"
@@ -26,7 +27,7 @@ dependencies {
     implementation("me.kuku:utils:2.3.5.0")
     implementation("me.kuku:ktor-spring-boot-starter:2.3.5.0")
     implementation("org.jsoup:jsoup:1.16.1")
-    val ociVersion = "3.24.0"
+    val ociVersion = "3.29.0"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion") {
@@ -60,4 +61,8 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+application {
+    mainClass = "me.kuku.telegram.TelegramApplicationKt"
 }

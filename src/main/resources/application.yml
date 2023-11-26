@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: dev
   ktor:
     port: 8080
   data:

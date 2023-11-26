@@ -8,7 +8,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.util.concurrent.TimeUnit
 
 @Component
 class AliDriveScheduled(
@@ -84,12 +83,19 @@ class AliDriveScheduled(
 
     @Scheduled(cron = "43 30 4 * * ?")
     suspend fun receiveTodayTask() {
-        val list = aliDriveService.findByReceiveTask(Status.ON)
+        val list = aliDriveService.findByTask(Status.ON)
         for (aliDriveEntity in list) {
             logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
                 delay(3000)
                 aliDriveLogic.signInList(aliDriveEntity)
-                show = aliDriveLogic.receiveTask(aliDriveEntity)
+                val signInInfo = aliDriveLogic.signInInfo(aliDriveEntity)
+                val reward = signInInfo.rewards[1]
+                if (reward.status !in listOf("finished", "verification")) {
+                    error("阿里云盘任务完成失败，任务名称：${reward.remind}")
+                }
+                if (aliDriveEntity.receiveTask == Status.ON) {
+                    show = aliDriveLogic.receiveTask(aliDriveEntity)
+                }
             }
         }
     }

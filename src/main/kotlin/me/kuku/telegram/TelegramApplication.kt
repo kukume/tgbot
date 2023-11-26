@@ -12,5 +12,6 @@ import org.springframework.scheduling.annotation.EnableScheduling
 class TelegramApplication
 
 fun main(args: Array<String>) {
-    SpringApplication(TelegramApplication::class.java).also { it.addListeners(ApplicationPidFileWriter()) }.run(*args)
+    SpringApplication(TelegramApplication::class.java)
+        .also { it.addListeners(ApplicationPidFileWriter()) }.run(*args)
 }
