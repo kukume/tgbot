@@ -497,7 +497,7 @@ class ManagerExtension(
     }
 
     fun TelegramSubscribe.eCloudManager() {
-        before { iqyService.findByTgId(tgId).set("未绑定天翼云盘账号") }
+        before { eCloudService.findByTgId(tgId).set("未绑定天翼云盘账号") }
         callback("eCloudManager") {}
         callback("eCloudSignSwitch") { firstArg<ECloudEntity>().also { it.sign = !it.sign } }
         after {

@@ -6,3 +6,5 @@ tmp/
 application.pid
 plugin/
 **/application-dev.yml
+logs/
+config/

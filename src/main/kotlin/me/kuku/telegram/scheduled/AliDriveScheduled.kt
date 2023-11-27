@@ -1,6 +1,8 @@
 package me.kuku.telegram.scheduled
 
+import com.pengrad.telegrambot.TelegramBot
 import kotlinx.coroutines.delay
+import me.kuku.telegram.context.sendTextMessage
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.AliDriveBatch
 import me.kuku.telegram.logic.AliDriveLogic
@@ -13,7 +15,8 @@ import java.time.LocalDate
 class AliDriveScheduled(
     private val aliDriveLogic: AliDriveLogic,
     private val aliDriveService: AliDriveService,
-    private val logService: LogService
+    private val logService: LogService,
+    private val telegramBot: TelegramBot
 ) {
 
     @Scheduled(cron = "13 9 2 * * ?")
@@ -85,17 +88,23 @@ class AliDriveScheduled(
     suspend fun receiveTodayTask() {
         val list = aliDriveService.findByTask(Status.ON)
         for (aliDriveEntity in list) {
-            logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
+            kotlin.runCatching {
                 delay(3000)
-                aliDriveLogic.signInList(aliDriveEntity)
                 val signInInfo = aliDriveLogic.signInInfo(aliDriveEntity)
                 val reward = signInInfo.rewards[1]
                 if (reward.status !in listOf("finished", "verification")) {
                     error("阿里云盘任务完成失败，任务名称：${reward.remind}")
                 }
-                if (aliDriveEntity.receiveTask == Status.ON) {
-                    show = aliDriveLogic.receiveTask(aliDriveEntity)
+            }.onSuccess {
+                logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
+                    aliDriveLogic.signInList(aliDriveEntity)
+                    if (aliDriveEntity.receiveTask == Status.ON) {
+                        show = aliDriveLogic.receiveTask(aliDriveEntity)
+                    }
                 }
+            }.onFailure {
+                telegramBot.sendTextMessage(aliDriveEntity.tgId,
+                    "#阿里云盘任务检测\n${it.message}")
             }
         }
     }
