@@ -1432,7 +1432,7 @@ class AliDriveDevice {
 class AliDriveDeviceRoom {
     var gmtCollectEnergy: String? = null
     var gmtGenerateEnergy: String? = ""
-    var deviceNameInfo: DeviceNameInfo = DeviceNameInfo()
+    var deviceNameInfo: DeviceNameInfo? = null
     var new: Boolean = false
     var order: Int = 0
     @JsonProperty("isNew")
