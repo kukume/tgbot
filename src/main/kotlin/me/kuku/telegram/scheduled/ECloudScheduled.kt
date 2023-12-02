@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component
 @Component
 class ECloudScheduled(
     private val eCloudService: ECloudService,
-    private val logService: LogService
+    private val logService: LogService,
+    private val eCloudLogic: ECloudLogic
 ) {
 
     @Scheduled(cron = "23 14 2 * * ?")
@@ -19,7 +20,7 @@ class ECloudScheduled(
         val list = eCloudService.findBySign(Status.ON)
         for (eCloudEntity in list) {
             logService.log(eCloudEntity.tgId, LogType.ECloud) {
-                ECloudLogic.sign(eCloudEntity)
+                eCloudLogic.sign(eCloudEntity)
             }
         }
     }

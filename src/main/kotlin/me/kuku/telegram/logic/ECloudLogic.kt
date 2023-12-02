@@ -1,17 +1,22 @@
 package me.kuku.telegram.logic
 
 import com.fasterxml.jackson.databind.JsonNode
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.request.headers
 import io.ktor.client.statement.*
-import io.ktor.http.*
 import io.ktor.util.*
 import me.kuku.telegram.entity.ECloudEntity
+import me.kuku.telegram.entity.ECloudService
 import me.kuku.utils.*
+import org.springframework.stereotype.Service
 
-object ECloudLogic {
+@Service
+class ECloudLogic(
+    private val eCloudService: ECloudService
+) {
 
-    suspend fun login(username: String, password: String): String {
+    suspend fun login(username: String, password: String): ECloudEntity {
         val (cookie, lt, reqId, refererUrl) = client.get("https://cloud.189.cn/api/portal/loginUrl.action?redirectURL=https%3A%2F%2Fcloud.189.cn%2Fweb%2Fredirect.html")
             .let {
                 val location = it.headers["location"] ?: error("未能成功跳转")
@@ -50,7 +55,7 @@ object ECloudLogic {
                 append("userName", pre + username.rsaEncrypt(pubKey))
                 append("appKey", "cloud")
             }
-        }.bodyAsText().takeIf { it == "0" } ?: error("需要验证码，请在任意设备成功一次再试")
+        }.bodyAsText().takeIf { it == "0" } ?: error("需要验证码，请在任意设备成功登陆一次再试")
         val response = client.post("https://open.e.189.cn/api/logbox/oauth2/loginSubmit.do") {
             headers { appendAll(headers) }
             setFormDataContent {
@@ -80,15 +85,41 @@ object ECloudLogic {
         val jsonNode = response.bodyAsText().toJsonNode()
         if (jsonNode["result"].asText() != "0") error(jsonNode["msg"].asText())
         val toUrl = jsonNode["toUrl"].asText()
+        val eCookie = response.cookie()
         val loginResponse = client.get(toUrl)
-        return loginResponse.cookie()
+        val resultCookie = loginResponse.cookie()
+        return ECloudEntity().also {
+            it.eCookie = eCookie
+            it.cookie = resultCookie
+        }
     }
 
     private fun JsonNode.check() {
         if (this.has("errorCode")) error(this["errorMsg"].asText())
     }
 
+    private suspend fun updateCookie(entity: ECloudEntity) {
+        val jsonNode = client.get("https://cloud.189.cn/api/portal/listFiles.action?noCache=0.${MyUtils.randomNum(16)}&fileId=-11")
+            .body<JsonNode>()
+        if (jsonNode.has("errorCode")) {
+            val response1 =
+                client.get("https://cloud.189.cn/api/portal/loginUrl.action?redirectURL=https%3A%2F%2Fcloud.189.cn%2Fweb%2Fredirect.html") {
+                    cookieString(entity.cookie)
+                }
+            val location1 = response1.headers["location"] ?: error("未能成功跳转")
+            val response2 = client.get(location1) {
+                cookieString(entity.eCookie)
+            }
+            val location2 = response2.headers["location"] ?: error("未能成功跳转")
+            val response3 = client.get(location2)
+            val cookie = response3.cookie()
+            entity.cookie = cookie
+            eCloudService.save(entity)
+        }
+    }
+
     suspend fun sign(entity: ECloudEntity) {
+        updateCookie(entity)
         // prizeName
         val sv=  StringValues.build {
             append("user-agent", "Mozilla/5.0 (Linux; Android 5.1.1; SM-G930K Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/74.0.3729.136 Mobile Safari/537.36 Ecloud/8.6.3 Android/22 clientId/355325117317828 clientModel/SM-G930K imsi/460071114317824 clientChannelId/qq proVersion/1.0.6")

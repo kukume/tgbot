@@ -10,6 +10,7 @@ class ECloudEntity: BaseEntity() {
     @Id
     var id: String? = null
     var cookie: String = ""
+    var eCookie: String = ""
     var sign: Status = Status.OFF
 }
 

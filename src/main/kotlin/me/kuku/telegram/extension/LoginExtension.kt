@@ -47,7 +47,7 @@ class LoginExtension(
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService,
     private val iqyService: IqyService,
-    private val eCloudService: ECloudService
+    private val eCloudService: ECloudService, private val eCloudLogic: ECloudLogic
 ) {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -1019,9 +1019,10 @@ class LoginExtension(
             val username = nextMessage().text()
             editMessageText("请发送天翼云盘密码")
             val password = nextMessage().text()
-            val cookie = ECloudLogic.login(username, password)
+            val newEntity = eCloudLogic.login(username, password)
             val entity = eCloudService.findByTgId(tgId) ?: ECloudEntity().init()
-            entity.cookie = cookie
+            entity.cookie = newEntity.cookie
+            entity.eCookie = newEntity.eCookie
             eCloudService.save(entity)
             editMessageText("绑定天翼云盘成功")
         }

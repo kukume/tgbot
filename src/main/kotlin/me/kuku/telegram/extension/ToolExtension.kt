@@ -81,7 +81,7 @@ class ToolExtension(
             val url = jsonNode["data"][0]["urls"]["original"].asText()
             val bytes = OkHttpKtUtils.getBytes(url)
             if (bytes.size > 1024 * 10 * 1024) {
-                val sendDocument = SendDocument(chatId, bytes)
+                val sendDocument = SendDocument(chatId, bytes).fileName("lolicon.jpg")
                 message.messageThreadId()?.let {
                     sendDocument.messageThreadId(it)
                 }
@@ -136,10 +136,10 @@ class ToolExtension(
     }
 
     fun AbilitySubscriber.dyna() {
-        sub("bv", input = 1) {
+        sub("bv", input = 1, locality = Locality.ALL) {
             mutex.withLock {
                 val biliBiliEntity = biliBiliService.findByTgId(tgId)
-                    ?: errorAnswerCallbackQuery("未绑定哔哩哔哩，无法获取视频")
+                    ?: biliBiliService.findAll().randomOrNull() ?: errorAnswerCallbackQuery("未绑定哔哩哔哩，无法获取视频")
                 val bvId = firstArg()
                 val file = BiliBiliLogic.videoByBvId(biliBiliEntity, bvId)
                 if (file.length() > 1024 * 1024 * 1024 * 2L) {
@@ -152,7 +152,7 @@ class ToolExtension(
                 file.delete()
             }
         }
-        sub("x", 1) {
+        sub("x", 1, locality = Locality.ALL) {
             mutex.withLock {
                 val id = try {
                     firstArg().toLong()

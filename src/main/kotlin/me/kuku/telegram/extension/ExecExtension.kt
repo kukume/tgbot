@@ -24,7 +24,7 @@ class ExecExtension(
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService,
     private val iqyService: IqyService,
-    private val eCloudService: ECloudService
+    private val eCloudService: ECloudService, private val eCloudLogic: ECloudLogic
 ) {
 
     private fun execKeyboardMarkup(): InlineKeyboardMarkup {
@@ -415,7 +415,7 @@ class ExecExtension(
             ))
         }
         callback("eCloudSign") {
-            ECloudLogic.sign(firstArg())
+            eCloudLogic.sign(firstArg())
             editMessageText("天翼云盘签到成功")
         }
     }
