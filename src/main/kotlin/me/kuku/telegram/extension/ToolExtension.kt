@@ -146,7 +146,8 @@ class ToolExtension(
                     sendMessage("该视频大于2G，无法发送")
                 } else {
                     val sendVideo =
-                        SendVideo(tgId, file).caption(bvId)
+                        SendVideo(chatId, file).caption(bvId)
+                    messageThreadId?.let { sendVideo.messageThreadId(it) }
                     bot.execute(sendVideo)
                 }
                 file.delete()
@@ -166,17 +167,18 @@ class ToolExtension(
                 try {
                     if (videoUrl.isNotEmpty()) {
                         client.get(videoUrl).body<ByteArray>().let {
-                            val sendVideo = SendVideo(tgId, it).fileName("${twitterPojo.id}.mp4")
+                            val sendVideo = SendVideo(chatId, it).fileName("${twitterPojo.id}.mp4")
                                 .caption(text)
+                            messageThreadId?.let { id -> sendVideo.messageThreadId(id) }
                             bot.execute(sendVideo)
                         }
                     } else if (twitterPojo.photoList.isNotEmpty() || twitterPojo.forwardPhotoList.isNotEmpty()) {
                         val imageList = twitterPojo.photoList
                         imageList.addAll(twitterPojo.forwardPhotoList)
-                        bot.sendPic(tgId, text, imageList)
-                    } else bot.sendTextMessage(tgId, text)
+                        bot.sendPic(chatId, text, imageList, messageThreadId)
+                    } else bot.sendTextMessage(chatId, text, messageThreadId)
                 } catch (e: Exception) {
-                    bot.sendTextMessage(tgId, text)
+                    bot.sendTextMessage(chatId, text, messageThreadId)
                 }
             }
         }

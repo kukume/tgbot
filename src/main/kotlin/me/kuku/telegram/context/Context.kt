@@ -27,6 +27,7 @@ abstract class Context {
     abstract val chatId: Long
     abstract val bot: TelegramBot
     abstract val message: Message
+    abstract val messageThreadId: Int?
 
     fun sendMessage(text: String, replyKeyboard: Keyboard? = null, parseMode: ParseMode? = null): SendResponse {
         val sendMessage = SendMessage(chatId, text)
@@ -60,6 +61,8 @@ class AbilityContext(override val bot: TelegramBot, val update: Update): Context
     override val tgId: Long = message.from().id()
 
     override val chatId: Long = message.chat().id()
+
+    override val messageThreadId: Int? = message.messageThreadId()
 
     private val messageSplit: List<String> = (message.text() ?: message.caption()).split(" ")
 
@@ -100,6 +103,7 @@ class TelegramContext(override val bot: TelegramBot, val update: Update): Contex
     override val chatId: Long by lazy {
         message.chat().id()
     }
+    override val messageThreadId: Int? = null
 
     init {
         update.callbackQuery()?.let { query = it }

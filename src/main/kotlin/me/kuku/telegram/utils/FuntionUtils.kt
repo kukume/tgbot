@@ -22,14 +22,14 @@ suspend fun ffmpeg(command: String) {
     val process = withContext(Dispatchers.IO) {
         runtime.exec("${if (System.getProperty("os.name").contains("Windows")) "cmd /C " else ""}$command".split(" ").toTypedArray())
     }
-    thread(true) {
+    Thread.startVirtualThread {
         BufferedReader(InputStreamReader(process.inputStream)).use { br ->
             while (true) {
                 br.readLine() ?: break
             }
         }
     }
-    thread(true) {
+    Thread.startVirtualThread {
         BufferedReader(InputStreamReader(process.errorStream)).use { br ->
             while (true) {
                 br.readLine() ?: break

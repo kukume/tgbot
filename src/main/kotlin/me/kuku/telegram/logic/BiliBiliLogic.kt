@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.contains
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
@@ -160,12 +161,14 @@ object BiliBiliLogic {
 
     suspend fun videoByBvId(biliBiliEntity: BiliBiliEntity, bvId: String): File {
         val htmlUrl = "https://www.bilibili.com/video/$bvId/"
-        val response = OkHttpKtUtils.get(htmlUrl, OkUtils.referer(biliBiliEntity.cookie))
-        return if (response.code != 200) {
-            response.close()
-            error("错误：${response.code}")
+        val response = client.get(htmlUrl) {
+            cookieString(biliBiliEntity.cookie)
+            userAgent(UA.PC.value)
+        }
+        return if (response.status != HttpStatusCode.OK) {
+            error("错误：${response.status}")
         } else {
-            val html = OkUtils.str(response)
+            val html = response.bodyAsText()
             val jsonNode = MyUtils.regex("window.__playinfo__=", "</sc", html)?.toJsonNode() ?: error("未获取到内容")
             val videoUrl = jsonNode["data"]["dash"]["video"][0]["baseUrl"].asText()
             val audioUrl = jsonNode["data"]["dash"]["audio"][0]["baseUrl"].asText()
