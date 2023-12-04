@@ -29,15 +29,49 @@ class MiHoYoLogic(
     }
 
     context(HttpRequestBuilder)
-    private fun MiHoYoFix.appAppend() {
+    private fun MiHoYoEntity.cookieAppend() {
+        cookieString(cookie)
+    }
+
+
+    context(HttpRequestBuilder)
+    private fun MiHoYoFix.commonAppend(ds: MiHoYoDs) {
         val fix = this@MiHoYoFix
-        val ds = getDs()
         headers {
-            append("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/${ds.appVersion}")
             append("x-rpc-device_id", fix.device.replace("-", ""))
             append("x-rpc-client_type", ds.clientType)
             append("x-rpc-app_version", ds.appVersion)
+            append("X-Rpc-Device_fp", fix.fp)
             append("DS", ds.ds)
+        }
+    }
+
+    context(HttpRequestBuilder)
+    private fun MiHoYoFix.appAppend() {
+        val ds = ds()
+        commonAppend(ds)
+        headers {
+            append("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/${ds.appVersion}")
+        }
+    }
+
+    context(HttpRequestBuilder)
+    private fun MiHoYoFix.appNewAppend(data: Map<String, Any>? = null) {
+        val ds = newDs(data)
+        commonAppend(ds)
+        headers {
+            referer("https://app.mihoyo.com")
+            append("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/${ds.appVersion}")
+        }
+    }
+
+    context(HttpRequestBuilder)
+    private fun MiHoYoFix.webAppend() {
+        val ds = webDs()
+        commonAppend(ds)
+        headers {
+            referer("https://www.miyoushe.com/")
+            append("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
         }
     }
 
@@ -122,53 +156,33 @@ class MiHoYoLogic(
         return CommonResult.success(MiHoYoEntity().also { it.cookie = cookie })
     }
 
-    private fun getDs(dsType: String? = null, newDS: Boolean = false, data: Map<String, Any>? = null, params: Map<String, Any>? = null): MiHoYoDs {
-        var salt = "YVEIkzDFNHLeKXLxzqCA9TzxCpWwbIbk"
-        var appVersion = "2.36.1"
-        var clientType = "5"
+    private fun webDs(): MiHoYoDs {
+        val salt = "mx1x4xCahVMVUDJIkJ9H3jsHcUsiASGZ"
+        val time = System.currentTimeMillis() / 1000
+        val randomLetter = MyUtils.randomLetter(6)
+        val md5 = "salt=$salt&t=$time&r=$randomLetter".md5()
+        val ds = "$time,$randomLetter,$md5"
+        return MiHoYoDs("2.64.0", "4", ds)
+    }
 
-        fun new(): String {
-            val t = System.currentTimeMillis() / 1000
-            val r = (100001..200000).random().toString()
-            val b = data?.let { Jackson.toJsonString(it) } ?: ""
-            val q = params?.let { urlParams -> urlEncode(urlParams) } ?: ""
-            val c = "salt=$salt&t=$t&r=$r&b=$b&q=$q".md5()
-            return "$t,$r,$c"
-        }
+    private fun ds(): MiHoYoDs {
+        val salt = "1OJyMNCqFlstEQqqMOv0rKCIdTOoJhNt"
+        val time = System.currentTimeMillis() / 1000
+        val randomLetter = MyUtils.randomLetter(6)
+        val md5 = "salt=$salt&t=$time&r=$randomLetter".md5()
+        val ds = "$time,$randomLetter,$md5"
+        return MiHoYoDs("2.60.1", "5", ds)
+    }
 
-        fun old(): String {
-            val t = System.currentTimeMillis() / 1000
-            val r = MyUtils.randomLetter(6)
-            val c = "salt=$salt&t=$t&r=$r".md5()
-            return "$t,$r,$c"
-        }
-
-
-        var ds = old()
-
-        when (dsType) {
-            "2", "android" -> {
-                salt = "n0KjuIrKgLHh08LWSCYP0WXlVXaYvV64"
-                appVersion = "2.36.1"
-                clientType = "2"
-                ds = old()
-            }
-            "android_new" -> {
-                salt = "t0qEgfub6cvueAPgR5m9aQWWVciEer7v"
-                appVersion = "2.36.1"
-                clientType = "2"
-                ds = new()
-            }
-        }
-
-        if (newDS) {
-            salt = "xV8v4Qu54lUKrEYFZkJhB8cuOh9Asafs"
-            appVersion = "2.36.1"
-            clientType = "5"
-            ds = new()
-        }
-
-        return MiHoYoDs(appVersion, clientType, ds)
+    private fun newDs(data: Map<String, Any>? = null, params: Map<String, Any>? = null): MiHoYoDs {
+        val salt = "t0qEgfub6cvueAPgR5m9aQWWVciEer7v"
+        val t = System.currentTimeMillis() / 1000
+        val r = (100001..200000).random().toString()
+        val b = data?.let { Jackson.toJsonString(it) } ?: ""
+        val q = params?.let { urlParams -> urlEncode(urlParams) } ?: ""
+        val c = "salt=$salt&t=$t&r=$r&b=$b&q=$q".md5()
+        val ds = "$t,$r,$c"
+        return MiHoYoDs("2.60.1", "2", ds)
     }
 
     private fun urlEncode(params: Map<String, Any>): String {
@@ -217,6 +231,65 @@ class MiHoYoLogic(
 
     }
 
+    suspend fun post(): List<MiHoYoPost> {
+        val jsonNode = client.get("https://bbs-api.miyoushe.com/post/wapi/getForumPostList?forum_id=26&gids=2&is_good=false&is_hot=true&page_size=20")
+            .body<JsonNode>()
+        jsonNode.check()
+        return jsonNode["data"]["list"].convertValue()
+    }
+
+    suspend fun like(miHoYoEntity: MiHoYoEntity, postId: Int, like: Boolean = true) {
+        val response = client.post("https://bbs-api.miyoushe.com/apihub/api/upvotePost") {
+            setJsonBody("""
+                {"gids":"2","is_cancel":${!like},"post_id":"46173193"}
+            """.trimIndent())
+            miHoYoEntity.cookieAppend()
+            miHoYoEntity.fix.webAppend()
+        }
+        val jsonNode = response.body<JsonNode>()
+        jsonNode.check()
+    }
+
+    suspend fun watchPost(miHoYoEntity: MiHoYoEntity, postId: Int) {
+        val jsonNode = client.get("https://bbs-api.miyoushe.com/post/wapi/getPostFull?gids=2&post_id=$postId&read=1") {
+            miHoYoEntity.fix.webAppend()
+            miHoYoEntity.cookieAppend()
+        }.body<JsonNode>()
+        jsonNode.check()
+    }
+
+    suspend fun sharePost(miHoYoEntity: MiHoYoEntity, postId: Int) {
+        val jsonNode = client.get("https://bbs-api.mihoyo.com/post/api/getPostFull?post_id=$postId") {
+            miHoYoEntity.fix.webAppend()
+            miHoYoEntity.cookieAppend()
+        }.body<JsonNode>()
+        jsonNode.check()
+    }
+
+    suspend fun hubSign(miHoYoEntity: MiHoYoEntity) {
+        val sToken = sToken(miHoYoEntity)
+        val jsonNode = client.post("https://bbs-api.mihoyo.com/apihub/app/api/signIn") {
+            setJsonBody("""{"gids":"2"}""")
+            miHoYoEntity.fix.appNewAppend(mapOf("gids" to "2"))
+            cookieString("${miHoYoEntity.cookie}stoken=$sToken; ")
+        }.body<JsonNode>()
+        jsonNode.check()
+    }
+
+    private suspend fun sToken(miHoYoEntity: MiHoYoEntity): String {
+        val cookie = miHoYoEntity.cookie
+        val ticket = OkUtils.cookie(cookie, "login_ticket") ?: error("ticket not found in cookie")
+        val accountId = OkUtils.cookie(cookie, "account_id") ?: error("accountId not found in cookie")
+        val jsonNode = client.get("https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket=$ticket&token_types=3&uid=$accountId") {
+            miHoYoEntity.fix.appAppend()
+            miHoYoEntity.cookieAppend()
+        }.body<JsonNode>()
+        jsonNode.check()
+        return jsonNode["data"]["list"][0]["token"].asText()
+    }
+
+
+
 }
 
 class MiHoYoFix {
@@ -234,3 +307,13 @@ class MiHoYoFix {
 data class MiHoYoQrcode(val fix: MiHoYoFix, val url: String, val ticket: String)
 
 data class MiHoYoDs(val appVersion: String, val clientType: String, val ds: String)
+
+class MiHoYoPost {
+    var post: Post = Post()
+
+    class Post {
+        @JsonProperty("post_id")
+        var postId: Int = 0
+        var subject: String = ""
+    }
+}
