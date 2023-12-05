@@ -380,15 +380,17 @@ class LoginExtension(
             val account = nextMessage().text()
             editMessageText("请发送密码")
             val password = nextMessage().text()
-            val result = miHoYoLogic.login(account, password)
-            if (result.success()) {
-                val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().also {
-                    it.tgId = tgId
-                }
-                newEntity.cookie = result.data().cookie
-                miHoYoService.save(newEntity)
-                editMessageText("绑定米哈游成功")
-            } else editMessageText(result.message)
+            val entity = miHoYoLogic.login(account, password)
+            val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().also {
+                it.tgId = tgId
+            }
+            newEntity.aid = entity.aid
+            newEntity.mid = entity.mid
+            newEntity.token = entity.token
+            newEntity.ticket = entity.ticket
+            newEntity.fix = entity.fix
+            miHoYoService.save(newEntity)
+            editMessageText("绑定米哈游成功")
         }
     }
 

@@ -19,6 +19,8 @@ class MiHoYoEntity: BaseEntity() {
     var aid: String = ""
     var mid: String = ""
     var cookie: String = ""
+    var token: String = ""
+    var ticket: String = ""
     var sign: Status = Status.OFF
 }
 

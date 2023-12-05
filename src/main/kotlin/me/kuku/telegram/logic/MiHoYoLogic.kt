@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import me.kuku.pojo.CommonResult
-import me.kuku.pojo.UA
 import me.kuku.telegram.entity.MiHoYoEntity
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
@@ -75,6 +74,15 @@ class MiHoYoLogic(
         }
     }
 
+    context(HttpRequestBuilder)
+    private fun MiHoYoFix.hubAppend() {
+        val ds = hubDs()
+        commonAppend(ds)
+        headers {
+            referer("https://app.mihoyo.com")
+        }
+    }
+
     private fun JsonNode.check() {
         if (this["retcode"].asInt() != 0) error(this["message"].asText())
     }
@@ -123,37 +131,45 @@ class MiHoYoLogic(
         }
     }
 
-    suspend fun login(account: String, password: String): CommonResult<MiHoYoEntity> {
-        val beforeJsonNode = OkHttpKtUtils.getJson("https://webapi.account.mihoyo.com/Api/create_mmt?scene_type=1&now=${System.currentTimeMillis()}&reason=bbs.mihoyo.com")
-        val dataJsonNode = beforeJsonNode["data"]["mmt_data"]
-        val challenge = dataJsonNode.getString("challenge")
-        val gt = dataJsonNode.getString("gt")
-        val mmtKey = dataJsonNode.getString("mmt_key")
-        val rr = geeTestLogic.rr(gt, "https://bbs.mihoyo.com/ys/", challenge)
-        val cha = rr.challenge
-        val validate = rr.validate
+    suspend fun login(account: String, password: String): MiHoYoEntity {
         val rsaKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDvekdPMHN3AYhm/vktJT+YJr7cI5DcsNKqdsx5DZX0gDuWFuIjzdwButrIYPNmRJ1G8ybDIF7oDW2eEpm5sMbL9zs9ExXCdvqrn51qELbqj0XxtMTIpaCHFSI50PfPpTFV9Xt/hmyVwokoOXFlAEgCn+QCgGs52bFoYMtyi+xEQIDAQAB"
-        val enPassword = password.rsaEncrypt(rsaKey)
-        val map = mapOf("is_bh2" to "false", "account" to account, "password" to enPassword,
-            "mmt_key" to mmtKey, "is_crypto" to "true", "geetest_challenge" to cha, "geetest_validate" to validate,
-            "geetest_seccode" to "${validate}|jordan")
-        val response = OkHttpKtUtils.post("https://webapi.account.mihoyo.com/Api/login_by_password", map, OkUtils.ua(UA.PC))
-        val loginJsonNode = OkUtils.json(response)
-        val infoDataJsonNode = loginJsonNode["data"]
-        if (infoDataJsonNode.getInteger("status") != 1) return CommonResult.failure(infoDataJsonNode.getString("msg"))
-        var cookie = OkUtils.cookie(response)
-        val infoJsonNode = infoDataJsonNode["account_info"]
-        val accountId = infoJsonNode.getString("account_id")
-        val ticket = infoJsonNode.getString("weblogin_token")
-        val cookieJsonNode = OkHttpKtUtils.getJson("https://webapi.account.mihoyo.com/Api/cookie_accountinfo_by_loginticket?login_ticket=$ticket&t=${System.currentTimeMillis()}",
-            OkUtils.headers(cookie, "", UA.PC))
-        val cookieToken = cookieJsonNode["data"]["cookie_info"]["cookie_token"].asText()
-        cookie += "cookie_token=$cookieToken; account_id=$accountId; "
-        val loginResponse = OkHttpKtUtils.post("https://bbs-api.mihoyo.com/user/wapi/login",
-            OkUtils.json("{\"gids\":\"2\"}"), OkUtils.cookie(cookie)).also { it.close() }
-        val finaCookie = OkUtils.cookie(loginResponse)
-        cookie += finaCookie
-        return CommonResult.success(MiHoYoEntity().also { it.cookie = cookie })
+        val newAccount = account.rsaEncrypt(rsaKey)
+        val newPassword = password.rsaEncrypt(rsaKey)
+        val fix = MiHoYoFix()
+        val jsonNode = client.post("https://passport-api.mihoyo.com/account/ma-cn-passport/app/loginByPassword") {
+            setJsonBody("""{"account":"$newAccount","password":"$newPassword"}""")
+            headers {
+                append("x-rpc-app_id", fix.app)
+                append("x-rpc-client_type", "2")
+                append("x-rpc-device_id", "5094e8dc3f0d4570")
+                append("x-rpc-device_fp", "38d7f057d0dd6")
+                append("x-rpc-device_name", "Redmi+K30S+Ultra")
+                append("x-rpc-device_model", "M2007J3SC")
+                append("x-rpc-sys_version", "12")
+                append("x-rpc-game_biz", "bbs_cn")
+                append("x-rpc-app_version", "2.63.1")
+                append("x-rpc-sdk_version", "2.19.0")
+                append("x-rpc-lifecycle_id", UUID.randomUUID().toString())
+                append("x-rpc-account_version", "2.19.0")
+                append("x-rpc-aigis", "")
+                append("DS", newDs().ds)
+                append("user-agent", "okhttp/4.9.3")
+            }
+        }.body<JsonNode>()
+        jsonNode.check()
+        val data = jsonNode["data"]
+        val ticket = data["login_ticket"].asText()
+        val token = data["token"]["token"].asText()
+        val user = data["user_info"]
+        val aid = user["aid"].asText()
+        val mid = user["mid"].asText()
+        return MiHoYoEntity().also {
+            it.ticket = ticket
+            it.token = token
+            it.aid = aid
+            it.mid = mid
+            it.fix = fix
+        }
     }
 
     private fun webDs(): MiHoYoDs {
@@ -165,24 +181,33 @@ class MiHoYoLogic(
         return MiHoYoDs("2.64.0", "4", ds)
     }
 
-    private fun ds(): MiHoYoDs {
-        val salt = "1OJyMNCqFlstEQqqMOv0rKCIdTOoJhNt"
+    private fun hubDs(): MiHoYoDs {
+        val salt = "AcpNVhfh0oedCobdCyFV8EE1jMOVDy9q"
         val time = System.currentTimeMillis() / 1000
         val randomLetter = MyUtils.randomLetter(6)
         val md5 = "salt=$salt&t=$time&r=$randomLetter".md5()
         val ds = "$time,$randomLetter,$md5"
-        return MiHoYoDs("2.60.1", "5", ds)
+        return MiHoYoDs("2.60.1", "2", ds)
+    }
+
+    private fun ds(): MiHoYoDs {
+        val salt = "JwYDpKvLj6MrMqqYU6jTKF17KNO2PXoS"
+        val time = System.currentTimeMillis() / 1000
+        val randomLetter = MyUtils.randomLetter(6)
+        val md5 = "salt=$salt&t=$time&r=$randomLetter".md5()
+        val ds = "$time,$randomLetter,$md5"
+        return MiHoYoDs("2.63.1", "5", ds)
     }
 
     private fun newDs(data: Map<String, Any>? = null, params: Map<String, Any>? = null): MiHoYoDs {
-        val salt = "t0qEgfub6cvueAPgR5m9aQWWVciEer7v"
+        val salt = "JwYDpKvLj6MrMqqYU6jTKF17KNO2PXoS"
         val t = System.currentTimeMillis() / 1000
         val r = (100001..200000).random().toString()
-        val b = data?.let { Jackson.toJsonString(it) } ?: ""
+        val b = data?.let { Jackson.toJsonString(it) } ?: "{}"
         val q = params?.let { urlParams -> urlEncode(urlParams) } ?: ""
         val c = "salt=$salt&t=$t&r=$r&b=$b&q=$q".md5()
         val ds = "$t,$r,$c"
-        return MiHoYoDs("2.60.1", "2", ds)
+        return MiHoYoDs("2.63.1", "2", ds)
     }
 
     private fun urlEncode(params: Map<String, Any>): String {
@@ -190,13 +215,14 @@ class MiHoYoLogic(
     }
 
     private suspend fun sign(miHoYoEntity: MiHoYoEntity, jsonNode: JsonNode, rrOcrResult: RrOcrResult? = null): JsonNode {
-        return client.post("https://api-takumi.mihoyo.com/event/bbs_sign_reward/sign") {
+        return client.post("https://api-takumi.mihoyo.com/event/luna/sign") {
             setJsonBody("""
-                    {"act_id":"e202009291139501","region":"${jsonNode["region"].asText()}","uid":"${jsonNode.getString("game_uid")}"}
+                    {"act_id":"e202311201442471","region":"${jsonNode["region"].asText()}","uid":"${jsonNode.getString("game_uid")}","lang":"zh-cn"}
                 """.trimIndent())
             miHoYoEntity.fix.appAppend()
             headers {
                 cookieString(miHoYoEntity.cookie)
+                append("x-rpc-signgame", "hk4e")
                 rrOcrResult?.let {
                     append("x-rpc-validate", it.validate)
                     append("x-rpc-seccode", "${it.validate}|jordan")
@@ -216,14 +242,14 @@ class MiHoYoLogic(
             val jsonNode = sign(miHoYoEntity, obj)
             when (jsonNode.getInteger("retcode")) {
                 0, -5003 -> {
-                    val data = jsonNode["data"]
-                    val gt = data["gt"].asText()
-                    if (gt.isNotEmpty()) {
-                        val challenge = data["challenge"].asText()
-                        val rr = geeTestLogic.rr(gt, "https://webstatic.mihoyo.com/", challenge, tgId = tgId)
-                        val node = sign(miHoYoEntity, obj, rr)
-                        if (node["retcode"].asInt() !in listOf(-5003, 0)) error(jsonNode["message"].asText())
-                    }
+//                    val data = jsonNode["data"]
+//                    val gt = data["gt"].asText()
+//                    if (gt.isNotEmpty()) {
+//                        val challenge = data["challenge"].asText()
+//                        val rr = geeTestLogic.rr(gt, "https://webstatic.mihoyo.com/", challenge, tgId = tgId)
+//                        val node = sign(miHoYoEntity, obj, rr)
+//                        if (node["retcode"].asInt() !in listOf(-5003, 0)) error(jsonNode["message"].asText())
+//                    }
                 }
                 else -> error(jsonNode["message"].asText() ?: "未知错误")
             }
@@ -232,63 +258,66 @@ class MiHoYoLogic(
     }
 
     suspend fun post(): List<MiHoYoPost> {
-        val jsonNode = client.get("https://bbs-api.miyoushe.com/post/wapi/getForumPostList?forum_id=26&gids=2&is_good=false&is_hot=true&page_size=20")
+        val jsonNode = client.get("https://bbs-api.miyoushe.com/post/wapi/getForumPostList?forum_id=26&gids=2&is_good=false&is_hot=false&page_size=20&sort_type=2")
             .body<JsonNode>()
         jsonNode.check()
         return jsonNode["data"]["list"].convertValue()
     }
 
     suspend fun like(miHoYoEntity: MiHoYoEntity, postId: Int, like: Boolean = true) {
-        val response = client.post("https://bbs-api.miyoushe.com/apihub/api/upvotePost") {
+        val hubCookie = hubCookie(miHoYoEntity)
+        val response = client.post("https://bbs-api.mihoyo.com/apihub/sapi/upvotePost") {
             setJsonBody("""
-                {"gids":"2","is_cancel":${!like},"post_id":"46173193"}
+                {"csm_source":"home","is_cancel":${!like},"post_id":"$postId","upvote_type":"1"}
             """.trimIndent())
-            miHoYoEntity.cookieAppend()
-            miHoYoEntity.fix.webAppend()
+            cookieString(hubCookie)
+            miHoYoEntity.fix.hubAppend()
         }
         val jsonNode = response.body<JsonNode>()
         jsonNode.check()
     }
 
     suspend fun watchPost(miHoYoEntity: MiHoYoEntity, postId: Int) {
-        val jsonNode = client.get("https://bbs-api.miyoushe.com/post/wapi/getPostFull?gids=2&post_id=$postId&read=1") {
+        val jsonNode = client.get("https://bbs-api.mihoyo.com/post/api/getPostFull?post_id=$postId&read=1") {
             miHoYoEntity.fix.webAppend()
-            miHoYoEntity.cookieAppend()
+            cookieString(hubCookie(miHoYoEntity))
         }.body<JsonNode>()
         jsonNode.check()
     }
 
     suspend fun sharePost(miHoYoEntity: MiHoYoEntity, postId: Int) {
-        val jsonNode = client.get("https://bbs-api.mihoyo.com/post/api/getPostFull?post_id=$postId") {
+        val jsonNode = client.get("https://bbs-api.mihoyo.com/apihub/api/getShareConf?entity_id=$postId&entity_type=1") {
             miHoYoEntity.fix.webAppend()
-            miHoYoEntity.cookieAppend()
+            cookieString(hubCookie(miHoYoEntity))
         }.body<JsonNode>()
         jsonNode.check()
     }
 
     suspend fun hubSign(miHoYoEntity: MiHoYoEntity) {
-        val sToken = sToken(miHoYoEntity)
         val jsonNode = client.post("https://bbs-api.mihoyo.com/apihub/app/api/signIn") {
             setJsonBody("""{"gids":"2"}""")
             miHoYoEntity.fix.appNewAppend(mapOf("gids" to "2"))
-            cookieString("${miHoYoEntity.cookie}stoken=$sToken; ")
+            cookieString(hubCookie(miHoYoEntity))
         }.body<JsonNode>()
         jsonNode.check()
+    }
+
+    private suspend fun hubCookie(miHoYoEntity: MiHoYoEntity): String {
+        val cookie = miHoYoEntity.cookie
+        val accountId = OkUtils.cookie(cookie, "account_id") ?: error("accountId not found in cookie")
+        val sToken = sToken(miHoYoEntity)
+        return "stuid=$accountId; stoken=$sToken; "
     }
 
     private suspend fun sToken(miHoYoEntity: MiHoYoEntity): String {
         val cookie = miHoYoEntity.cookie
-        val ticket = OkUtils.cookie(cookie, "login_ticket") ?: error("ticket not found in cookie")
-        val accountId = OkUtils.cookie(cookie, "account_id") ?: error("accountId not found in cookie")
-        val jsonNode = client.get("https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket=$ticket&token_types=3&uid=$accountId") {
-            miHoYoEntity.fix.appAppend()
-            miHoYoEntity.cookieAppend()
-        }.body<JsonNode>()
+        val ticket = miHoYoEntity.ticket.ifEmpty { error("请重新使用账号或密码登陆") }
+        val accountId = miHoYoEntity.aid.ifEmpty { error("请重新使用账号或密码登陆") }
+        val jsonNode = client.get("https://api-takumi.mihoyo.com/auth/api/getMultiTokenByLoginTicket?login_ticket=$ticket&token_types=3&uid=$accountId")
+            .body<JsonNode>()
         jsonNode.check()
         return jsonNode["data"]["list"][0]["token"].asText()
     }
-
-
 
 }
 

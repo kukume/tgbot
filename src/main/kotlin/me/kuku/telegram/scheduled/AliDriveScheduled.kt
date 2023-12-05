@@ -96,10 +96,10 @@ class AliDriveScheduled(
                     error("阿里云盘任务完成失败，任务名称：${reward.remind}")
                 }
             }.onSuccess {
-                logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
-                    aliDriveLogic.signInList(aliDriveEntity)
-                    if (aliDriveEntity.receiveTask == Status.ON) {
-                        show = aliDriveLogic.receiveTask(aliDriveEntity)
+                if (aliDriveEntity.receiveTask == Status.ON) {
+                    logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
+                        aliDriveLogic.signInList(aliDriveEntity)
+                            show = aliDriveLogic.receiveTask(aliDriveEntity)
                     }
                 }
             }.onFailure {

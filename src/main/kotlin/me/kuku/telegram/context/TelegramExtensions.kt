@@ -29,10 +29,11 @@ suspend fun TelegramBot.sendPic(tgId: Long, text: String, picUrl: List<String>, 
         sendTextMessage(tgId, text, messageThreadId)
     } else {
         val inputMediaList = mutableListOf<InputMediaPhoto>()
-        for (imageUrl in picUrl) {
+        for ((i, imageUrl) in picUrl.withIndex()) {
             val bytes = client.get(imageUrl).body<ByteArray>()
             val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
-            val mediaPhoto = InputMediaPhoto(bytes).caption(text).fileName(name)
+            val mediaPhoto = InputMediaPhoto(bytes).fileName(name)
+            if (i == 0) mediaPhoto.caption(text)
             inputMediaList.add(mediaPhoto)
         }
         val sendMediaGroup = SendMediaGroup(tgId.toString(), *inputMediaList.toTypedArray())
