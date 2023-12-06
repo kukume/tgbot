@@ -22,6 +22,7 @@ class MiHoYoEntity: BaseEntity() {
     var token: String = ""
     var ticket: String = ""
     var sign: Status = Status.OFF
+    var mysSign: Status = Status.OFF
 }
 
 interface MiHoYoRepository: ReactiveMongoRepository<MiHoYoEntity, String> {
@@ -31,6 +32,8 @@ interface MiHoYoRepository: ReactiveMongoRepository<MiHoYoEntity, String> {
     fun findBySign(sign: Status): Flux<MiHoYoEntity>
 
     fun deleteByTgId(tgId: Long): Mono<Void>
+
+    fun findByMysSign(sign: Status): Flux<MiHoYoEntity>
 
 }
 
@@ -42,6 +45,8 @@ class MiHoYoService(
     suspend fun findByTgId(tgId: Long) = miHoYoRepository.findByTgId(tgId).awaitSingleOrNull()
 
     suspend fun findBySign(sign: Status): List<MiHoYoEntity> = miHoYoRepository.findBySign(sign).collectList().awaitSingle()
+
+    suspend fun findByMysSign(sign: Status): List<MiHoYoEntity> = miHoYoRepository.findByMysSign(sign).collectList().awaitSingle()
 
     suspend fun save(miHoYoEntity: MiHoYoEntity): MiHoYoEntity = miHoYoRepository.save(miHoYoEntity).awaitSingle()
 

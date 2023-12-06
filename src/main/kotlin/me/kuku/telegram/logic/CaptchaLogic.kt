@@ -97,7 +97,9 @@ class GeeTestLogic(
      *     "code": 1004
      * }
      */
-    suspend fun rr(gt: String, referer: String, challenge: String? = null, ip: String? = null, host: String? = null, tgId: Long? = null): RrOcrResult {
+    suspend fun rr(gt: String, referer: String, challenge: String? = null, ip: String? = null,
+                   host: String? = null, tgId: Long? = null, mmtKey: String? = null,
+                   ua: String? = null): RrOcrResult {
         val newKey = run {
             tgId?.let {
                 val configEntity = configService.findByTgId(tgId)
@@ -117,6 +119,12 @@ class GeeTestLogic(
                 host?.let {
                     append("host", host)
                 }
+                mmtKey?.let {
+                    append("mmt_key", mmtKey)
+                }
+                ua?.let {
+                    append("useragent", ua)
+                }
                 append("appkey", newKey)
                 append("sharecode", "4eb29017f5464cb2a971364373c65edb")
             }
@@ -129,5 +137,6 @@ class GeeTestLogic(
 data class RrOcrResult(var challenge: String = "", var validate: String = "", @JsonProperty("seccode") var secCode: RrOcrSecCode = RrOcrSecCode())
 
 data class RrOcrSecCode(@JsonProperty("captcha_id") var captchaId: String = "", @JsonProperty("lot_number") var lotNumber: String = "",
-                        @JsonProperty("pass_token") var passToken: String = "", @JsonProperty("gen_time") var genTime: String = "", @JsonProperty("captcha_output") var captchaOutput: String = "")
+                        @JsonProperty("pass_token") var passToken: String = "", @JsonProperty("gen_time") var genTime: String = "",
+                        @JsonProperty("captcha_output") var captchaOutput: String = "")
 

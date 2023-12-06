@@ -24,5 +24,16 @@ class MiHoYoScheduled(
         }
     }
 
+    @Scheduled(cron = "0 23 5 * * ?")
+    suspend fun mysSign() {
+        val list = miHoYoService.findByMysSign(Status.ON)
+        for (miHoYoEntity in list) {
+            logService.log(miHoYoEntity.tgId, LogType.Mys) {
+                miHoYoLogic.mysSign(miHoYoEntity)
+            }
+            delay(3000)
+        }
+    }
+
 
 }

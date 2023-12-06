@@ -37,6 +37,7 @@ enum class LogType(val value: String) {
     HostLoc("HostLoc"),
     KuGou("酷狗"),
     GenShin("原神"),
+    Mys("米游社"),
     NetEase("网易云"),
     NetEaseMusician("网易云音乐人"),
     Step("修改步数"),

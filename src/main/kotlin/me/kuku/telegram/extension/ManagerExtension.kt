@@ -213,13 +213,17 @@ class ManagerExtension(
         before { set(miHoYoService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定米哈游账号")) }
         callback("miHoYoManager") {}
         callback("miHoYoSignSwitch") { firstArg<MiHoYoEntity>().also { it.sign = !it.sign } }
+        callback("mysSignSwitch") { firstArg<MiHoYoEntity>().also { it.mysSign = !it.mysSign } }
         after {
             val miHoYoEntity = firstArg<MiHoYoEntity>()
             miHoYoService.save(miHoYoEntity)
             val signButton = InlineKeyboardButton("${miHoYoEntity.sign}自动签到")
                 .callbackData("miHoYoSignSwitch")
+            val mys = InlineKeyboardButton("${miHoYoEntity.sign}自动签到")
+                .callbackData("mysSignSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(signButton)
+                arrayOf(signButton),
+                arrayOf(mys)
             )
             editMessageText("""
                 米哈游（原神）签到管理

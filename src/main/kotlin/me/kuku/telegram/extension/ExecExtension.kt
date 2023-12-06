@@ -159,7 +159,7 @@ class ExecExtension(
         before { set(miHoYoService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定米哈游账号")) }
         callback("miHoYoExec") {
             val genShinSignButton = InlineKeyboardButton("原神签到").callbackData("genShinSign")
-            val mysSign = InlineKeyboardButton("米游社").callbackData("mysSign")
+            val mysSign = InlineKeyboardButton("米游社签到").callbackData("mysSign")
             val markup = InlineKeyboardMarkup(arrayOf(genShinSignButton), arrayOf(mysSign))
             editMessageText("""
                 米哈游
@@ -171,15 +171,7 @@ class ExecExtension(
             editMessageText("原神签到成功")
         }
         callback("mysSign") {
-            val post = miHoYoLogic.post()
-            for (i in 0 until 3) {
-                miHoYoLogic.watchPost(firstArg(), post[i].post.postId)
-            }
-            for (i in 0 until 5) {
-                miHoYoLogic.like(firstArg(), post[i].post.postId)
-            }
-            miHoYoLogic.sharePost(firstArg(), post[0].post.postId)
-//            miHoYoLogic.hubSign(firstArg())
+            miHoYoLogic.mysSign(firstArg())
             editMessageText("米游社区签到成功")
         }
     }

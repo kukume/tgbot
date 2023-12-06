@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import me.kuku.pojo.CommonResult
+import me.kuku.pojo.UA
 import me.kuku.telegram.entity.MiHoYoEntity
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
@@ -172,6 +173,44 @@ class MiHoYoLogic(
         }
     }
 
+    suspend fun webLogin(account: String, password: String, tgId: Long? = null): MiHoYoEntity {
+        val beforeJsonNode = OkHttpKtUtils.getJson("https://webapi.account.mihoyo.com/Api/create_mmt?scene_type=1&now=${System.currentTimeMillis()}&reason=bbs.mihoyo.com")
+        val dataJsonNode = beforeJsonNode["data"]["mmt_data"]
+        val challenge = dataJsonNode.getString("challenge")
+        val gt = dataJsonNode.getString("gt")
+        val mmtKey = dataJsonNode.getString("mmt_key")
+        val rr = geeTestLogic.rr(gt, "https://bbs.mihoyo.com/ys/", challenge, tgId = tgId)
+        val cha = rr.challenge
+        val validate = rr.validate
+        val rsaKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDvekdPMHN3AYhm/vktJT+YJr7cI5DcsNKqdsx5DZX0gDuWFuIjzdwButrIYPNmRJ1G8ybDIF7oDW2eEpm5sMbL9zs9ExXCdvqrn51qELbqj0XxtMTIpaCHFSI50PfPpTFV9Xt/hmyVwokoOXFlAEgCn+QCgGs52bFoYMtyi+xEQIDAQAB"
+        val enPassword = password.rsaEncrypt(rsaKey)
+        val map = mapOf("is_bh2" to "false", "account" to account, "password" to enPassword,
+            "mmt_key" to mmtKey, "is_crypto" to "true", "geetest_challenge" to cha, "geetest_validate" to validate,
+            "geetest_seccode" to "${validate}|jordan")
+        val response = OkHttpKtUtils.post("https://webapi.account.mihoyo.com/Api/login_by_password", map, OkUtils.ua(UA.PC))
+        val loginJsonNode = OkUtils.json(response)
+        val infoDataJsonNode = loginJsonNode["data"]
+        if (infoDataJsonNode.getInteger("status") != 1) error(infoDataJsonNode.getString("msg"))
+        var cookie = OkUtils.cookie(response)
+        val infoJsonNode = infoDataJsonNode["account_info"]
+        val accountId = infoJsonNode.getString("account_id")
+        val ticket = infoJsonNode.getString("weblogin_token")
+        val cookieJsonNode = OkHttpKtUtils.getJson("https://webapi.account.mihoyo.com/Api/cookie_accountinfo_by_loginticket?login_ticket=$ticket&t=${System.currentTimeMillis()}",
+            OkUtils.headers(cookie, "", UA.PC))
+        val cookieToken = cookieJsonNode["data"]["cookie_info"]["cookie_token"].asText()
+        cookie += "cookie_token=$cookieToken; account_id=$accountId; "
+        val loginResponse = OkHttpKtUtils.post("https://bbs-api.mihoyo.com/user/wapi/login",
+            OkUtils.json("{\"gids\":\"2\"}"), OkUtils.cookie(cookie)).also { it.close() }
+        val finaCookie = OkUtils.cookie(loginResponse)
+        cookie += finaCookie
+        cookie += "login_ticket=$ticket; "
+        return MiHoYoEntity().also {
+            it.cookie = cookie
+            it.aid = account
+            it.ticket = ticket
+        }
+    }
+
     private fun webDs(): MiHoYoDs {
         val salt = "mx1x4xCahVMVUDJIkJ9H3jsHcUsiASGZ"
         val time = System.currentTimeMillis() / 1000
@@ -317,6 +356,17 @@ class MiHoYoLogic(
             .body<JsonNode>()
         jsonNode.check()
         return jsonNode["data"]["list"][0]["token"].asText()
+    }
+
+    suspend fun mysSign(miHoYoEntity: MiHoYoEntity) {
+        val post = post()
+        for (i in 0 until 3) {
+            watchPost(miHoYoEntity, post[i].post.postId)
+        }
+        for (i in 0 until 5) {
+            like(miHoYoEntity, post[i].post.postId)
+        }
+        sharePost(miHoYoEntity, post[0].post.postId)
     }
 
 }

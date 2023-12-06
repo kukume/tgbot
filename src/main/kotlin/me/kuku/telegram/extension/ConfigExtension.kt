@@ -2,6 +2,7 @@ package me.kuku.telegram.extension
 
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
+import com.pengrad.telegrambot.model.request.ParseMode
 import me.kuku.telegram.context.AbilitySubscriber
 import me.kuku.telegram.context.TelegramSubscribe
 import me.kuku.telegram.context.inlineKeyboardButton
@@ -37,10 +38,10 @@ class ConfigExtension(
         return """
             配置管理，当前配置：
             新闻联播推送：${configEntity.positiveEnergy.str()}
-            rrocr的key：${configEntity.rrOcrKey}（https://www.rrocr.com）
-            2captcha的key：${configEntity.twoCaptchaKey}（https://2captcha.com）
+            [rrocr](https://www.rrocr.com)的key：${configEntity.rrOcrKey}
+            [2captcha](https://2captcha.com)的key：${configEntity.twoCaptchaKey}
             v2ex推送：${configEntity.v2exPush.str()}
-            线报推送：${configEntity.xianBaoPush.str()}（http://new.xianbao.fun）
+            [线报推送](http://new.xianbao.fun)：${configEntity.xianBaoPush.str()}
         """.trimIndent()
     }
 
@@ -52,7 +53,7 @@ class ConfigExtension(
                 configService.save(configEntity)
             }
             val markup = keyboardMarkup()
-            sendMessage(text(configEntity), replyKeyboard = markup)
+            sendMessage(text(configEntity), replyKeyboard = markup, parseMode = ParseMode.MarkdownV2)
         }
     }
 
