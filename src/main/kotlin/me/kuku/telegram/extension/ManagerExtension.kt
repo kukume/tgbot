@@ -217,16 +217,16 @@ class ManagerExtension(
         after {
             val miHoYoEntity = firstArg<MiHoYoEntity>()
             miHoYoService.save(miHoYoEntity)
-            val signButton = InlineKeyboardButton("${miHoYoEntity.sign}自动签到")
+            val signButton = InlineKeyboardButton("${miHoYoEntity.sign}原神自动签到")
                 .callbackData("miHoYoSignSwitch")
-            val mys = InlineKeyboardButton("${miHoYoEntity.sign}自动签到")
+            val mys = InlineKeyboardButton("${miHoYoEntity.mysSign}米游社自动签到")
                 .callbackData("mysSignSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
                 arrayOf(signButton),
                 arrayOf(mys)
             )
             editMessageText("""
-                米哈游（原神）签到管理
+                米哈游签到管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
         }
     }

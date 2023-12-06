@@ -47,26 +47,22 @@ class BiliBilliScheduled(
         }
     }
 
-    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedDelay = 2, initialDelay = 2, timeUnit = TimeUnit.MINUTES)
     suspend fun liveMonitor() {
         val list = biliBiliService.findByLive(Status.ON)
         for (biliBiliEntity in list) {
-            val result = BiliBiliLogic.followed(biliBiliEntity)
             delay(3000)
-            if (result.failure()) continue
             val tgId = biliBiliEntity.tgId
             if (!liveMap.containsKey(tgId)) liveMap[tgId] = mutableMapOf()
             val map = liveMap[tgId]!!
-            for (up in result.data()) {
-                val id = up.id.toLong()
-                val name = up.name
-                delay(3000)
-                val live = BiliBiliLogic.live(id.toString())
-                if (live.id.isEmpty()) continue
+            val liveList = BiliBiliLogic.live(biliBiliEntity)
+            for (live in liveList) {
+                val userid = live.id.toLong()
                 val b = live.status
-                if (map.containsKey(id)) {
-                    if (map[id] != b) {
-                        map[id] = b
+                val name = live.uname
+                if (map.containsKey(userid)) {
+                    if (map[userid] != b) {
+                        map[userid] = b
                         val msg = if (b) "直播啦！！" else "下播了！！"
                         val text = "#哔哩哔哩开播提醒\n#$name $msg\n标题：${live.title}\n链接：${live.url}"
                         val imageUrl = live.imageUrl
@@ -79,7 +75,7 @@ class BiliBilliScheduled(
                             }
                         }
                     }
-                } else map[id] = b
+                } else map[userid] = live.status
             }
         }
     }

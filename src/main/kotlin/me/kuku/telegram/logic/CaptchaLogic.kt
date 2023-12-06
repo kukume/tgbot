@@ -99,7 +99,7 @@ class GeeTestLogic(
      */
     suspend fun rr(gt: String, referer: String, challenge: String? = null, ip: String? = null,
                    host: String? = null, tgId: Long? = null, mmtKey: String? = null,
-                   ua: String? = null): RrOcrResult {
+                   ua: String? = null, riskType: String? = null): RrOcrResult {
         val newKey = run {
             tgId?.let {
                 val configEntity = configService.findByTgId(tgId)
@@ -124,6 +124,9 @@ class GeeTestLogic(
                 }
                 ua?.let {
                     append("useragent", ua)
+                }
+                riskType?.let {
+                    append("risk_type", it)
                 }
                 append("appkey", newKey)
                 append("sharecode", "4eb29017f5464cb2a971364373c65edb")

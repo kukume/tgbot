@@ -38,13 +38,13 @@ class SettingExtension(
         val entity = init()
         val text = """
             请选择设置选项
-            rrocr(https://www.rrocr.com)：${entity.rrOcrKey.ifEmpty { "未设置" }}
-            2captcha(https://2captcha.com)：${entity.twoCaptchaKey.ifEmpty { "未设置" }}
+            [rrocr](https://www.rrocr.com)：${entity.rrOcrKey.ifEmpty { "未设置" }}
+            [2captcha](https://2captcha.com)：${entity.twoCaptchaKey.ifEmpty { "未设置" }}
         """.trimIndent()
         if (this is AbilityContext) {
-            sendMessage(text, settingMarkup())
+            sendMessage(text, settingMarkup(), ParseMode.Markdown)
         } else if (this is TelegramContext) {
-            editMessageText(text, settingMarkup(), returnButton = false)
+            editMessageText(text, settingMarkup(), returnButton = false, parseMode = ParseMode.Markdown)
         }
     }
 

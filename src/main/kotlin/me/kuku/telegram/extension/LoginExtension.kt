@@ -322,6 +322,7 @@ class LoginExtension(
         }
     }
 
+    @Suppress("DuplicatedCode")
     fun TelegramSubscribe.miHoYoLogin(){
         callback("miHoYoLogin") {
             editMessageText("请选择登录米哈游的方式", InlineKeyboardMarkup(
@@ -410,6 +411,7 @@ class LoginExtension(
             newEntity.token = entity.token
             newEntity.ticket = entity.ticket
             newEntity.fix = entity.fix
+            newEntity.cookie = entity.cookie
             miHoYoService.save(newEntity)
             editMessageText("绑定米哈游成功")
         }

@@ -263,19 +263,30 @@ object BiliBiliLogic {
         }
     }
 
-    suspend fun live(id: String): BiliBiliLive {
-        val jsonNode = client.get("https://api.bilibili.com/x/space/acc/info?mid=$id&jsonp=jsonp") {
-            headers {
-                referer("https://space.bilibili.com/$id/")
-                userAgent(UA.PC.value)
-            }
+
+    suspend fun live(biliBiliEntity: BiliBiliEntity, page: Int = 1,
+                     list: MutableList<BiliBiliLive> = mutableListOf()): List<BiliBiliLive> {
+        val jsonNode = client.get("https://api.live.bilibili.com/xlive/web-ucenter/user/following?page=$page&page_size=29&ignoreRecord=1&hit_ab=true") {
+            cookieString(biliBiliEntity.cookie)
         }.body<JsonNode>()
-        val dataJsonNode = jsonNode["data"]?.get("live_room") ?: return BiliBiliLive(status = false)
-        val status = dataJsonNode.get("liveStatus")?.asInt()
-        val title = dataJsonNode.get("title")?.asText() ?: ""
-        val url = dataJsonNode.get("url")?.asText() ?: ""
-        val imageUrl = dataJsonNode.get("cover")?.asText() ?: ""
-        return BiliBiliLive(title, id, url, imageUrl, status == 1)
+        jsonNode.check()
+        val dataList = jsonNode["data"]["list"]
+        return if (dataList.isEmpty) list
+        else {
+            for (node in dataList) {
+                val title = node["title"].asText()
+                val roomId = node["roomid"].asText()
+                val url = "https://live.bilibili.com/$roomId"
+                val id = node["uid"].asText()
+                val imageUrl = node["room_cover"].asText()
+                val status = node["live_status"].asInt()
+                val uname = node["uname"].asText()
+                list.add(BiliBiliLive(title, id, url, imageUrl, status == 1, uname))
+            }
+            delay(1000)
+            live(biliBiliEntity, page + 1, list)
+        }
+
     }
 
     suspend fun liveSign(biliBiliEntity: BiliBiliEntity): String {
@@ -553,7 +564,8 @@ data class BiliBiliLive(
     var id: String = "",
     var url: String = "",
     var imageUrl: String = "",
-    var status: Boolean = false
+    var status: Boolean = false,
+    var uname: String = ""
 )
 
 data class BiliBiliRanking(
