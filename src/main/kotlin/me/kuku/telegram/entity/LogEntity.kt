@@ -40,6 +40,7 @@ enum class LogType(val value: String) {
     Mys("米游社"),
     NetEase("网易云"),
     NetEaseMusician("网易云音乐人"),
+    NetEaseVip("网易云音乐vip"),
     Step("修改步数"),
     Weibo("微博"),
     DouYu("斗鱼"),

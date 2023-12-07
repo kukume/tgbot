@@ -182,10 +182,12 @@ class ExecExtension(
             val netEaseSignButton = InlineKeyboardButton("签到").callbackData("netEaseSign")
             val netEaseMusicianSignButton = InlineKeyboardButton("音乐人签到").callbackData("netEaseMusicianSign")
             val netEaseMusicianMyComment = InlineKeyboardButton("发布主创说").callbackData("netEaseMusicianMyComment")
+            val vipSign = inlineKeyboardButton("vip签到", "netEaseVipSign")
             val markup = InlineKeyboardMarkup(
                 arrayOf(netEaseSignButton),
                 arrayOf(netEaseMusicianSignButton),
-                arrayOf(netEaseMusicianMyComment)
+                arrayOf(netEaseMusicianMyComment),
+                arrayOf(vipSign)
             )
             editMessageText("网易云音乐", markup)
         }
@@ -220,6 +222,11 @@ class ExecExtension(
         callback("netEaseMusicianMyComment") {
             NetEaseLogic.myMusicComment(firstArg())
             editMessageText("发布主创说成功")
+        }
+        callback("netEaseVipSign") {
+            NetEaseLogic.vipSign(firstArg())
+            NetEaseLogic.receiveTaskReward(firstArg())
+            editMessageText("网易云音乐vip签到成功")
         }
     }
 

@@ -173,13 +173,16 @@ class MiHoYoLogic(
         val user = data["user_info"]
         val aid = user["aid"].asText()
         val mid = user["mid"].asText()
-        return MiHoYoEntity().also {
+        val entity = MiHoYoEntity().also {
             it.ticket = ticket
             it.token = token
             it.aid = aid
             it.mid = mid
             it.fix = fix
         }
+        val sToken = sToken(entity)
+        entity.sToken = sToken
+        return entity
     }
 
     suspend fun webLogin(account: String, password: String, tgId: Long? = null): MiHoYoEntity {
@@ -213,11 +216,14 @@ class MiHoYoLogic(
         val finaCookie = OkUtils.cookie(loginResponse)
         cookie += finaCookie
         cookie += "login_ticket=$ticket; "
-        return MiHoYoEntity().also {
+        val entity = MiHoYoEntity().also {
             it.cookie = cookie
-            it.aid = account
+            it.aid = accountId
             it.ticket = ticket
         }
+        val sToken = sToken(entity)
+        entity.sToken = sToken
+        return entity
     }
 
     context(HttpRequestBuilder)
@@ -385,12 +391,11 @@ class MiHoYoLogic(
     }
 
     suspend fun like(miHoYoEntity: MiHoYoEntity, postId: Int, like: Boolean = true) {
-        val hubCookie = hubCookie(miHoYoEntity)
         val response = client.post("https://bbs-api.mihoyo.com/apihub/sapi/upvotePost") {
             setJsonBody("""
                 {"csm_source":"home","is_cancel":${!like},"post_id":"$postId","upvote_type":"1"}
             """.trimIndent())
-            cookieString(hubCookie)
+            cookieString(miHoYoEntity.hubCookie())
             miHoYoEntity.fix.hubAppend()
         }
         val jsonNode = response.body<JsonNode>()
@@ -400,7 +405,7 @@ class MiHoYoLogic(
     suspend fun watchPost(miHoYoEntity: MiHoYoEntity, postId: Int) {
         val jsonNode = client.get("https://bbs-api.mihoyo.com/post/api/getPostFull?post_id=$postId&is_cancel=false") {
             miHoYoEntity.fix.hubAppend()
-            cookieString(hubCookie(miHoYoEntity))
+            cookieString(miHoYoEntity.hubCookie())
         }.body<JsonNode>()
         jsonNode.check()
     }
@@ -408,7 +413,7 @@ class MiHoYoLogic(
     suspend fun sharePost(miHoYoEntity: MiHoYoEntity, postId: Int) {
         val jsonNode = client.get("https://bbs-api.mihoyo.com/apihub/api/getShareConf?entity_id=$postId&entity_type=1") {
             miHoYoEntity.fix.hubAppend()
-            cookieString(hubCookie(miHoYoEntity))
+            cookieString(miHoYoEntity.hubCookie())
         }.body<JsonNode>()
         jsonNode.check()
     }
@@ -417,16 +422,9 @@ class MiHoYoLogic(
         val jsonNode = client.post("https://bbs-api.mihoyo.com/apihub/app/api/signIn") {
             setJsonBody("""{"gids":"2"}""")
             miHoYoEntity.fix.hubNewAppend(mapOf("gids" to "2"))
-            cookieString(hubCookie(miHoYoEntity))
+            cookieString(miHoYoEntity.hubCookie())
         }.body<JsonNode>()
         jsonNode.check()
-    }
-
-    private suspend fun hubCookie(miHoYoEntity: MiHoYoEntity): String {
-        val cookie = miHoYoEntity.cookie
-        val accountId = OkUtils.cookie(cookie, "account_id") ?: error("accountId not found in cookie")
-        val sToken = sToken(miHoYoEntity)
-        return "stuid=$accountId; stoken=$sToken; "
     }
 
     private suspend fun sToken(miHoYoEntity: MiHoYoEntity): String {

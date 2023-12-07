@@ -57,4 +57,15 @@ class NetEaseScheduled(
         }
     }
 
+    @Scheduled(cron = "0 40 8 * * ?")
+    suspend fun vipSign() {
+        val list = netEaseService.findByVipSign(Status.ON)
+        for (netEaseEntity in list.reversed()) {
+            logService.log(netEaseEntity.tgId, LogType.NetEaseVip) {
+                NetEaseLogic.vipSign(netEaseEntity)
+                NetEaseLogic.receiveTaskReward(netEaseEntity)
+            }
+        }
+    }
+
 }

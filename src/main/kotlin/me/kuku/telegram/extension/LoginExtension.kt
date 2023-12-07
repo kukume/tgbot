@@ -395,6 +395,7 @@ class LoginExtension(
             newEntity.token = entity.token
             newEntity.ticket = entity.ticket
             newEntity.fix = entity.fix
+            newEntity.sToken = entity.sToken
             miHoYoService.save(newEntity)
             editMessageText("绑定米哈游成功")
         }
@@ -412,6 +413,7 @@ class LoginExtension(
             newEntity.ticket = entity.ticket
             newEntity.fix = entity.fix
             newEntity.cookie = entity.cookie
+            newEntity.sToken = entity.sToken
             miHoYoService.save(newEntity)
             editMessageText("绑定米哈游成功")
         }

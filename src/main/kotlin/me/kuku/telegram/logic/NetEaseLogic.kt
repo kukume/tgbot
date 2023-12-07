@@ -2,6 +2,8 @@ package me.kuku.telegram.logic
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
@@ -22,6 +24,14 @@ object NetEaseLogic {
 
     private fun prepare(map: Map<String, String>, netEaseEntity: NetEaseEntity? = null): Map<String, String> {
         return prepare(Jackson.toJsonString(map), netEaseEntity)
+    }
+
+    private fun HttpRequestBuilder.setParams(map: Map<String, String>, netEaseEntity: NetEaseEntity? = null) {
+        setFormDataContent {
+            prepare(Jackson.toJsonString(map), netEaseEntity).forEach { (k, v) ->
+                append(k, v)
+            }
+        }
     }
 
     private fun prepare(json: String, netEaseEntity: NetEaseEntity? = null): Map<String, String> {
@@ -415,6 +425,31 @@ object NetEaseLogic {
         delay(2000)
         deleteMusicComment(netEaseEntity, netEaseSong.songId, commentId2)
         return finishStageMission(netEaseEntity, "发表主创说")
+    }
+
+    private fun JsonNode.check() {
+        if (this["code"].asInt() != 200) error(this["message"].asText())
+    }
+
+    /**
+     * https://interface.music.163.com/api/vipnewcenter/app/level/task/reward/getall
+     * https://interface.music.163.com/weapi/batch?csrf_token=b04a98c9c484bba93a1bcc16147ac6e7
+     * {"/api/vipnewcenter/app/level/myvip":"","/api/vipnewcenter/app/vipcenter/level/privilege/guide":"","/api/music-vip-membership/front/vip/info":"","/api/vip-center-bff/task/list":"","/api/vipnewcenter/app/user/max/score":""}
+     */
+    suspend fun vipSign(netEaseEntity: NetEaseEntity) {
+        val jsonNode = client.post("https://interface.music.163.com/weapi/vip-center-bff/task/sign?csrf_token=${netEaseEntity.csrf}") {
+            setParams(mapOf())
+            cookieString(netEaseEntity.cookie())
+        }.body<JsonNode>()
+        jsonNode.check()
+    }
+
+    suspend fun receiveTaskReward(netEaseEntity: NetEaseEntity) {
+        val jsonNode = client.post("https://interface.music.163.com/api/vipnewcenter/app/level/task/reward/getall") {
+            setParams(mapOf())
+            cookieString(netEaseEntity.cookie())
+        }.body<JsonNode>()
+        jsonNode.check()
     }
 
 }
