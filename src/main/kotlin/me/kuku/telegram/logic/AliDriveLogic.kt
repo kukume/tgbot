@@ -245,11 +245,14 @@ class AliDriveLogic(
         } else error(jsonNode["code"].asText())
     }
 
-    suspend fun signInInfo(aliDriveEntity: AliDriveEntity): AliDriveSignInInfo {
+    suspend fun signInInfo(aliDriveEntity: AliDriveEntity, aliDriveDevice: AliDriveDevice? = null): AliDriveSignInInfo {
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/sign_in_info") {
             setJsonBody("{}")
             aliDriveEntity.appendAuth()
-            aliDriveEntity.appendBackupDeviceEncrypt()
+            if (aliDriveDevice == null)
+                aliDriveEntity.appendBackupDeviceEncrypt()
+            else
+                aliDriveEntity.appendEncrypt(aliDriveDevice)
         }.body<JsonNode>()
         jsonNode.check()
         return jsonNode["result"].convertValue()
@@ -878,17 +881,21 @@ class AliDriveLogic(
         jsonNode.check()
     }
 
+    private fun backupDesktopDevice(aliDriveEntity: AliDriveEntity): AliDriveDevice {
+        return AliDriveDevice().also {
+            it.deviceId = aliDriveEntity.backupDesktopDeviceId
+            it.deviceName = "kuku's PC"
+            it.deviceModel = "Windows客户端"
+            it.desktop = true
+        }
+    }
+
     suspend fun backupDesktop(aliDriveEntity: AliDriveEntity, status: Boolean = true) {
         var backupDesktopDeviceId = aliDriveEntity.backupDesktopDeviceId
         if (backupDesktopDeviceId.isEmpty()) backupDesktopDeviceId = UUID.randomUUID().toString()
         aliDriveEntity.backupDesktopDeviceId = backupDesktopDeviceId
         aliDriveService.save(aliDriveEntity)
-        val aliDriveDevice = AliDriveDevice().also {
-            it.deviceId = backupDesktopDeviceId
-            it.deviceName = "kuku's PC"
-            it.deviceModel = "Windows客户端"
-            it.desktop = true
-        }
+        val aliDriveDevice = backupDesktopDevice(aliDriveEntity)
         val jsonNode = client.post("https://api.aliyundrive.com/users/v1/users/update_device_extras") {
             setJsonBody("""
                 {"autoBackupStatus":$status}
