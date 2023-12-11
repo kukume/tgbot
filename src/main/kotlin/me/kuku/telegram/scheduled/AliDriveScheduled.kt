@@ -90,8 +90,12 @@ class AliDriveScheduled(
         for (aliDriveEntity in list) {
             kotlin.runCatching {
                 delay(3000)
-                val signInInfo = aliDriveLogic.signInInfo(aliDriveEntity)
-                val reward = signInInfo.rewards[1]
+                var signInInfo = aliDriveLogic.signInInfo(aliDriveEntity)
+                var reward = signInInfo.rewards[1]
+                if (reward.remind == "开启「自动同步电脑文件夹至少一小时」") {
+                    signInInfo = aliDriveLogic.signInInfo(aliDriveEntity, aliDriveLogic.backupDesktopDevice(aliDriveEntity))
+                    reward = signInInfo.rewards[1]
+                }
                 if (reward.status !in listOf("finished", "verification")) {
                     error("阿里云盘任务完成失败，任务名称：${reward.remind}")
                 }
@@ -135,6 +139,23 @@ class AliDriveScheduled(
     }
 
     @Scheduled(cron = "1 23 3 * * ?")
+    suspend fun finishCard() {
+        val now = LocalDate.now()
+        val dayOfWeek = now.dayOfWeek
+        if (dayOfWeek != DayOfWeek.MONDAY) return
+        val list = aliDriveService.findByCard(Status.ON)
+        for (aliDriveEntity in list) {
+            delay(3000)
+            kotlin.runCatching {
+                aliDriveLogic.finishCard(aliDriveEntity)
+            }.onFailure {
+                telegramBot.sendTextMessage(aliDriveEntity.tgId,
+                    "#自动签到失败提醒\n阿里云盘完成补签卡任务失败，\n${it.message}")
+            }
+        }
+    }
+
+    @Scheduled(cron = "1 43 3 * * ?")
     suspend fun receiveCard() {
         val now = LocalDate.now()
         val dayOfWeek = now.dayOfWeek
@@ -143,7 +164,7 @@ class AliDriveScheduled(
         for (aliDriveEntity in list) {
             delay(3000)
             logService.log(aliDriveEntity.tgId, LogType.AliDriveCard) {
-                aliDriveLogic.finishCard(aliDriveEntity)
+                aliDriveLogic.receiveCard(aliDriveEntity)
             }
         }
     }

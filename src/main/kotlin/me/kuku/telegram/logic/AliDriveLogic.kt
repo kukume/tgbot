@@ -817,7 +817,7 @@ class AliDriveLogic(
             }
             "开启「自动同步电脑文件夹至少一小时」" -> {
                 backupDesktop(aliDriveEntity)
-                signInInfo(aliDriveEntity)
+                signInInfo(aliDriveEntity, backupDesktopDevice(aliDriveEntity))
             }
             else -> error("不支持的任务，${reward.remind}")
         }
@@ -881,7 +881,7 @@ class AliDriveLogic(
         jsonNode.check()
     }
 
-    private fun backupDesktopDevice(aliDriveEntity: AliDriveEntity): AliDriveDevice {
+    fun backupDesktopDevice(aliDriveEntity: AliDriveEntity): AliDriveDevice {
         return AliDriveDevice().also {
             it.deviceId = aliDriveEntity.backupDesktopDeviceId
             it.deviceName = "kuku's PC"
@@ -1113,6 +1113,12 @@ class AliDriveLogic(
         val task = cardDetail.tasks.find { map[it.taskName] != null }
             ?: error("不支持的任务，${cardDetail.tasks.joinToString(",") { it.taskName }}")
         map[task.taskName]!!.invoke(aliDriveEntity)
+        cardAward(aliDriveEntity, cardDetail.period, task.taskId)
+    }
+
+    suspend fun receiveCard(aliDriveEntity: AliDriveEntity) {
+        val cardDetail = cardDetail(aliDriveEntity)
+        val task = cardDetail.tasks.find { it.status == "finished" } ?: error("未完成补签卡任务，领取补签卡失败")
         cardAward(aliDriveEntity, cardDetail.period, task.taskId)
     }
 
