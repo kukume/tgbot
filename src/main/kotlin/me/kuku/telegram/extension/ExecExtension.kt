@@ -379,8 +379,11 @@ class ExecExtension(
         }
         callbackStartsWith("nodeSeekSign-") {
             val random = query.data().split("-")[1].toInt() == 1
-            val num = NodeSeekLogic.sign(firstArg(), random)
-            editMessageText("NodeSeek签到成功，获得鸡腿${num}个")
+            NodeSeekLogic.sign(firstArg(), random)
+            editMessageText("NodeSeek签到中，稍后为您自动查询结果")
+            delay(1000 * 60 * 2)
+            val gain = NodeSeekLogic.querySign(firstArg())
+            editMessageText("#手动执行结果\nNodeSeek签到成功，获得${gain}鸡腿")
         }
     }
 

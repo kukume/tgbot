@@ -17,19 +17,20 @@ class ConfigExtension(
     private val configService: ConfigService
 ) {
 
-    private fun keyboardMarkup(): InlineKeyboardMarkup {
-        val positiveEnergyOpenButton = InlineKeyboardButton("新闻联播推送（开）").callbackData("positiveEnergyOpen")
-        val positiveEnergyCloseButton = InlineKeyboardButton("新闻联播推送（关）").callbackData("positiveEnergyClose")
+    private fun keyboardMarkup(configEntity: ConfigEntity): InlineKeyboardMarkup {
+        val positiveEnergySwitch = InlineKeyboardButton("${configEntity.positiveEnergy}新闻联播推送")
+            .callbackData("positiveEnergySwitch")
         val settingRrOcrButton = inlineKeyboardButton("设置rrcor的key", "settingRrOcr")
         val settingTwoCaptcha = inlineKeyboardButton("配置2captcha的key", "settingTwoCaptcha")
-        val v2exOpen = inlineKeyboardButton("v2ex推送（开）", "v2exPushOpen")
-        val v2exClose = inlineKeyboardButton("v2ex推送（关）", "v2exPushClose")
-        val xianBaoOpen = inlineKeyboardButton("线报推送（开）", "xianBaoOpen")
-        val xianBaoClose = inlineKeyboardButton("线报推送（关）", "xianBaoClose")
+        val v2exPushSwitch = inlineKeyboardButton("${configEntity.v2exPush}v2ex推送", "v2exPushSwitch")
+        val xianBaoSwitch = inlineKeyboardButton("${configEntity.xianBaoPush}线报推送", "xianBaoSwitch")
+        val epicFreeGameSwitch = inlineKeyboardButton("${configEntity.epicFreeGamePush}epic免费游戏推送",
+            "epicFreeGameSwitch")
         return InlineKeyboardMarkup(
-            arrayOf(positiveEnergyOpenButton, positiveEnergyCloseButton),
-            arrayOf(v2exOpen, v2exClose),
-            arrayOf(xianBaoOpen, xianBaoClose),
+            arrayOf(positiveEnergySwitch),
+            arrayOf(v2exPushSwitch),
+            arrayOf(xianBaoSwitch),
+            arrayOf(epicFreeGameSwitch),
             arrayOf(settingRrOcrButton, settingTwoCaptcha)
         )
     }
@@ -37,11 +38,8 @@ class ConfigExtension(
     fun text(configEntity: ConfigEntity): String {
         return """
             配置管理，当前配置：
-            新闻联播推送：${configEntity.positiveEnergy.str()}
-            [rrocr](https://www.rrocr.com)的key：${configEntity.rrOcrKey}
-            [2captcha](https://2captcha.com)的key：${configEntity.twoCaptchaKey}
-            v2ex推送：${configEntity.v2exPush.str()}
-            [线报推送](http://new.xianbao.fun)：${configEntity.xianBaoPush.str()}
+            [rrocr](https://www.rrocr.com)的key：`${configEntity.rrOcrKey}`
+            [2captcha](https://2captcha.com)的key：`${configEntity.twoCaptchaKey}`
         """.trimIndent()
     }
 
@@ -52,19 +50,17 @@ class ConfigExtension(
                 configEntity.tgId = tgId
                 configService.save(configEntity)
             }
-            val markup = keyboardMarkup()
+            val markup = keyboardMarkup(configEntity)
             sendMessage(text(configEntity), replyKeyboard = markup, parseMode = ParseMode.MarkdownV2)
         }
     }
 
     fun TelegramSubscribe.positiveEnergyConfig() {
         before { set(configService.findByTgId(tgId)!!) }
-        callback("positiveEnergyOpen") { firstArg<ConfigEntity>().positiveEnergy = Status.ON }
-        callback("positiveEnergyClose") { firstArg<ConfigEntity>().positiveEnergy = Status.OFF }
-        callback("v2exPushOpen") { firstArg<ConfigEntity>().v2exPush = Status.ON }
-        callback("v2exPushClose") { firstArg<ConfigEntity>().v2exPush = Status.OFF }
-        callback("xianBaoOpen") { firstArg<ConfigEntity>().xianBaoPush = Status.ON }
-        callback("xianBaoClose") { firstArg<ConfigEntity>().xianBaoPush = Status.OFF }
+        callback("positiveEnergySwitch") { firstArg<ConfigEntity>().also { it.positiveEnergy = !it.positiveEnergy } }
+        callback("v2exPushSwitch") { firstArg<ConfigEntity>().also { it.v2exPush = !it.v2exPush } }
+        callback("xianBaoSwitch") { firstArg<ConfigEntity>().also { it.xianBaoPush = !it.xianBaoPush } }
+        callback("epicFreeGameSwitch") { firstArg<ConfigEntity>().also { it.epicFreeGamePush = !it.epicFreeGamePush } }
         callback("settingRrOcr") {
             editMessageText("请发送rrocr的key")
             val key = nextMessage().text()
@@ -78,7 +74,7 @@ class ConfigExtension(
         after {
             val configEntity = firstArg<ConfigEntity>()
             configService.save(configEntity)
-            editMessageText(text(configEntity), keyboardMarkup(), returnButton = false)
+            editMessageText(text(configEntity), keyboardMarkup(configEntity), returnButton = false)
         }
     }
 

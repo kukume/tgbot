@@ -3,6 +3,7 @@ package me.kuku.telegram.logic
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import me.kuku.telegram.entity.NodeSeekEntity
 import me.kuku.utils.*
 
@@ -32,7 +33,7 @@ object NodeSeekLogic {
                     append("token", token)
                 }
             }
-        }.body<JsonNode>()
+        }.bodyAsText().toJsonNode()
         if (jsonNode.has("cookie")) return jsonNode["cookie"].asText()
         else error(jsonNode["message"].asText())
     }
