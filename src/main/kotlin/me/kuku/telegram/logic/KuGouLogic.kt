@@ -6,6 +6,7 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
+import me.kuku.telegram.config.api
 import me.kuku.telegram.entity.KuGouEntity
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
@@ -126,7 +127,7 @@ class KuGouLogic {
             "srcappid" to "2919"
         )
         val preJsonNode = OkHttpKtUtils.postJson(
-            "https://api.jpa.cc/exec/kuGou",
+            "$api/exec/kuGou",
             mutableMapOf("phone" to phone, "time" to time.toString())
         )
         val params = preJsonNode["params"]?.asText() ?: error("获取加密参数失败，可能手机号格式不正确")

@@ -56,11 +56,13 @@ kuku:
     proxyType: DIRECT
     # 自建的api服务器的地址（包含http://或者https://），如果不填，动态推送将不能推送50M以上的视频
     url:
-    # 填写自建api服务器的配置目录，该机器人程序和自建api必须在一台服务器上
+    # 填写自建telegram的api服务器的配置目录，该机器人程序和自建api必须在一台服务器上
     # 如果是https://www.kuku.me/archives/41/的搭建api，且docker-compose.yml在/root/telegram-bot-api目录下
     # 该参数为 /root/telegram-bot-api/data
     # 如果不是使用docker，该参数为 /
     localPath:
+    # 填写自建api，用于无头浏览器执行的签到，见custom api项
+    api:
 ```
 
 ### docker-compose.yml
@@ -87,6 +89,8 @@ services:
       # 自建的tg服务器的地址（包含http://或者https://），如果填了，
       # 上传文件到机器人的功能均会失效，如果不填，动态推送将不能推送50M以上的视频
       KUKU_TELEGRAM_URL:
+      # 自建的api，用于无头浏览器执行签到或者加密参数
+      KUKU_API:
     depends_on:
       - mongo
 
@@ -96,6 +100,10 @@ services:
       - ./db:/data/db
       - ./dump:/dump
 ```
+
+## Custom api
+
+https://hub.docker.com/r/kukume/sk
 
 ## Features
 

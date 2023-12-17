@@ -5,6 +5,7 @@ import com.pengrad.telegrambot.UpdatesListener
 import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.runBlocking
 import me.kuku.telegram.context.*
+import me.kuku.telegram.utils.SpringUtils
 import okhttp3.OkHttpClient
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.ApplicationListener
@@ -141,6 +142,7 @@ class TelegramConfig {
     var proxyType: Proxy.Type = Proxy.Type.DIRECT
     var url: String = ""
     var localPath: String = ""
+    var api: String = ""
 
     @PostConstruct
     fun dockerInit() {
@@ -167,9 +169,14 @@ class TelegramConfig {
                     "KUKU_TELEGRAM_PROXY_TYPE" -> proxyType = Proxy.Type.valueOf(value.uppercase())
                     "KUKU_TELEGRAM_URL" -> url = value
                     "KUKU_LOCAL_PATH" -> localPath = value
+                    "KUKU_API" -> api = value
                 }
             }
         }
     }
 }
 
+val api: String by lazy {
+    val api = SpringUtils.getBean<TelegramConfig>().api
+    api.ifEmpty { "https://api.jpa.cc" }
+}

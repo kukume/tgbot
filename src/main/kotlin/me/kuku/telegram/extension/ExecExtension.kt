@@ -382,8 +382,12 @@ class ExecExtension(
             NodeSeekLogic.sign(firstArg(), random)
             editMessageText("NodeSeek签到中，稍后为您自动查询结果")
             delay(1000 * 60 * 2)
-            val gain = NodeSeekLogic.querySign(firstArg())
-            editMessageText("#手动执行结果\nNodeSeek签到成功，获得${gain}鸡腿")
+            kotlin.runCatching {
+                val gain = NodeSeekLogic.querySign(firstArg())
+                sendMessage("#手动执行结果\nNodeSeek签到成功，获得${gain}鸡腿")
+            }.onFailure {
+                sendMessage("#手动执行结果\nNodeSeek签到失败，${it.message}")
+            }
         }
     }
 

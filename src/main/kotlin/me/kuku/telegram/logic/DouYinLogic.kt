@@ -5,13 +5,12 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
+import me.kuku.telegram.config.api
 import me.kuku.telegram.entity.DouYinEntity
 import me.kuku.utils.*
 import okhttp3.Response
 
 object DouYinLogic {
-
-    private const val api = "https://api.jpa.cc"
 
     private suspend fun request(url: String, cookie: String = ""): Response {
         val jsonNode = OkHttpKtUtils.postJson("$api/exec/douYin", mapOf("url" to url))

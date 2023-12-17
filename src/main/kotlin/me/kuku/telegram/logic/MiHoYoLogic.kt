@@ -418,6 +418,7 @@ class MiHoYoLogic(
         jsonNode.check()
     }
 
+    // 1 2 26 30 37 34
     suspend fun hubSign(miHoYoEntity: MiHoYoEntity) {
         val jsonNode = client.post("https://bbs-api.mihoyo.com/apihub/app/api/signIn") {
             setJsonBody("""{"gids":"2"}""")
