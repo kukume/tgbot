@@ -49,6 +49,8 @@ class EpicScheduled(
                 val mappings = queries.filter { it["queryKey"]?.get(0)?.asText() == "getCatalogOffer" }
                 for (mapping in mappings) {
                     val catalogOffer = mapping["state"]["data"]["Catalog"]["catalogOffer"]
+                    val offerType = catalogOffer["offerType"].asText()
+                    if (offerType != "BASE_GAME") continue
                     val namespace = catalogOffer["namespace"].asText()
                     val id = catalogOffer["id"].asText()
                     val innerTitle = catalogOffer["title"].asText()

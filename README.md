@@ -10,14 +10,21 @@ JDK21 + Mongodb
 
 ## Commands
 
-* /login - 登陆账号
-* /exec - 手动执行签到
-* /manager - 管理自动签到状态，默认自动签到全为关
-* /log -自动签到日志
-* /update - 更新程序
-* /updatelog - 查看github提交消息
-* /bv {bvid}
-* /x {id}
+| 指令         | 说明               | 参数     |
+|------------|------------------|--------|
+| /login     | 登陆账号             | 无      |
+| /exec      | 手动执行签到           | 无      |
+| /manager   | 管理自动签到状态，默认全为关   | 无      |
+| /delete    | 删除登陆的账号          | 无      |
+| /log       | 自动签到日志           | 无      |
+| /oci       | oracle cloud 管理  | 无      |
+| /config    | 用户的配置和不需要登陆的推送   | 无      |
+| /push      | 通过http api进行消息推送 | 无      |
+| /ygo       | 游戏王查卡            | 无      |
+| /update    | 更新程序             | 无      |
+| /updatelog | github提交信息       | 无      |
+| /bv        | 获取bv视频           | bv开头id |
+| /x         | 获取x帖子的详情         | 链接或id  |
 
 ## Beg
 
@@ -73,6 +80,7 @@ services:
   tgbot:
     image: kukume/tgbot
     container_name: tgbot
+    # 如果不需要使用http api进行消息推送，可不需要
     ports: 
       - 8080:8080
     environment:
@@ -104,6 +112,14 @@ services:
 ## Custom api
 
 https://hub.docker.com/r/kukume/sk
+
+## Message Push
+
+url: `/push`
+
+method: get or post
+
+params: key(get from commands /push) and text, parseMode (optional)
 
 ## Features
 

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.MiHoYoEntity
@@ -368,14 +369,14 @@ class MiHoYoLogic(
             val jsonNode = sign(miHoYoEntity, obj)
             when (jsonNode.getInteger("retcode")) {
                 0, -5003 -> {
-//                    val data = jsonNode["data"]
-//                    val gt = data["gt"].asText()
-//                    if (gt.isNotEmpty()) {
-//                        val challenge = data["challenge"].asText()
-//                        val rr = geeTestLogic.rr(gt, "https://webstatic.mihoyo.com/", challenge, tgId = tgId)
-//                        val node = sign(miHoYoEntity, obj, rr)
-//                        if (node["retcode"].asInt() !in listOf(-5003, 0)) error(jsonNode["message"].asText())
-//                    }
+                    val data = jsonNode["data"]
+                    val gt = data["gt"].asText()
+                    if (gt.isNotEmpty()) {
+                        val challenge = data["challenge"].asText()
+                        val rr = geeTestLogic.rr(gt, "https://webstatic.mihoyo.com/", challenge, tgId = tgId)
+                        val node = sign(miHoYoEntity, obj, rr)
+                        if (node["retcode"].asInt() !in listOf(-5003, 0)) error(jsonNode["message"].asText())
+                    }
                 }
                 else -> error(jsonNode["message"].asText() ?: "未知错误")
             }
@@ -418,14 +419,18 @@ class MiHoYoLogic(
         jsonNode.check()
     }
 
-    // 1 2 26 30 37 34
+    // 2 5 8 6 1 3 4
     suspend fun hubSign(miHoYoEntity: MiHoYoEntity) {
-        val jsonNode = client.post("https://bbs-api.mihoyo.com/apihub/app/api/signIn") {
-            setJsonBody("""{"gids":"2"}""")
-            miHoYoEntity.fix.hubNewAppend(mapOf("gids" to "2"))
-            cookieString(miHoYoEntity.hubCookie())
-        }.body<JsonNode>()
-        jsonNode.check()
+        val list = listOf(2, 5, 8, 6, 1, 3, 4)
+        for (i in list) {
+            delay(1500)
+            val jsonNode = client.post("https://bbs-api.miyoushe.com/apihub/app/api/signIn") {
+                setJsonBody("""{"gids":"$i"}""")
+                miHoYoEntity.fix.hubNewAppend(mapOf("gids" to "$i"))
+                cookieString(miHoYoEntity.hubCookie())
+            }.body<JsonNode>()
+            jsonNode.check()
+        }
     }
 
     private suspend fun sToken(miHoYoEntity: MiHoYoEntity): String {
