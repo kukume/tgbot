@@ -325,7 +325,7 @@ class LoginExtension(
     @Suppress("DuplicatedCode")
     fun TelegramSubscribe.miHoYoLogin(){
         callback("miHoYoLogin") {
-            editMessageText("请选择登录米哈游的方式", InlineKeyboardMarkup(
+            editMessageText("请选择登录米哈游的方式\n注意：密码登陆大概率需要在/config配置rrcor的key", InlineKeyboardMarkup(
                 arrayOf(inlineKeyboardButton("使用cookie登录", "miHoYoCookieLogin")),
                 arrayOf(inlineKeyboardButton("使用米游社app扫码登陆", "miHoYoQrcodeLogin")),
                 arrayOf(inlineKeyboardButton("使用app账号密码登录", "miHoYoAppPasswordLogin")),
@@ -386,7 +386,7 @@ class LoginExtension(
             val account = nextMessage().text()
             editMessageText("请发送密码")
             val password = nextMessage().text()
-            val entity = miHoYoLogic.login(account, password)
+            val entity = miHoYoLogic.login(account, password, tgId)
             val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().also {
                 it.tgId = tgId
             }

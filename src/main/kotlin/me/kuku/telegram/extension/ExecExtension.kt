@@ -163,7 +163,7 @@ class ExecExtension(
             val markup = InlineKeyboardMarkup(arrayOf(genShinSignButton), arrayOf(mysSign))
             editMessageText("""
                 米哈游
-                注意：原神签到可能需要在/config配置rrcor的key
+                注意：签到大概率需要在/config配置rrcor的key
             """.trimIndent(), markup)
         }
         callback("genShinSign") {

@@ -142,31 +142,55 @@ class MiHoYoLogic(
         }
     }
 
-    suspend fun login(account: String, password: String): MiHoYoEntity {
+    suspend fun login(account: String, password: String, tgId: Long? = null): MiHoYoEntity {
         val rsaKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDvekdPMHN3AYhm/vktJT+YJr7cI5DcsNKqdsx5DZX0gDuWFuIjzdwButrIYPNmRJ1G8ybDIF7oDW2eEpm5sMbL9zs9ExXCdvqrn51qELbqj0XxtMTIpaCHFSI50PfPpTFV9Xt/hmyVwokoOXFlAEgCn+QCgGs52bFoYMtyi+xEQIDAQAB"
         val newAccount = account.rsaEncrypt(rsaKey)
         val newPassword = password.rsaEncrypt(rsaKey)
         val fix = MiHoYoFix()
-        val jsonNode = client.post("https://passport-api.mihoyo.com/account/ma-cn-passport/app/loginByPassword") {
+        val headerMap = mutableMapOf(
+            "x-rpc-app_id" to fix.app,
+            "x-rpc-client_type" to "2",
+            "x-rpc-device_id" to "5094e8dc3f0d4570",
+            "x-rpc-device_fp" to "38d7f057d0dd6",
+            "x-rpc-device_name" to "Redmi+K30S+Ultra",
+            "x-rpc-device_model" to "M2007J3SC",
+            "x-rpc-sys_version" to "12",
+            "x-rpc-game_biz" to "bbs_cn",
+            "x-rpc-app_version" to "2.63.1",
+            "x-rpc-sdk_version" to "2.19.0",
+            "x-rpc-lifecycle_id" to UUID.randomUUID().toString(),
+            "x-rpc-account_version" to "2.19.0",
+            "x-rpc-aigis" to "",
+            "DS" to ds().ds,
+            "user-agent" to "okhttp/4.9.3"
+        )
+        val response = client.post("https://passport-api.mihoyo.com/account/ma-cn-passport/app/loginByPassword") {
             setJsonBody("""{"account":"$newAccount","password":"$newPassword"}""")
             headers {
-                append("x-rpc-app_id", fix.app)
-                append("x-rpc-client_type", "2")
-                append("x-rpc-device_id", "5094e8dc3f0d4570")
-                append("x-rpc-device_fp", "38d7f057d0dd6")
-                append("x-rpc-device_name", "Redmi+K30S+Ultra")
-                append("x-rpc-device_model", "M2007J3SC")
-                append("x-rpc-sys_version", "12")
-                append("x-rpc-game_biz", "bbs_cn")
-                append("x-rpc-app_version", "2.63.1")
-                append("x-rpc-sdk_version", "2.19.0")
-                append("x-rpc-lifecycle_id", UUID.randomUUID().toString())
-                append("x-rpc-account_version", "2.19.0")
-                append("x-rpc-aigis", "")
-                append("DS", newDs().ds)
-                append("user-agent", "okhttp/4.9.3")
+                headerMap.forEach { (t, u) -> append(t, u) }
             }
-        }.body<JsonNode>()
+        }
+        var jsonNode = response.body<JsonNode>()
+        val code = jsonNode["retcode"].asInt()
+        if (code == -3101) {
+            val gisJsonNode = response.headers["X-Rpc-Aigis"]!!.toJsonNode()
+            val sessionId = gisJsonNode["session_id"].asText()
+            val data = gisJsonNode["data"].asText().toJsonNode()
+            val gt = data["gt"].asText()
+            val challenge = data["challenge"].asText()
+            val rr = geeTestLogic.rr(gt, "https://static.mohoyo.com", challenge, tgId = tgId)
+            val aiGis = "$sessionId;" + """
+                {"geetest_challenge":"${rr.challenge}","geetest_seccode":"${rr.validate}|jordan","geetest_validate":"${rr.validate}"}
+            """.trimIndent().base64Encode()
+            headerMap["x-rpc-aigis"] = aiGis
+            headerMap["DS"] = ds().ds
+            jsonNode = client.post("https://passport-api.mihoyo.com/account/ma-cn-passport/app/loginByPassword") {
+                setJsonBody("""{"account":"$newAccount","password":"$newPassword"}""")
+                headers {
+                    headerMap.forEach { (t, u) -> append(t, u) }
+                }
+            }.body<JsonNode>()
+        }
         jsonNode.check()
         val data = jsonNode["data"]
         val ticket = data["login_ticket"].asText()
@@ -419,12 +443,40 @@ class MiHoYoLogic(
         jsonNode.check()
     }
 
+    private suspend fun hubVerifyGeeTest(miHoYoEntity: MiHoYoEntity) {
+        val jsonNode = client.get("https://bbs-api.miyoushe.com/misc/api/createVerification?is_high=true") {
+            miHoYoEntity.fix.hubNewAppend()
+            cookieString(miHoYoEntity.hubCookie())
+        }.body<JsonNode>()
+        jsonNode.check()
+        val data = jsonNode["data"]
+        val challenge = data["challenge"].asText()
+        val gt = data["gt"].asText()
+        val rr = geeTestLogic.rr(gt, "https://bbs.mihoyo.com", challenge, tgId = miHoYoEntity.tgId)
+        val verifyJsonNode = client.post("https://bbs-api.miyoushe.com/misc/api/verifyVerification") {
+            miHoYoEntity.fix.hubNewAppend()
+            cookieString(miHoYoEntity.hubCookie())
+            setJsonBody("""
+                {"geetest_challenge":"${rr.challenge}","geetest_seccode":"${rr.validate}|jordan","geetest_validate":"${rr.validate}"}
+            """.trimIndent())
+        }.body<JsonNode>()
+        verifyJsonNode.check()
+    }
+
     // 2 5 8 6 1 3 4
     suspend fun hubSign(miHoYoEntity: MiHoYoEntity) {
         val list = listOf(2, 5, 8, 6, 1, 3, 4)
         for (i in list) {
             delay(1500)
-            val jsonNode = client.post("https://bbs-api.miyoushe.com/apihub/app/api/signIn") {
+            var jsonNode = client.post("https://bbs-api.miyoushe.com/apihub/app/api/signIn") {
+                setJsonBody("""{"gids":"$i"}""")
+                miHoYoEntity.fix.hubNewAppend(mapOf("gids" to "$i"))
+                cookieString(miHoYoEntity.hubCookie())
+            }.body<JsonNode>()
+            val code = jsonNode["retcode"].asInt()
+            if (code == 1034) hubVerifyGeeTest(miHoYoEntity)
+            if (code in listOf(1008, 0)) continue
+            jsonNode = client.post("https://bbs-api.miyoushe.com/apihub/app/api/signIn") {
                 setJsonBody("""{"gids":"$i"}""")
                 miHoYoEntity.fix.hubNewAppend(mapOf("gids" to "$i"))
                 cookieString(miHoYoEntity.hubCookie())
