@@ -1113,7 +1113,6 @@ class AliDriveLogic(
         val task = cardDetail.tasks.find { map[it.taskName] != null }
             ?: error("不支持的任务，${cardDetail.tasks.joinToString(",") { it.taskName }}")
         map[task.taskName]!!.invoke(aliDriveEntity)
-        cardAward(aliDriveEntity, cardDetail.period, task.taskId)
     }
 
     suspend fun receiveCard(aliDriveEntity: AliDriveEntity) {
