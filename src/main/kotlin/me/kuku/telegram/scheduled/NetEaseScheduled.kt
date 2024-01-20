@@ -42,8 +42,6 @@ class NetEaseScheduled(
                         delay(3000)
                         NetEaseLogic.publish(netEaseEntity)
                         delay(3000)
-                        NetEaseLogic.publishMLog(netEaseEntity)
-                        delay(3000)
                         NetEaseLogic.myMusicComment(netEaseEntity)
                         delay(1000 * 60)
                     } else {

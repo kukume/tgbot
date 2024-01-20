@@ -212,8 +212,6 @@ class ExecExtension(
                 delay(3000)
                 NetEaseLogic.publish(netEaseEntity)
                 delay(3000)
-                NetEaseLogic.publishMLog(netEaseEntity)
-                delay(3000)
                 NetEaseLogic.myMusicComment(netEaseEntity)
                 "网易云音乐人签到成功"
             }

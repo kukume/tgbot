@@ -202,7 +202,7 @@ object NetEaseLogic {
         val missionId = mission.userMissionId?.toString() ?: return CommonResult.failure("userMissionId为空")
         val jsonNode = OkHttpKtUtils.postJson("$domain/weapi/nmusician/workbench/mission/reward/obtain/new",
             prepare(mapOf("userMissionId" to missionId, "period" to mission.period.toString())),
-            OkUtils.headers(netEaseEntity.cookie(), domain, UA.PC)
+            OkUtils.headers(netEaseEntity.pcCookie(), domain, UA.PC)
         )
         val code = jsonNode.getInteger("code")
         return if (code == 200 || code == -2) CommonResult.success()
@@ -318,7 +318,7 @@ object NetEaseLogic {
             val id = res.data()
             removeDy(netEaseEntity, id)
             finishStageMission(netEaseEntity, "发布动态")
-            finishCycleMission(netEaseEntity, "发布动态")
+            finishCycleMission(netEaseEntity, "发布动态-火光计划")
         }
         else CommonResult.failure(res.message)
     }
@@ -424,6 +424,7 @@ object NetEaseLogic {
         val commentId2 = result2.data()
         delay(2000)
         deleteMusicComment(netEaseEntity, netEaseSong.songId, commentId2)
+        finishCycleMission(netEaseEntity, "发布主创说-火光计划")
         return finishStageMission(netEaseEntity, "发表主创说")
     }
 
