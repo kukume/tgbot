@@ -58,8 +58,9 @@ object DouYinLogic {
                 val thirdResponse = OkHttpKtUtils.get(thirdUrl, OkUtils.cookie(firstCookie)).apply { close() }
                 val resCookie = OkUtils.cookie(thirdResponse)
                 val html = OkHttpKtUtils.getStr(
-                    "https://www.douyin.com/?enter=guide",
-                    OkUtils.cookie(resCookie + douYinQrcode.cookie)
+                    "https://www.douyin.com/?is_new_connect=0&is_new_user=0",
+                    OkUtils.headers(resCookie + douYinQrcode.cookie, "https://www.douyin.com/",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                 )
                 val secUserid = MyUtils.regex("//www.douyin.com/user/", "\\?", html)
                 val userid = MyUtils.regex("uid%22%3A%22", "%22%2C%22sec", html)
