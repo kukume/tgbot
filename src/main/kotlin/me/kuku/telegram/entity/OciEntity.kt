@@ -8,9 +8,14 @@ import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
+import java.io.Serializable
 
+@Suppress("ConstPropertyName")
 @Document("oci")
-class OciEntity {
+class OciEntity: Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
     @Id
     var id: String? = null
     var tgId: Long = 0

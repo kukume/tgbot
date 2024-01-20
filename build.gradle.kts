@@ -22,12 +22,11 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
-    implementation("org.ehcache:ehcache:3.10.8")
     implementation("com.github.pengrad:java-telegram-bot-api:6.9.1")
-    implementation("me.kuku:utils:2.3.6.0")
-    implementation("me.kuku:ktor-spring-boot-starter:2.3.6.0")
+    implementation("me.kuku:utils:2.3.7.0")
+    implementation("me.kuku:ktor-spring-boot-starter:2.3.7.0")
     implementation("org.jsoup:jsoup:1.16.1")
-    val ociVersion = "3.31.0"
+    val ociVersion = "3.31.1"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion") {

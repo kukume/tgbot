@@ -12,17 +12,14 @@ import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.OciEntity
 import me.kuku.telegram.entity.OciService
 import me.kuku.telegram.logic.OciLogic
-import org.ehcache.CacheManager
-import org.ehcache.config.builders.CacheConfigurationBuilder
-import org.ehcache.config.builders.ExpiryPolicyBuilder
-import org.ehcache.config.builders.ResourcePoolsBuilder
+import me.kuku.telegram.utils.CacheManager
 import org.springframework.stereotype.Service
+import java.io.Serializable
 import java.time.Duration
 
 @Service
 class OciExtension(
-    private val ociService: OciService,
-    cacheManager: CacheManager
+    private val ociService: OciService
 ) {
 
     fun AbilitySubscriber.oci() {
@@ -47,12 +44,10 @@ class OciExtension(
     }
 
     private val bindCache by lazy {
-        cacheManager.createCache("bindOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, OciEntity::class.java,
-            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+        CacheManager.getCache<Long, OciEntity>("bindOci", Duration.ofMinutes(2))
     }
     private val selectCache by lazy {
-        cacheManager.createCache("selectOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, OciCache::class.java,
-            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+        CacheManager.getCache<Long, OciCache>("selectOci", Duration.ofMinutes(2))
     }
 
     private fun regionButton(): Array<Array<InlineKeyboardButton>> {
@@ -166,8 +161,7 @@ class OciExtension(
     }
 
     private val chooseCache by lazy {
-        cacheManager.createCache("chooseOci", CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.java, String::class.java,
-            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+        CacheManager.getCache<String, String>("chooseOci", Duration.ofMinutes(2))
     }
 
     fun TelegramSubscribe.operate() {
@@ -280,8 +274,7 @@ class OciExtension(
     }
 
     private val securityListCache by lazy {
-        cacheManager.createCache("selectsecurityList", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long::class.javaObjectType, String::class.java,
-            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(2))))
+        CacheManager.getCache<Long, String>("selectsecurityList", Duration.ofMinutes(2))
     }
 
     fun TelegramSubscribe.operateInstance() {
@@ -434,11 +427,20 @@ class OciExtension(
 
 }
 
+@Suppress("ConstPropertyName")
 data class OciCache(
     val entity: OciEntity,
     val createInstanceCache: CreateInstanceCache = CreateInstanceCache()
-)
+): Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+}
 
-class CreateInstanceCache {
+@Suppress("ConstPropertyName")
+class CreateInstanceCache: Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
     var shape: String = ""
 }

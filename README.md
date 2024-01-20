@@ -20,7 +20,7 @@ JDK21 + Mongodb
 | /oci       | oracle cloud 管理  | 无      |
 | /config    | 用户的配置和不需要登陆的推送   | 无      |
 | /push      | 通过http api进行消息推送 | 无      |
-| /ygo       | 游戏王查卡            | 无      |
+| /ygo       | 游戏王查卡            | 卡片名称   |
 | /update    | 更新程序             | 无      |
 | /updatelog | github提交信息       | 无      |
 | /bv        | 获取bv视频           | bv开头id |
@@ -34,6 +34,8 @@ JDK21 + Mongodb
 | 1EUR   | https://buy.stripe.com/4gw4hJdPwci1apa6or |
 | 2EUR   | https://buy.stripe.com/7sIaG7fXE5TDapacMQ |
 | 10EUR  | https://buy.stripe.com/28ocOffXE2Hr8h2aEF |
+| 5USD   | https://buy.stripe.com/14k7tVdPwdm5gNyaEK |                                         |
+| 10USD  | https://buy.stripe.com/3cs8xZ5j00zj40MdQV |                                         |
 
 
 ## Docker
@@ -129,6 +131,7 @@ params: key(get from commands /push) and text, parseMode (optional)
 
 * `/info`可查看发送人的`id` ，设置`creatorId`，`/setting`中可下载日志
 * `/log`中可查看失败任务日志
+* 如果为`docker compose`安装方式，请在其目录下执行`docker-compose logs`查看日志
 
 ## LICENSE
 `AGPLv3`

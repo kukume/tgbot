@@ -8,3 +8,4 @@ plugins/
 **/application-dev.yml
 logs/
 config/
+cache/

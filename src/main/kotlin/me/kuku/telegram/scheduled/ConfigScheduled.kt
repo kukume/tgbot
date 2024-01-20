@@ -47,7 +47,7 @@ class ConfigScheduled(
     suspend fun xianBaoPush() {
         val list = try {
             client.get("http://new.xianbao.fun/plus/json/push.json?230406").body<List<XianBao>>()
-        } catch (e: ConnectException) {
+        } catch (e: Exception) {
             return
         }
         if (list.isEmpty()) return

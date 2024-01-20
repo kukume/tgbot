@@ -12,13 +12,10 @@ import com.pengrad.telegrambot.model.request.Keyboard
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.*
 import com.pengrad.telegrambot.response.SendResponse
-import me.kuku.telegram.utils.SpringUtils
+import me.kuku.telegram.utils.CacheManager
 import me.kuku.utils.JobManager
-import org.ehcache.CacheManager
-import org.ehcache.config.builders.CacheConfigurationBuilder
-import org.ehcache.config.builders.ExpiryPolicyBuilder
-import org.ehcache.config.builders.ResourcePoolsBuilder
 import org.springframework.stereotype.Component
+import java.io.Serializable
 import java.time.Duration
 import java.util.*
 
@@ -76,20 +73,19 @@ typealias ReturnMessageAfter = TelegramContext.() -> Unit
 
 
 private val callbackHistory by lazy {
-    SpringUtils.getBean<CacheManager>().createCache("callbackHistory",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.javaObjectType, LinkedList::class.java,
-            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(5)))
-        )
+    CacheManager.getCache<String, LinkedList<History>>("callbackHistory", Duration.ofMinutes(5))
 }
 private val callbackHistoryKey = mutableSetOf<String>()
 private val callbackAfter by lazy {
-    SpringUtils.getBean<CacheManager>().createCache("callbackAfter",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(String::class.javaObjectType, Any::class.java,
-            ResourcePoolsBuilder.heap(100)).withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(5)))
-    )
+    CacheManager.getCache<String, Any>("callbackAfter", Duration.ofMinutes(5))
 }
 
-private data class History(var message: Message?, var data: String)
+@Suppress("ConstPropertyName")
+private data class History(var message: Message?, var data: String): Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+}
 
 
 class TelegramContext(override val bot: TelegramBot, val update: Update): Context() {
@@ -217,7 +213,7 @@ class MonitorReturn(
         val key = "$tgId$mes$data"
         if (data.startsWith("return_")) {
             val returnKey = "$tgId$mes"
-            val list = callbackHistory.get(returnKey) as? LinkedList<History>
+            val list = callbackHistory[returnKey]
             val first = list?.first()
             if (first?.data == data) {
                 val message = first.message!!

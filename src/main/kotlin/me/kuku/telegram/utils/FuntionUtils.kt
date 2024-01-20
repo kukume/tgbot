@@ -15,7 +15,6 @@ import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
 import java.io.InputStreamReader
 import java.time.LocalDateTime
-import kotlin.concurrent.thread
 
 suspend fun ffmpeg(command: String) {
     val runtime = Runtime.getRuntime()
