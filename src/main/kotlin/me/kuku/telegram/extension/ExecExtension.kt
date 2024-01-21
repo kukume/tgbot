@@ -180,46 +180,37 @@ class ExecExtension(
         before { set(netEaseService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定网易云音乐账号")) }
         callback("netEaseExec") {
             val netEaseSignButton = InlineKeyboardButton("签到").callbackData("netEaseSign")
-            val netEaseMusicianSignButton = InlineKeyboardButton("音乐人签到").callbackData("netEaseMusicianSign")
-            val netEaseMusicianMyComment = InlineKeyboardButton("发布主创说").callbackData("netEaseMusicianMyComment")
+            val sign1 = InlineKeyboardButton("音乐人签到（推荐任务）").callbackData("netEaseMusicianSign1")
+            val sign2 = inlineKeyboardButton("音乐人签到（每日任务）", "netEaseMusicianSign2")
             val vipSign = inlineKeyboardButton("vip签到", "netEaseVipSign")
             val markup = InlineKeyboardMarkup(
                 arrayOf(netEaseSignButton),
-                arrayOf(netEaseMusicianSignButton),
-                arrayOf(netEaseMusicianMyComment),
+                arrayOf(sign1),
+                arrayOf(sign2),
                 arrayOf(vipSign)
             )
             editMessageText("网易云音乐", markup)
         }
         callback("netEaseSign") {
             val netEaseEntity = firstArg<NetEaseEntity>()
-            val result = NetEaseLogic.sign(netEaseEntity)
-            val message = if (result.failure()) {
-                result.message
-            } else {
-                delay(3000)
-                NetEaseLogic.listenMusic(netEaseEntity)
-                "网易云音乐签到成功"
-            }
-            editMessageText(message)
+            NetEaseLogic.sign(netEaseEntity)
+            delay(3000)
+            NetEaseLogic.listenMusic(netEaseEntity)
+            editMessageText("网易云音乐签到成功")
         }
-        callback("netEaseMusicianSign") {
+        callback("netEaseMusicianSign1") {
             val netEaseEntity = firstArg<NetEaseEntity>()
-            val result = NetEaseLogic.musicianSign(netEaseEntity)
-            val message = if (result.failure()) {
-                result.message
-            } else {
-                delay(3000)
-                NetEaseLogic.publish(netEaseEntity)
-                delay(3000)
-                NetEaseLogic.myMusicComment(netEaseEntity)
-                "网易云音乐人签到成功"
-            }
-            editMessageText(message)
+            NetEaseLogic.publish(netEaseEntity)
+            delay(3000)
+            NetEaseLogic.myMusicComment(netEaseEntity)
+            editMessageText("网易云音乐人推荐任务完成成功")
         }
-        callback("netEaseMusicianMyComment") {
-            NetEaseLogic.myMusicComment(firstArg())
-            editMessageText("发布主创说成功")
+        callback("netEaseMusicianSign2") {
+            val netEaseEntity = firstArg<NetEaseEntity>()
+            NetEaseLogic.musicianSign(netEaseEntity)
+            delay(3000)
+            NetEaseLogic.shareMySongAndComment(netEaseEntity)
+            editMessageText("网易云音乐人每日任务完成成功")
         }
         callback("netEaseVipSign") {
             NetEaseLogic.vipSign(firstArg())

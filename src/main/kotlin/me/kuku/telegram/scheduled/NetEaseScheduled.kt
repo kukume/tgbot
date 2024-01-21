@@ -20,10 +20,7 @@ class NetEaseScheduled(
                 delay(3000)
                 NetEaseLogic.listenMusic(netEaseEntity)
                 delay(3000)
-                val result = NetEaseLogic.sign(netEaseEntity)
-                if (result.failure()) {
-                    error(result.message)
-                }
+                NetEaseLogic.sign(netEaseEntity)
             }
         }
     }
@@ -36,16 +33,18 @@ class NetEaseScheduled(
                 var b = false
                 var errorReason: String? = null
                 for (i in 0..1) {
-                    val result = NetEaseLogic.musicianSign(netEaseEntity)
-                    if (result.success()) {
-                        b = true
-                        delay(3000)
+                    kotlin.runCatching {
                         NetEaseLogic.publish(netEaseEntity)
                         delay(3000)
                         NetEaseLogic.myMusicComment(netEaseEntity)
+                        delay(3000)
+                        NetEaseLogic.musicianSign(netEaseEntity)
+                        delay(3000)
+                        NetEaseLogic.shareMySongAndComment(netEaseEntity)
                         delay(1000 * 60)
-                    } else {
-                        errorReason = result.message
+                        b = true
+                    }.onFailure {
+                        errorReason = it.message
                     }
                 }
                 if (!b) {
@@ -60,6 +59,7 @@ class NetEaseScheduled(
         val list = netEaseService.findByVipSign(Status.ON)
         for (netEaseEntity in list.reversed()) {
             logService.log(netEaseEntity.tgId, LogType.NetEaseVip) {
+                delay(3000)
                 NetEaseLogic.vipSign(netEaseEntity)
                 NetEaseLogic.receiveTaskReward(netEaseEntity)
             }

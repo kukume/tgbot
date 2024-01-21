@@ -21,6 +21,8 @@ class NetEaseEntity {
     fun cookie() = "channel=netease; __remember_me=true; MUSIC_U=$musicU; __csrf=$csrf; "
 
     fun pcCookie() = "os=pc; ${cookie()}"
+
+    fun androidCookie() = "os=android; ${cookie()}"
 }
 
 @Suppress("SpringDataRepositoryMethodReturnTypeInspection")

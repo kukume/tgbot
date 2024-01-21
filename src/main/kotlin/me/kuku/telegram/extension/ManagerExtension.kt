@@ -237,6 +237,7 @@ class ManagerExtension(
         callback("netEaseManager") {}
         callback("netEaseSignSwitch") { firstArg<NetEaseEntity>().also { it.sign = !it.sign } }
         callback("netEaseMusicianSignSwitch") { firstArg<NetEaseEntity>().also { it.musicianSign = !it.musicianSign } }
+        callback("netEaseVipSignSwitch") { firstArg<NetEaseEntity>().also { it.vipSign = !it.vipSign } }
         after {
             val netEaseEntity = firstArg<NetEaseEntity>()
             netEaseService.save(netEaseEntity)
@@ -244,9 +245,11 @@ class ManagerExtension(
                 .callbackData("netEaseSignSwitch")
             val musicianSignButton = InlineKeyboardButton("${netEaseEntity.musicianSign}音乐人自动签到")
                 .callbackData("netEaseMusicianSignSwitch")
+            val vipSign = inlineKeyboardButton("vip自动签到", "netEaseVipSignSwitch")
             val inlineKeyboardMarkup = InlineKeyboardMarkup(
                 arrayOf(signButton),
-                arrayOf(musicianSignButton)
+                arrayOf(musicianSignButton),
+                arrayOf(vipSign)
             )
             editMessageText("""
                 网易云签到管理
