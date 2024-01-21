@@ -417,6 +417,7 @@ object NetEaseLogic {
         if (musicCommonResult.failure()) return CommonResult.failure(musicCommonResult.message)
         val netEaseSong = musicCommonResult.data().random()
         val result1 = musicComment(netEaseEntity, netEaseSong.songId)
+        if (result1.failure()) return CommonResult.failure(result1.message)
         val commentId1 = result1.data()
         delay(2000)
         deleteMusicComment(netEaseEntity, netEaseSong.songId, commentId1)

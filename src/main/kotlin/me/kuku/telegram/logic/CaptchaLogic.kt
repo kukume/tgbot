@@ -12,6 +12,7 @@ import me.kuku.telegram.entity.ConfigService
 import me.kuku.utils.client
 import me.kuku.utils.convertValue
 import me.kuku.utils.setFormDataContent
+import me.kuku.utils.toJsonNode
 import org.springframework.stereotype.Service
 
 @Service
@@ -131,7 +132,7 @@ class GeeTestLogic(
                 append("appkey", newKey)
                 append("sharecode", "4eb29017f5464cb2a971364373c65edb")
             }
-        }.body<JsonNode>()
+        }.bodyAsText().toJsonNode()
         return jsonNode["data"]?.convertValue() ?: error(jsonNode["msg"].asText())
     }
 
