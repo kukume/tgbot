@@ -1,7 +1,5 @@
 package me.kuku.telegram.utils
 
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.annotation.JsonTypeInfo
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileInputStream
@@ -100,7 +98,6 @@ open class Cache<K, V>: Serializable {
         private const val serialVersionUID = 1L
     }
 
-    @JsonProperty
     protected open val map = mutableMapOf<K, Body<V>>()
     var expire: Long? = null
 
@@ -109,7 +106,6 @@ open class Cache<K, V>: Serializable {
             private const val serialVersionUID = 1L
         }
 
-        @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
         var value: V? = null
         var time: Long = System.currentTimeMillis()
         var expire: Long = -1
@@ -147,7 +143,7 @@ open class Cache<K, V>: Serializable {
     fun put(key: K, value: V, expire: Long) {
         renew(key)
         map[key] = Body<V>().also {
-            it.expire = System.currentTimeMillis() + expire
+            it.expire = expire
             it.value = value
         }
     }
@@ -170,10 +166,12 @@ open class Cache<K, V>: Serializable {
     }
 
     fun check() {
+        val expireKey = mutableListOf<K>()
         map.forEach { (k, v) ->
             if (v.expire()) {
-                map.remove(k)
+                expireKey.add(k)
             }
         }
+        expireKey.forEach { map.remove(it) }
     }
 }

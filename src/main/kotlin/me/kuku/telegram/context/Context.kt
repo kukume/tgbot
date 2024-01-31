@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component
 import java.io.Serializable
 import java.time.Duration
 import java.util.*
+import kotlin.collections.ArrayList
 
 abstract class Context {
     abstract val tgId: Long
@@ -73,7 +74,7 @@ typealias ReturnMessageAfter = TelegramContext.() -> Unit
 
 
 private val callbackHistory by lazy {
-    CacheManager.getCache<String, LinkedList<History>>("callbackHistory", Duration.ofMinutes(5))
+    CacheManager.getCache<String, ArrayList<History>>("callbackHistory", Duration.ofMinutes(5))
 }
 private val callbackHistoryKey = mutableSetOf<String>()
 private val callbackAfter by lazy {
@@ -109,12 +110,12 @@ class TelegramContext(override val bot: TelegramBot, val update: Update): Contex
                                 goBackStep: Int): InlineKeyboardMarkup {
         val data = query.data()
         val historyKey = "$tgId${message.messageId()}"
-        val history = callbackHistory.get(historyKey) as? LinkedList<History> ?: run {
+        val history = callbackHistory[historyKey] ?: run {
             if (callbackHistoryKey.contains(historyKey)) {
                 callbackHistoryKey.remove(historyKey)
                 errorMessageExpired()
             } else callbackHistoryKey.add(historyKey)
-            LinkedList()
+            arrayListOf()
         }
         val lastButton = message.replyMarkup().inlineKeyboard().last().last()
         val lastCallbackData = lastButton.callbackData()
