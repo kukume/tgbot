@@ -28,15 +28,7 @@ JDK21 + Mongodb
 
 ## Beg
 
-| price  | link                                      |
-|--------|-------------------------------------------|
-| 0.5EUR | https://buy.stripe.com/bIYaG75j0ci1bte28a |
-| 1EUR   | https://buy.stripe.com/4gw4hJdPwci1apa6or |
-| 2EUR   | https://buy.stripe.com/7sIaG7fXE5TDapacMQ |
-| 10EUR  | https://buy.stripe.com/28ocOffXE2Hr8h2aEF |
-| 5USD   | https://buy.stripe.com/14k7tVdPwdm5gNyaEK |                                         |
-| 10USD  | https://buy.stripe.com/3cs8xZ5j00zj40MdQV |                                         |
-
+https://donate.stripe.com/cN2eWneTA5TD7cY007                                      |
 
 ## Docker
 
