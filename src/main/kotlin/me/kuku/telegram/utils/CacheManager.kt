@@ -8,6 +8,8 @@ import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable
 import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.TimeUnit
 
 @Suppress("UNCHECKED_CAST")
@@ -15,7 +17,7 @@ object CacheManager {
 
     private val folder = File("cache")
 
-    val cacheMap: MutableMap<String, Cache<*, *>> = mutableMapOf()
+    val cacheMap: ConcurrentMap<String, Cache<*, *>> = ConcurrentHashMap()
 
     private val logger = LoggerFactory.getLogger(CacheManager::class.java)
 
@@ -98,7 +100,7 @@ open class Cache<K, V>: Serializable {
         private const val serialVersionUID = 1L
     }
 
-    protected open val map = mutableMapOf<K, Body<V>>()
+    protected open val map = ConcurrentHashMap<K, Body<V>>()
     var expire: Long? = null
 
     class Body<V>: Serializable {

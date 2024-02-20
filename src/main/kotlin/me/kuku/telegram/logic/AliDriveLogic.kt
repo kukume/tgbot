@@ -18,6 +18,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.stereotype.Service
 import java.io.ByteArrayInputStream
+import java.io.File
 import java.nio.charset.StandardCharsets
 import java.security.Security
 import java.time.LocalDate
@@ -750,7 +751,7 @@ class AliDriveLogic(
                 batchDeleteFile(aliDriveEntity, bodies)
                 repeat(12) {
                     delay(3000)
-                    val bytes = picture()
+                    val bytes = picture(it)
                     uploadFileToBackupDrive(aliDriveEntity, backupDriveId,
                         "${MyUtils.random(10)}.jpg", bytes, fileId)
                 }
@@ -779,7 +780,7 @@ class AliDriveLogic(
                 joinShareAlbum(filterEntity, shareAlbumInvite.code())
                 repeat(12) {
                     delay(3000)
-                    val bytes = picture()
+                    val bytes = picture(it)
                     uploadFileToShareAlbum(aliDriveEntity, id, "${MyUtils.random(6)}.jpg", bytes)
                 }
             }
@@ -806,7 +807,7 @@ class AliDriveLogic(
                 val driveId = albumsDriveId(aliDriveEntity)
                 repeat(12) {
                     delay(3000)
-                    val bytes = picture()
+                    val bytes = picture(it)
                     uploadFileToAlbums(aliDriveEntity, driveId,
                         "${MyUtils.random(10)}.jpg", bytes, scene = AliDriveScene.AutoBackup, deviceName = "ku ku")
                 }
@@ -823,13 +824,10 @@ class AliDriveLogic(
         }
     }
 
-    private suspend fun picture(): ByteArray {
-        var hour = MyUtils.randomInt(0, 23).toString()
-        if (hour.length == 1) hour = "0$hour"
-        var minute = MyUtils.randomInt(0, 59).toString()
-        if (minute.length == 1) minute = "0$minute"
-        val pictureUrl = "https://minio.kuku.me/kuku/time/$hour/$hour-$minute.jpg"
-        return client.get(pictureUrl).body<ByteArray>()
+    private fun picture(i: Int): ByteArray {
+        val num = i + 1
+        return this::class.java.classLoader.getResourceAsStream("image" + File.separator + "$num.jpg")
+            ?.readAllBytes() ?: error("图片不存在")
     }
 
     suspend fun signInList(aliDriveEntity: AliDriveEntity): AliDriveSignIn {
@@ -975,7 +973,7 @@ class AliDriveLogic(
         for (aliDriveDevice in deviceList) {
             repeat(2) {
                 delay(3000)
-                val bytes = picture()
+                val bytes = picture(it)
                 aliDriveEntity.backupDeviceId = aliDriveDevice.deviceId
                 uploadFileToAlbums(aliDriveEntity, driveId,
                     "${MyUtils.random(10)}.jpg", bytes, scene = AliDriveScene.AutoBackup,
@@ -1032,7 +1030,7 @@ class AliDriveLogic(
         batchDeleteFile(aliDriveEntity, bodies)
         repeat(count) {
             delay(3000)
-            val bytes = picture()
+            val bytes = picture(it)
             val complete = uploadFileToAlbums(
                 aliDriveEntity,
                 albumsDriveId,
@@ -1057,7 +1055,7 @@ class AliDriveLogic(
 
     private suspend fun finishQuickShare(aliDriveEntity: AliDriveEntity) {
         val info = createAutoFile(aliDriveEntity)
-        val bytes = picture()
+        val bytes = picture(5)
         val complete = uploadFileToBackupDrive(
             aliDriveEntity, info.backupDriveId,
             "${MyUtils.random(10)}.jpg", bytes, info.fileId
@@ -1075,7 +1073,7 @@ class AliDriveLogic(
         val fileList = fileList(aliDriveEntity, backupDriveId, fileId)
         val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
         batchDeleteFile(aliDriveEntity, bodies)
-        val bytes = client.get("https://minio.kuku.me/kuku/BV14s4y1Z7ZAoutput.mp4").body<ByteArray>()
+        val bytes = this::class.java.classLoader.getResourceAsStream("video" + File.separator + "BV14s4y1Z7ZAoutput.mp4")!!.readAllBytes()
         val uploadComplete = uploadFileToBackupDrive(
             aliDriveEntity, backupDriveId,
             "BV14s4y1Z7ZAoutput.mp4", bytes, fileId
