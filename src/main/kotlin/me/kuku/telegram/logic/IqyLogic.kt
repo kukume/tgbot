@@ -80,7 +80,7 @@ object IqyLogic {
 
 
     private fun JsonNode.check() {
-        if (this["code"].asText() !in listOf( "A00000", "Q00504")) error(this["msg"].asText())
+        if (this["code"].asText() !in listOf("A00000", "Q00504")) error(this["msg"]?.asText() ?: this["message"].asText())
     }
 
     private fun messageId() = (System.currentTimeMillis() + MyUtils.randomNum(9).toLong()).toString().md5()
