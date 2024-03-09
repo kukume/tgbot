@@ -28,7 +28,7 @@ JDK21 + Mongodb
 
 ## Beg
 
-https://donate.stripe.com/cN2eWneTA5TD7cY007                                      |
+https://donate.stripe.com/cN2eWneTA5TD7cY007
 
 ## Docker
 
