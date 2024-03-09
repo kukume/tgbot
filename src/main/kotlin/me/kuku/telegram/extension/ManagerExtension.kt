@@ -420,6 +420,14 @@ class ManagerExtension(
             else
                 LeiShenLogic.pause(firstArg())
         }
+        callback("leiShenPause") {
+            kotlin.runCatching {
+                LeiShenLogic.pause(firstArg())
+                answerCallbackQuery("雷神加速器时间暂停成功", true)
+            }.onFailure {
+                answerCallbackQuery(it.message ?: "未知错误", true)
+            }
+        }
         after {
             val leiShenEntity: LeiShenEntity = firstArg()
             leiShenService.save(leiShenEntity)
