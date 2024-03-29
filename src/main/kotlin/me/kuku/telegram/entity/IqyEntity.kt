@@ -22,8 +22,9 @@ class IqyEntity: BaseEntity() {
 }
 
 interface IqyRepository: CoroutineCrudRepository<IqyEntity, String> {
-    suspend fun findByTgId(tgId: Long): IqyEntity?
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): IqyEntity?
     suspend fun findBySign(status: Status): List<IqyEntity>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 }
 
 @Service
@@ -31,12 +32,12 @@ class IqyService(
     private val iqyRepository: IqyRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = iqyRepository.findByTgId(tgId)
+    suspend fun findByTgId(tgId: Long) = iqyRepository.findEnableEntityByTgId(tgId) as? IqyEntity
 
     suspend fun save(entity: IqyEntity) = iqyRepository.save(entity)
 
     suspend fun findBySign(status: Status) = iqyRepository.findBySign(status)
 
-
+    suspend fun deleteByTgId(tgId: Long) = iqyRepository.deleteEnableEntityByTgId(tgId)
 
 }

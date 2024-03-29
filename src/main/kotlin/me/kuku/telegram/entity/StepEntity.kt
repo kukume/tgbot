@@ -1,20 +1,15 @@
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("step")
-class StepEntity {
+class StepEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var leXinCookie: String = ""
     var leXinUserid: String = ""
     var leXinAccessToken: String = ""
@@ -23,13 +18,14 @@ class StepEntity {
     var offset: Status = Status.OFF
 }
 
-interface StepRepository: ReactiveMongoRepository<StepEntity, String> {
+@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+interface StepRepository: CoroutineCrudRepository<StepEntity, String> {
 
-    fun findByTgId(tgId: Long): Mono<StepEntity>
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): StepEntity?
 
-    fun findByStepIsGreaterThan(step: Int): Flux<StepEntity>
+    suspend fun findByStepIsGreaterThan(step: Int): List<StepEntity>
 
-    fun deleteByTgId(tgId: Long): Mono<Void>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
 }
 
@@ -38,13 +34,13 @@ class StepService(
     private val stepRepository: StepRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = stepRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = stepRepository.findEnableEntityByTgId(tgId) as? StepEntity
 
-    suspend fun findByAuto(): List<StepEntity> = stepRepository.findByStepIsGreaterThan(0).collectList().awaitSingle()
+    suspend fun findByAuto(): List<StepEntity> = stepRepository.findByStepIsGreaterThan(0)
 
-    suspend fun save(stepEntity: StepEntity): StepEntity = stepRepository.save(stepEntity).awaitSingle()
+    suspend fun save(stepEntity: StepEntity): StepEntity = stepRepository.save(stepEntity)
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = stepRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = stepRepository.deleteEnableEntityByTgId(tgId)
 
 }

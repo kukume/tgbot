@@ -28,7 +28,7 @@ class WeiboScheduled(
     suspend fun sign() {
         val list = weiboService.findBySign(Status.ON)
         for (weiboEntity in list) {
-            logService.log(weiboEntity.tgId, LogType.Weibo) {
+            logService.log(weiboEntity, LogType.Weibo) {
                 WeiboLogic.superTalkSign(weiboEntity)
             }
             delay(3000)

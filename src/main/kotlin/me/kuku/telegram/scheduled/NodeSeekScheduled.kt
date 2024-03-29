@@ -25,7 +25,7 @@ class NodeSeekScheduled(
     suspend fun querySign() {
         val entityList = nodeSeekService.findAll().filter { it.sign != NodeSeekEntity.Sign.None }
         for (entity in entityList) {
-            logService.log(entity.tgId, LogType.NodeSeek) {
+            logService.log(entity, LogType.NodeSeek) {
                 delay(3000)
                 val num = NodeSeekLogic.querySign(entity)
                 text = "成功，获得鸡腿${num}个"

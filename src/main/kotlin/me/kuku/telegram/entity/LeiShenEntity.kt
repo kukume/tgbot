@@ -21,12 +21,11 @@ class LeiShenEntity: BaseEntity() {
 }
 
 interface LeiShenRepository: CoroutineCrudRepository<LeiShenEntity, String> {
-
-    suspend fun findByTgId(tgId: Long): LeiShenEntity?
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): LeiShenEntity?
 
     suspend fun findByStatus(status: Status): List<LeiShenEntity>
 
-    suspend fun deleteByTgId(tgId: Long)
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 }
 
 @Service
@@ -34,12 +33,12 @@ class LeiShenService(
     private val leiShenRepository: LeiShenRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = leiShenRepository.findByTgId(tgId)
+    suspend fun findByTgId(tgId: Long) = leiShenRepository.findEnableEntityByTgId(tgId) as? LeiShenEntity
 
     suspend fun findByStatus(status: Status) = leiShenRepository.findByStatus(status)
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = leiShenRepository.deleteByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long) = leiShenRepository.deleteEnableEntityByTgId(tgId)
 
     suspend fun save(entity: LeiShenEntity) = leiShenRepository.save(entity)
 

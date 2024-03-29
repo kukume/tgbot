@@ -6,6 +6,7 @@ import me.kuku.telegram.context.AbilitySubscriber
 import me.kuku.telegram.context.TelegramSubscribe
 import me.kuku.telegram.context.inlineKeyboardButton
 import me.kuku.telegram.entity.LogService
+import me.kuku.telegram.entity.SwitchService
 import me.kuku.utils.DateTimeFormatterUtils
 import org.springframework.stereotype.Component
 import java.time.LocalDate

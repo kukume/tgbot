@@ -1,10 +1,10 @@
 @file:Suppress("VulnerableLibrariesLocal")
 
 plugins {
-    val kotlinVersion = "1.9.22"
+    val kotlinVersion = "1.9.23"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "3.2.2"
+    id("org.springframework.boot") version "3.2.4"
     id("io.spring.dependency-management") version "1.1.4"
     application
 }
@@ -23,17 +23,17 @@ dependencies {
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("com.github.pengrad:java-telegram-bot-api:7.0.1")
-    implementation("me.kuku:utils:2.3.7.0")
-    implementation("me.kuku:ktor-spring-boot-starter:2.3.7.0")
+    implementation("me.kuku:utils:2.3.9.0")
+    implementation("me.kuku:ktor-spring-boot-starter:2.3.9.1")
     implementation("org.jsoup:jsoup:1.16.1")
-    val ociVersion = "3.32.1"
+    val ociVersion = "3.37.2"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion") {
         exclude("commons-logging", "commons-logging")
     }
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-    implementation("com.google.zxing:javase:3.5.2")
+    implementation("com.google.zxing:javase:3.5.3")
     implementation("net.consensys.cava:cava-bytes:0.5.0")
     implementation("net.consensys.cava:cava-crypto:0.5.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

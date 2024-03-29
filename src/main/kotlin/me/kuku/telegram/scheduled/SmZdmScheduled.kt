@@ -17,7 +17,7 @@ class SmZdmScheduled(
     suspend fun sign() {
         val entityList = smZdmService.findBySign(Status.ON)
         for (smZdmEntity in entityList) {
-            logService.log(smZdmEntity.tgId, LogType.SmZdm) {
+            logService.log(smZdmEntity, LogType.SmZdm) {
                 delay(3000)
                 smZdmLogic.webSign(smZdmEntity, smZdmEntity.tgId)
                 smZdmLogic.appSign(smZdmEntity)

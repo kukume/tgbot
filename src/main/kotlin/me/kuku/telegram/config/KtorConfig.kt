@@ -1,11 +1,14 @@
 package me.kuku.telegram.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import me.kuku.pojo.CommonResult
+import me.kuku.utils.Jackson
+import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
 
 @Component
@@ -28,6 +31,11 @@ class KtorConfig {
             }
         }
 
+    }
+
+    @Bean
+    fun objectMapper(): ObjectMapper {
+        return Jackson.objectMapper
     }
 
 }

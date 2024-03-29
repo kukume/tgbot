@@ -1,29 +1,26 @@
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.flow.toList
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("hu_ya")
-class HuYaEntity {
+class HuYaEntity: BaseEntity() {
     var id: String? = null
-    var tgId: Long = 0
     var cookie: String = ""
     var live: Status = Status.OFF
 }
 
-interface HuYaRepository: ReactiveMongoRepository<HuYaEntity, String> {
+@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+interface HuYaRepository: CoroutineCrudRepository<HuYaEntity, String> {
 
-    fun findByTgId(tgId: Long): Mono<HuYaEntity>
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): HuYaEntity?
 
-    fun findByLive(live: Status): Flux<HuYaEntity>
+    suspend fun findByLive(live: Status): List<HuYaEntity>
 
-    fun deleteByTgId(tgId: Long): Mono<Void>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
 }
 
@@ -32,15 +29,15 @@ class HuYaService(
     private val huYaRepository: HuYaRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = huYaRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = huYaRepository.findEnableEntityByTgId(tgId) as? HuYaEntity
 
-    suspend fun findByLive(live: Status): List<HuYaEntity> = huYaRepository.findByLive(live).collectList().awaitSingle()
+    suspend fun findByLive(live: Status): List<HuYaEntity> = huYaRepository.findByLive(live)
 
-    suspend fun save(huYaEntity: HuYaEntity): HuYaEntity = huYaRepository.save(huYaEntity).awaitSingle()
+    suspend fun save(huYaEntity: HuYaEntity): HuYaEntity = huYaRepository.save(huYaEntity)
 
-    suspend fun findAll(): List<HuYaEntity> = huYaRepository.findAll().collectList().awaitSingle()
+    suspend fun findAll(): List<HuYaEntity> = huYaRepository.findAll().toList()
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = huYaRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = huYaRepository.deleteEnableEntityByTgId(tgId)
 
 }

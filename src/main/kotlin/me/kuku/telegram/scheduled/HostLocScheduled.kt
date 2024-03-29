@@ -56,7 +56,7 @@ class HostLocScheduled(
     suspend fun sign() {
         val list = hostLocService.findBySign(Status.ON)
         for (hostLocEntity in list) {
-            logService.log(hostLocEntity.tgId, LogType.HostLoc) {
+            logService.log(hostLocEntity, LogType.HostLoc) {
                 delay(3000)
                 HostLocLogic.sign(hostLocEntity.cookie)
             }

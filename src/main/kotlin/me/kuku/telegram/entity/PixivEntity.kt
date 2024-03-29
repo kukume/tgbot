@@ -1,32 +1,28 @@
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("pixiv")
-class PixivEntity {
+class PixivEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var cookie: String = ""
     var push: Status = Status.OFF
 }
 
 
-interface PixivRepository: ReactiveMongoRepository<PixivEntity, String> {
+@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+interface PixivRepository: CoroutineCrudRepository<PixivEntity, String> {
 
-    fun findByTgId(tgId: Long): Mono<PixivEntity>
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): PixivEntity?
 
-    fun findByPush(push: Status): Flux<PixivEntity>
+    suspend fun findByPush(push: Status): List<PixivEntity>
 
-    fun deleteByTgId(tgId: Long): Mono<Void>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
 }
 
@@ -35,13 +31,13 @@ class PixivService(
     private val pixivRepository: PixivRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = pixivRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = pixivRepository.findEnableEntityByTgId(tgId) as? PixivEntity
 
-    suspend fun findByPush(push: Status): List<PixivEntity> = pixivRepository.findByPush(push).collectList().awaitSingle()
+    suspend fun findByPush(push: Status): List<PixivEntity> = pixivRepository.findByPush(push)
 
-    suspend fun save(piXivEntity: PixivEntity): PixivEntity = pixivRepository.save(piXivEntity).awaitSingle()
+    suspend fun save(piXivEntity: PixivEntity): PixivEntity = pixivRepository.save(piXivEntity)
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = pixivRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = pixivRepository.deleteEnableEntityByTgId(tgId)
 
 }

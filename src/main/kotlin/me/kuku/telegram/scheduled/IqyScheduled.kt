@@ -18,7 +18,7 @@ class IqyScheduled(
     suspend fun sign() {
         val list = iqyService.findBySign(Status.ON)
         for (entity in list) {
-            logService.log(entity.tgId, LogType.Iqy) {
+            logService.log(entity, LogType.Iqy) {
                 IqyLogic.taskSign(entity)
                 IqyLogic.finishTaskWatch(entity)
             }

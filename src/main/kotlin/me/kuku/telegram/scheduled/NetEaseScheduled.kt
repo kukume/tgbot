@@ -16,7 +16,7 @@ class NetEaseScheduled(
     suspend fun sign() {
         val list = netEaseService.findBySign(Status.ON)
         for (netEaseEntity in list) {
-            logService.log(netEaseEntity.tgId, LogType.NetEase) {
+            logService.log(netEaseEntity, LogType.NetEase) {
                 delay(3000)
                 NetEaseLogic.listenMusic(netEaseEntity)
                 delay(3000)
@@ -25,30 +25,24 @@ class NetEaseScheduled(
         }
     }
 
+    private suspend fun execMusicianSign(netEaseEntity: NetEaseEntity) {
+        NetEaseLogic.musicianSign(netEaseEntity)
+        delay(3000)
+        NetEaseLogic.myMusicComment(netEaseEntity)
+        delay(3000)
+        NetEaseLogic.publishAndShareMySongAndComment(netEaseEntity)
+        delay(1000 * 60)
+    }
+
     @Scheduled(cron = "0 32 8 * * ?")
     suspend fun musicianSign() {
         val list = netEaseService.findByMusicianSign(Status.ON)
         for (netEaseEntity in list) {
-            logService.log(netEaseEntity.tgId, LogType.NetEaseMusician) {
-                var b = false
-                var errorReason: String? = null
-                for (i in 0..1) {
-                    kotlin.runCatching {
-                        NetEaseLogic.publish(netEaseEntity)
-                        delay(3000)
-                        NetEaseLogic.myMusicComment(netEaseEntity)
-                        delay(3000)
-                        NetEaseLogic.musicianSign(netEaseEntity)
-                        delay(3000)
-                        NetEaseLogic.shareMySongAndComment(netEaseEntity)
-                        delay(1000 * 60)
-                        b = true
-                    }.onFailure {
-                        errorReason = it.message
-                    }
-                }
-                if (!b) {
-                    error(errorReason ?: "失败")
+            logService.log(netEaseEntity, LogType.NetEaseMusician) {
+                try {
+                    execMusicianSign(netEaseEntity)
+                } catch (e: Exception) {
+                    execMusicianSign(netEaseEntity)
                 }
             }
         }
@@ -58,7 +52,7 @@ class NetEaseScheduled(
     suspend fun vipSign() {
         val list = netEaseService.findByVipSign(Status.ON)
         for (netEaseEntity in list.reversed()) {
-            logService.log(netEaseEntity.tgId, LogType.NetEaseVip) {
+            logService.log(netEaseEntity, LogType.NetEaseVip) {
                 delay(3000)
                 NetEaseLogic.vipSign(netEaseEntity)
                 NetEaseLogic.receiveTaskReward(netEaseEntity)

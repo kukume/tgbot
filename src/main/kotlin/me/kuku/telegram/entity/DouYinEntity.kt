@@ -1,31 +1,28 @@
+@file:Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.flow.toList
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("dou_yin")
-class DouYinEntity {
+class DouYinEntity: BaseEntity() {
     var id: String? = null
-    var tgId: Long = 0
     var cookie: String = ""
     var userid: Long = 0
     var secUserid: String = ""
     var push: Status = Status.OFF
 }
 
-interface DouYinRepository: ReactiveMongoRepository<DouYinEntity, String> {
+interface DouYinRepository: CoroutineCrudRepository<DouYinEntity, String> {
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): DouYinEntity?
 
-    fun findByTgId(tgId: Long): Mono<DouYinEntity>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
-    fun deleteByTgId(tgId: Long): Mono<Void>
-
-    fun findByPush(push: Status): Flux<DouYinEntity>
+    suspend fun findByPush(push: Status): List<DouYinEntity>
 
 }
 
@@ -35,15 +32,15 @@ class DouYinService(
     private val douYinRepository: DouYinRepository
 ) {
 
-    suspend fun save(douYinEntity: DouYinEntity): DouYinEntity = douYinRepository.save(douYinEntity).awaitSingle()
+    suspend fun save(douYinEntity: DouYinEntity): DouYinEntity = douYinRepository.save(douYinEntity)
 
-    suspend fun findByTgId(tgId: Long) = douYinRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = douYinRepository.findEnableEntityByTgId(tgId) as? DouYinEntity
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = douYinRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = douYinRepository.deleteEnableEntityByTgId(tgId)
 
-    suspend fun findAll(): List<DouYinEntity> = douYinRepository.findAll().collectList().awaitSingle()
+    suspend fun findAll(): List<DouYinEntity> = douYinRepository.findAll().toList()
 
-    suspend fun findByPush(push: Status): List<DouYinEntity> = douYinRepository.findByPush(push).collectList().awaitSingle()
+    suspend fun findByPush(push: Status): List<DouYinEntity> = douYinRepository.findByPush(push)
 
 }

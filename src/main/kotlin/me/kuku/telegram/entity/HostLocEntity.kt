@@ -1,34 +1,32 @@
+@file:Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.flow.toList
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("host_loc")
-class HostLocEntity {
+class HostLocEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var cookie: String = ""
     var push: Status = Status.OFF
     var sign: Status = Status.OFF
 }
 
-interface HostLocRepository: ReactiveMongoRepository<HostLocEntity, String> {
+interface HostLocRepository: CoroutineCrudRepository<HostLocEntity, String> {
 
-    fun findByTgId(tgId: Long): Mono<HostLocEntity>
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): HostLocEntity?
 
-    fun findByPush(push: Status): Flux<HostLocEntity>
+    suspend fun findByPush(push: Status): List<HostLocEntity>
 
-    fun findBySign(sign: Status): Flux<HostLocEntity>
+    suspend fun findBySign(sign: Status): List<HostLocEntity>
 
-    fun deleteByTgId(tgId: Long): Mono<Void>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
 }
 
@@ -36,16 +34,16 @@ interface HostLocRepository: ReactiveMongoRepository<HostLocEntity, String> {
 class HostLocService(
     private val hostLocRepository: HostLocRepository
 ) {
-    suspend fun findByTgId(tgId: Long) = hostLocRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = hostLocRepository.findEnableEntityByTgId(tgId) as? HostLocEntity
 
-    suspend fun findByPush(push: Status): List<HostLocEntity> = hostLocRepository.findByPush(push).collectList().awaitSingle()
+    suspend fun findByPush(push: Status): List<HostLocEntity> = hostLocRepository.findByPush(push)
 
-    suspend fun findBySign(sign: Status): List<HostLocEntity> = hostLocRepository.findBySign(sign).collectList().awaitSingle()
+    suspend fun findBySign(sign: Status): List<HostLocEntity> = hostLocRepository.findBySign(sign)
 
-    suspend fun save(hostLocEntity: HostLocEntity): HostLocEntity = hostLocRepository.save(hostLocEntity).awaitSingle()
+    suspend fun save(hostLocEntity: HostLocEntity): HostLocEntity = hostLocRepository.save(hostLocEntity)
 
-    suspend fun findAll(): List<HostLocEntity> = hostLocRepository.findAll().collectList().awaitSingle()
+    suspend fun findAll(): List<HostLocEntity> = hostLocRepository.findAll().toList()
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = hostLocRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = hostLocRepository.deleteEnableEntityByTgId(tgId)
 }

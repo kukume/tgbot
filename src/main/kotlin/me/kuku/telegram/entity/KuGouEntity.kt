@@ -1,20 +1,16 @@
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.flow.toList
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("ku_gou")
-class KuGouEntity {
+class KuGouEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var token: String = ""
     var userid: Long = 0
     var kuGoo: String = ""
@@ -22,13 +18,14 @@ class KuGouEntity {
     var sign: Status = Status.OFF
 }
 
-interface KuGouRepository: ReactiveMongoRepository<KuGouEntity, String> {
+@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+interface KuGouRepository: CoroutineCrudRepository<KuGouEntity, String> {
 
-    fun findByTgId(tgId: Long): Mono<KuGouEntity>
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): KuGouEntity?
 
-    fun findBySign(sign: Status): Flux<KuGouEntity>
+    suspend fun findBySign(sign: Status): List<KuGouEntity>
 
-    fun deleteByTgId(tgId: Long): Mono<Void>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
 }
 
@@ -37,14 +34,14 @@ class KuGouService(
     private val kuGouRepository: KuGouRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = kuGouRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = kuGouRepository.findEnableEntityByTgId(tgId) as? KuGouEntity
 
-    suspend fun findBySign(sign: Status): List<KuGouEntity> = kuGouRepository.findBySign(sign).collectList().awaitSingle()
+    suspend fun findBySign(sign: Status): List<KuGouEntity> = kuGouRepository.findBySign(sign)
 
-    suspend fun save(kuGouEntity: KuGouEntity): KuGouEntity = kuGouRepository.save(kuGouEntity).awaitSingle()
+    suspend fun save(kuGouEntity: KuGouEntity): KuGouEntity = kuGouRepository.save(kuGouEntity)
 
-    suspend fun findAll(): List<KuGouEntity> = kuGouRepository.findAll().collectList().awaitSingle()
+    suspend fun findAll(): List<KuGouEntity> = kuGouRepository.findAll().toList()
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = kuGouRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = kuGouRepository.deleteEnableEntityByTgId(tgId)
 }

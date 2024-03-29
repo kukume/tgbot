@@ -22,9 +22,9 @@ class NodeSeekEntity: BaseEntity() {
 @Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface NodeSeekRepository: CoroutineCrudRepository<NodeSeekEntity, String> {
 
-    suspend fun findByTgId(tgId: Long): NodeSeekEntity?
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): NodeSeekEntity?
 
-    suspend fun deleteByTgId(tgId: Long)
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
 }
 
@@ -35,9 +35,9 @@ class NodeSeekService(
 
     suspend fun save(entity: NodeSeekEntity) = nodeSeekRepository.save(entity)
 
-    suspend fun findByTgId(tgId: Long) = nodeSeekRepository.findByTgId(tgId)
+    suspend fun findByTgId(tgId: Long) = nodeSeekRepository.findEnableEntityByTgId(tgId) as? NodeSeekEntity
 
-    suspend fun deleteByTgId(tgId: Long) = nodeSeekRepository.deleteByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long) = nodeSeekRepository.deleteEnableEntityByTgId(tgId)
 
     suspend fun findAll() = nodeSeekRepository.findAll().toList()
 

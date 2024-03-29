@@ -98,7 +98,7 @@ class DouYuScheduled(
     suspend fun douYuSign() {
         val list = douYuService.findByFishGroup(Status.ON)
         for (douYuEntity in list) {
-            logService.log(douYuEntity.tgId, LogType.DouYu) {
+            logService.log(douYuEntity, LogType.DouYu) {
                 delay(3000)
                 val cookie = douYuEntity.cookie
                 if (cookie.isNotEmpty()) douYuLogic.fishGroup(douYuEntity)

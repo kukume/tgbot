@@ -16,6 +16,7 @@ JDK21 + Mongodb
 | /exec      | 手动执行签到           | 无      |
 | /manager   | 管理自动签到状态，默认全为关   | 无      |
 | /delete    | 删除登陆的账号          | 无      |
+| /switch    | 切换身份以支持多账号       | 无      |
 | /log       | 自动签到日志           | 无      |
 | /oci       | oracle cloud 管理  | 无      |
 | /config    | 用户的配置和不需要登陆的推送   | 无      |

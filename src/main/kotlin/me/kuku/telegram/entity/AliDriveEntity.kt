@@ -28,11 +28,11 @@ class AliDriveEntity: BaseEntity() {
 @Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface AliDriveRepository: CoroutineCrudRepository<AliDriveEntity, String> {
 
-    suspend fun findByTgId(tgId: Long): AliDriveEntity?
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): AliDriveEntity?
+
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
     suspend fun findBySign(sign: Status): List<AliDriveEntity>
-
-    suspend fun deleteByTgId(tgId: Long)
 
     suspend fun findByTask(task: Status): List<AliDriveEntity>
 
@@ -48,7 +48,7 @@ class AliDriveService(
     private val aliDriveRepository: AliDriveRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = aliDriveRepository.findByTgId(tgId)
+    suspend fun findByTgId(tgId: Long) = aliDriveRepository.findEnableEntityByTgId(tgId) as? AliDriveEntity
 
     suspend fun findBySign(sign: Status) = aliDriveRepository.findBySign(sign)
 
@@ -56,7 +56,7 @@ class AliDriveService(
 
     suspend fun delete(aliDriveEntity: AliDriveEntity) = aliDriveRepository.delete(aliDriveEntity)
 
-    suspend fun deleteByTgId(tgId: Long) = aliDriveRepository.deleteByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long) = aliDriveRepository.deleteEnableEntityByTgId(tgId)
 
     suspend fun findByTask(task: Status) = aliDriveRepository.findByTask(task)
 

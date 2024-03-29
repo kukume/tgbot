@@ -1,20 +1,18 @@
+@file:Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.flow.toList
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("dou_yu")
-class DouYuEntity {
+class DouYuEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var cookie: String = ""
     var appCookie: String = ""
     var live: Status = Status.OFF
@@ -23,19 +21,19 @@ class DouYuEntity {
     var titleChange: Status = Status.OFF
 }
 
-interface DouYuRepository: ReactiveMongoRepository<DouYuEntity, String> {
+interface DouYuRepository: CoroutineCrudRepository<DouYuEntity, String> {
 
-    fun findByTgId(tgId: Long): Mono<DouYuEntity>
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): DouYuEntity?
 
-    fun findByLive(live: Status): Flux<DouYuEntity>
+    suspend fun findByLive(live: Status): List<DouYuEntity>
 
-    fun deleteByTgId(tgId: Long): Mono<Void>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
-    fun findByFishGroup(fishGroup: Status): Flux<DouYuEntity>
+    suspend fun findByFishGroup(fishGroup: Status): List<DouYuEntity>
 
-    fun findByPush(push: Status): Flux<DouYuEntity>
+    suspend fun findByPush(push: Status): List<DouYuEntity>
 
-    fun findByTitleChange(titleChange: Status): Flux<DouYuEntity>
+    suspend fun findByTitleChange(titleChange: Status): List<DouYuEntity>
 
 }
 
@@ -43,21 +41,21 @@ interface DouYuRepository: ReactiveMongoRepository<DouYuEntity, String> {
 class DouYuService(
     private val douYuRepository: DouYuRepository
 ) {
-    suspend fun findByLive(live: Status): List<DouYuEntity> = douYuRepository.findByLive(live).collectList().awaitSingle()
+    suspend fun findByLive(live: Status): List<DouYuEntity> = douYuRepository.findByLive(live)
 
-    suspend fun save(douYuEntity: DouYuEntity) = douYuRepository.save(douYuEntity).awaitSingleOrNull()
+    suspend fun save(douYuEntity: DouYuEntity) = douYuRepository.save(douYuEntity)
 
-    suspend fun findByTgId(tgId: Long) = douYuRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = douYuRepository.findEnableEntityByTgId(tgId) as? DouYuEntity
 
-    suspend fun findAll(): List<DouYuEntity> = douYuRepository.findAll().collectList().awaitSingle()
+    suspend fun findAll(): List<DouYuEntity> = douYuRepository.findAll().toList()
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = douYuRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = douYuRepository.deleteEnableEntityByTgId(tgId)
 
-    suspend fun findByFishGroup(fishGroup: Status): List<DouYuEntity> = douYuRepository.findByFishGroup(fishGroup).collectList().awaitSingle()
+    suspend fun findByFishGroup(fishGroup: Status): List<DouYuEntity> = douYuRepository.findByFishGroup(fishGroup)
 
-    suspend fun findByPush(push: Status): List<DouYuEntity> = douYuRepository.findByPush(push).collectList().awaitSingle()
+    suspend fun findByPush(push: Status): List<DouYuEntity> = douYuRepository.findByPush(push)
 
-    suspend fun findByTitleChange(titleChange: Status): List<DouYuEntity> = douYuRepository.findByTitleChange(titleChange).collectList().awaitSingle()
+    suspend fun findByTitleChange(titleChange: Status): List<DouYuEntity> = douYuRepository.findByTitleChange(titleChange)
 
 }

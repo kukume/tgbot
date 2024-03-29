@@ -19,7 +19,7 @@ class GlaDosScheduled(
     suspend fun sign() {
         val list = glaDosService.findBySign(Status.ON)
         for (glaDosEntity in list) {
-            logService.log(glaDosEntity.tgId, LogType.GlaDos) {
+            logService.log(glaDosEntity, LogType.GlaDos) {
                 delay(3000)
                 GlaDosLogic.sign(glaDosEntity)
             }

@@ -1,21 +1,19 @@
+@file:Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.flow.toList
 import me.kuku.utils.OkUtils
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("baidu")
-class BaiduEntity {
+class BaiduEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var cookie: String = ""
     var tieBaSToken: String = ""
     var sign: Status = Status.OFF
@@ -29,11 +27,10 @@ class BaiduEntity {
     }
 }
 
-interface BaiduRepository: ReactiveMongoRepository<BaiduEntity, String> {
-    fun findByTgId(tgId: Long): Mono<BaiduEntity>
-    fun findBySign(sign: Status): Flux<BaiduEntity>
-
-    fun deleteByTgId(tgId: Long): Mono<Void>
+interface BaiduRepository: CoroutineCrudRepository<BaiduEntity, String> {
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): BaiduEntity?
+    suspend fun findBySign(sign: Status): List<BaiduEntity>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 }
 
 @Service
@@ -41,14 +38,14 @@ class BaiduService(
     private val baiduRepository: BaiduRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = baiduRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = baiduRepository.findEnableEntityByTgId(tgId) as? BaiduEntity
 
-    suspend fun save(baiduEntity: BaiduEntity) = baiduRepository.save(baiduEntity).awaitSingle()!!
+    suspend fun save(baiduEntity: BaiduEntity) = baiduRepository.save(baiduEntity)
 
-    suspend fun findBySign(sign: Status): List<BaiduEntity> = baiduRepository.findBySign(sign).collectList().awaitSingle()
+    suspend fun findBySign(sign: Status): List<BaiduEntity> = baiduRepository.findBySign(sign)
 
-    suspend fun findAll(): List<BaiduEntity> = baiduRepository.findAll().collectList().awaitSingle()
+    suspend fun findAll(): List<BaiduEntity> = baiduRepository.findAll().toList()
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = baiduRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = baiduRepository.deleteEnableEntityByTgId(tgId)
 }

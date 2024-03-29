@@ -1,34 +1,30 @@
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("weibo")
-class WeiboEntity {
+class WeiboEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var cookie: String = ""
     var push: Status = Status.OFF
     var sign: Status = Status.OFF
 }
 
-interface WeiboRepository: ReactiveMongoRepository<WeiboEntity, String> {
+@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+interface WeiboRepository: CoroutineCrudRepository<WeiboEntity, String> {
 
-    fun findByTgId(tgId: Long): Mono<WeiboEntity>
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): WeiboEntity?
 
-    fun findByPush(push: Status): Flux<WeiboEntity>
+    suspend fun findByPush(push: Status): List<WeiboEntity>
 
-    fun findBySign(sign: Status): Flux<WeiboEntity>
+    suspend fun findBySign(sign: Status): List<WeiboEntity>
 
-    fun deleteByTgId(tgId: Long): Mono<Void>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
 }
 
@@ -37,15 +33,15 @@ class WeiboService(
     private val weiboRepository: WeiboRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = weiboRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = weiboRepository.findEnableEntityByTgId(tgId) as? WeiboEntity
 
-    suspend fun findByPush(push: Status): List<WeiboEntity> = weiboRepository.findByPush(push).collectList().awaitSingle()
+    suspend fun findByPush(push: Status): List<WeiboEntity> = weiboRepository.findByPush(push)
 
-    suspend fun findBySign(sign: Status): List<WeiboEntity> = weiboRepository.findBySign(sign).collectList().awaitSingle()
+    suspend fun findBySign(sign: Status): List<WeiboEntity> = weiboRepository.findBySign(sign)
 
-    suspend fun save(weiboEntity: WeiboEntity): WeiboEntity = weiboRepository.save(weiboEntity).awaitSingle()
+    suspend fun save(weiboEntity: WeiboEntity): WeiboEntity = weiboRepository.save(weiboEntity)
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = weiboRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = weiboRepository.deleteEnableEntityByTgId(tgId)
 
 }

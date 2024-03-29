@@ -17,7 +17,7 @@ class MiHoYoScheduled(
     suspend fun genShinSign() {
         val list = miHoYoService.findBySign(Status.ON)
         for (miHoYoEntity in list) {
-            logService.log(miHoYoEntity.tgId, LogType.GenShin) {
+            logService.log(miHoYoEntity, LogType.GenShin) {
                 miHoYoLogic.sign(miHoYoEntity, miHoYoEntity.tgId)
             }
             delay(3000)
@@ -28,7 +28,7 @@ class MiHoYoScheduled(
     suspend fun mysSign() {
         val list = miHoYoService.findByMysSign(Status.ON)
         for (miHoYoEntity in list) {
-            logService.log(miHoYoEntity.tgId, LogType.Mys) {
+            logService.log(miHoYoEntity, LogType.Mys) {
                 miHoYoLogic.mysSign(miHoYoEntity)
             }
             delay(3000)

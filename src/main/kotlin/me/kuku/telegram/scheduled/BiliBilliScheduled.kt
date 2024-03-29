@@ -34,7 +34,7 @@ class BiliBilliScheduled(
     suspend fun sign() {
         val list = biliBiliService.findBySign(Status.ON)
         for (biliBiliEntity in list) {
-            logService.log(biliBiliEntity.tgId, LogType.BiliBili) {
+            logService.log(biliBiliEntity, LogType.BiliBili) {
                 val firstRank = BiliBiliLogic.ranking()[0]
                 delay(5000)
                 BiliBiliLogic.watchVideo(biliBiliEntity, firstRank)

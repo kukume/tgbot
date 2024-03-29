@@ -1,20 +1,18 @@
+@file:Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+
 package me.kuku.telegram.entity
 
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.flow.toList
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @Document("bili_bili")
-class BiliBiliEntity {
+class BiliBiliEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var cookie: String = ""
     var userid: String = ""
     var token: String = ""
@@ -24,17 +22,17 @@ class BiliBiliEntity {
 //    var coin: Status = Status.OFF
 }
 
-interface BiliBiliRepository: ReactiveMongoRepository<BiliBiliEntity, String> {
+interface BiliBiliRepository: CoroutineCrudRepository<BiliBiliEntity, String> {
 
-    fun findByTgId(tgId: Long): Mono<BiliBiliEntity>
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): BiliBiliEntity?
 
-    fun findByPush(push: Status): Flux<BiliBiliEntity>
+    suspend fun findByPush(push: Status): List<BiliBiliEntity>
 
-    fun findBySign(sign: Status): Flux<BiliBiliEntity>
+    suspend fun findBySign(sign: Status): List<BiliBiliEntity>
 
-    fun findByLive(live: Status): Flux<BiliBiliEntity>
+    suspend fun findByLive(live: Status): List<BiliBiliEntity>
 
-    fun deleteByTgId(tgId: Long): Mono<Void>
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
 }
 
@@ -43,19 +41,19 @@ class BiliBiliService(
     private val biliBiliRepository: BiliBiliRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = biliBiliRepository.findByTgId(tgId).awaitSingleOrNull()
+    suspend fun findByTgId(tgId: Long) = biliBiliRepository.findEnableEntityByTgId(tgId) as? BiliBiliEntity
 
-    suspend fun findByPush(push: Status): List<BiliBiliEntity> = biliBiliRepository.findByPush(push).collectList().awaitSingle()
+    suspend fun findByPush(push: Status): List<BiliBiliEntity> = biliBiliRepository.findByPush(push)
 
-    suspend fun findBySign(sign: Status): List<BiliBiliEntity> = biliBiliRepository.findBySign(sign).collectList().awaitSingle()
+    suspend fun findBySign(sign: Status): List<BiliBiliEntity> = biliBiliRepository.findBySign(sign)
 
-    suspend fun findByLive(live: Status): List<BiliBiliEntity> = biliBiliRepository.findByLive(live).collectList().awaitSingle()
+    suspend fun findByLive(live: Status): List<BiliBiliEntity> = biliBiliRepository.findByLive(live)
 
-    suspend fun save(biliEntity: BiliBiliEntity) = biliBiliRepository.save(biliEntity).awaitSingleOrNull()
+    suspend fun save(biliEntity: BiliBiliEntity) = biliBiliRepository.save(biliEntity)
 
-    suspend fun findAll(): List<BiliBiliEntity> = biliBiliRepository.findAll().collectList().awaitSingle()
+    suspend fun findAll(): List<BiliBiliEntity> = biliBiliRepository.findAll().toList()
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = biliBiliRepository.deleteByTgId(tgId).awaitSingleOrNull()
+    suspend fun deleteByTgId(tgId: Long) = biliBiliRepository.deleteEnableEntityByTgId(tgId)
 
 }

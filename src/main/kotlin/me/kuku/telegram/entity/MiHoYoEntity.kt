@@ -30,12 +30,11 @@ class MiHoYoEntity: BaseEntity() {
 
 @Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface MiHoYoRepository: CoroutineCrudRepository<MiHoYoEntity, String> {
-
-    suspend fun findByTgId(tgId: Long): MiHoYoEntity?
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): MiHoYoEntity?
 
     suspend fun findBySign(sign: Status): List<MiHoYoEntity>
 
-    suspend fun deleteByTgId(tgId: Long)
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
     suspend fun findByMysSign(sign: Status): List<MiHoYoEntity>
 
@@ -46,7 +45,7 @@ class MiHoYoService(
     private val miHoYoRepository: MiHoYoRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = miHoYoRepository.findByTgId(tgId)
+    suspend fun findByTgId(tgId: Long) = miHoYoRepository.findEnableEntityByTgId(tgId) as? MiHoYoEntity
 
     suspend fun findBySign(sign: Status): List<MiHoYoEntity> = miHoYoRepository.findBySign(sign)
 
@@ -57,6 +56,6 @@ class MiHoYoService(
     suspend fun findAll(): List<MiHoYoEntity> = miHoYoRepository.findAll().toList()
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = miHoYoRepository.deleteByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long) = miHoYoRepository.deleteEnableEntityByTgId(tgId)
 
 }

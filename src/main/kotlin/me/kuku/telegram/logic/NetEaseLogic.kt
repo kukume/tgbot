@@ -8,6 +8,7 @@ import io.ktor.http.*
 import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
+import me.kuku.telegram.config.api
 import me.kuku.telegram.entity.NetEaseEntity
 import me.kuku.utils.*
 import okhttp3.internal.toHexString
@@ -294,10 +295,10 @@ object NetEaseLogic {
     }
 
     suspend fun publish(netEaseEntity: NetEaseEntity) {
-        val list = personalizedPlaylist(netEaseEntity)
-        val play = list.random()
-        val id = shareResource(netEaseEntity, play.id)
-        removeDy(netEaseEntity, id)
+        val list = myMusic(netEaseEntity)
+        val netEaseSong = list.random()
+        val commentId = shareMySong(netEaseEntity, netEaseSong.songId)
+        removeDy(netEaseEntity, commentId)
         finishStageMission(netEaseEntity, "发布动态")
     }
 
@@ -440,12 +441,12 @@ object NetEaseLogic {
         jsonNode.check()
     }
 
-    // https://music.163.com/weapi/share/friends/resource?csrf_token=ec54f07c28dab5cf7d52b6f01dc9bb66
-    // {"type":"song","id":"1864698228","msg":"测","checkToken":"9ca17ae2e6ffcda170e2e6eed4e67f928dabd9e8809aac8ab6d45a829a8b82d533b0b29798d06fa98bfca7b52af0feaec3b92a9187a399bb7fbbaabf8cb35e939f9fa3c84b8d8bf8d2fc43f8b0c0a9f33d8a8aee9e","uuid":"publish-170582104677754923","csrf_token":"ec54f07c28dab5cf7d52b6f01dc9bb66"}
-
     private suspend fun shareMySong(netEaseEntity: NetEaseEntity, songId: Long, msg: String = "每日分享"): Long {
+        val checkTokenNode = client.post("$api/exec/netEase/checkToken").body<JsonNode>()
+        val checkToken = checkTokenNode["checkToken"].asText() ?: error("获取checkToken失败，请检查api")
         val jsonNode = client.post("$domain/weapi/share/friends/resource") {
-            setParams(mapOf("type" to "song", "id" to songId.toString(), "msg" to msg))
+            setParams(mapOf("type" to "song", "id" to songId.toString(), "msg" to msg,
+                "uuid" to "publish-${System.currentTimeMillis()}${MyUtils.randomNum(5)}", "checkToken" to checkToken))
             cookieString(netEaseEntity.cookie())
         }.body<JsonNode>()
         jsonNode.check()
@@ -469,12 +470,14 @@ object NetEaseLogic {
         finishCycleMission(netEaseEntity, "在自己动态下发布评论")
     }
 
-    suspend fun shareMySongAndComment(netEaseEntity: NetEaseEntity) {
+    suspend fun publishAndShareMySongAndComment(netEaseEntity: NetEaseEntity) {
         val list = myMusic(netEaseEntity)
         val netEaseSong = list.random()
         val commentId = shareMySong(netEaseEntity, netEaseSong.songId)
         dynamicComment(netEaseEntity, commentId)
         removeDy(netEaseEntity, commentId)
+        delay(5000)
+        finishStageMission(netEaseEntity, "发布动态")
         finishCycleMission(netEaseEntity, "在动态分享歌曲")
         finishCycleMission(netEaseEntity, "在自己动态下发布评论")
     }

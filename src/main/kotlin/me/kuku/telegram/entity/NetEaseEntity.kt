@@ -8,10 +8,9 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Document("net_ease")
-class NetEaseEntity {
+class NetEaseEntity: BaseEntity() {
     @Id
     var id: String? = null
-    var tgId: Long = 0
     var musicU: String = ""
     var csrf: String = ""
     var sign: Status = Status.OFF
@@ -28,13 +27,13 @@ class NetEaseEntity {
 @Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface NetEaseRepository: CoroutineCrudRepository<NetEaseEntity, String> {
 
-    suspend fun findByTgId(tgId: Long): NetEaseEntity?
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): NetEaseEntity?
 
     suspend fun findBySign(sign: Status): List<NetEaseEntity>
 
     suspend fun findByMusicianSign(musicianSign: Status): List<NetEaseEntity>
 
-    suspend fun deleteByTgId(tgId: Long)
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
     suspend fun findByVipSign(status: Status): List<NetEaseEntity>
 
@@ -45,7 +44,7 @@ class NetEaseService(
     private val netEaseRepository: NetEaseRepository
 ) {
 
-    suspend fun findByTgId(tgId: Long) = netEaseRepository.findByTgId(tgId)
+    suspend fun findByTgId(tgId: Long) = netEaseRepository.findEnableEntityByTgId(tgId) as? NetEaseEntity
 
     suspend fun findBySign(sign: Status): List<NetEaseEntity> = netEaseRepository.findBySign(sign)
 
@@ -56,7 +55,7 @@ class NetEaseService(
     suspend fun findAll(netEaseEntity: NetEaseEntity): List<NetEaseEntity> = netEaseRepository.findAll().toList()
 
     @Transactional
-    suspend fun deleteByTgId(tgId: Long) = netEaseRepository.deleteByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long) = netEaseRepository.deleteEnableEntityByTgId(tgId)
 
     suspend fun findByVipSign(status: Status) = netEaseRepository.findByVipSign(status)
 

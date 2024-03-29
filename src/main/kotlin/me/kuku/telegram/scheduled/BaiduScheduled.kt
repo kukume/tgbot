@@ -17,7 +17,7 @@ class BaiduScheduled(
     suspend fun sign() {
         val list = baiduService.findBySign(Status.ON)
         for (baiduEntity in list) {
-            logService.log(baiduEntity.tgId, LogType.Baidu) {
+            logService.log(baiduEntity, LogType.Baidu) {
                 for (i in 0 until 12) {
                     delay(1000 * 15)
                     baiduLogic.ybbWatchAd(baiduEntity)

@@ -22,7 +22,7 @@ class StepScheduled(
             if (stepEntity.offset == Status.ON) {
                 step = MyUtils.randomInt(step - 1000, step + 1000)
             }
-            logService.log(stepEntity.tgId, LogType.Step) {
+            logService.log(stepEntity, LogType.Step) {
                 XiaomiStepLogic.modifyStepCount(stepEntity, step)
                 LeXinStepLogic.modifyStepCount(stepEntity, step)
             }

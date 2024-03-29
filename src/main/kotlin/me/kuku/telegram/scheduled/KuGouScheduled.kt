@@ -17,7 +17,7 @@ class KuGouScheduled(
     suspend fun sign() {
         val list = kuGouService.findBySign(Status.ON)
         for (kuGouEntity in list) {
-            logService.log(kuGouEntity.tgId, LogType.KuGou) {
+            logService.log(kuGouEntity, LogType.KuGou) {
                 kuGouLogic.musicianSign(kuGouEntity)
                 kuGouLogic.listenMusic(kuGouEntity)
                 repeat(8) {

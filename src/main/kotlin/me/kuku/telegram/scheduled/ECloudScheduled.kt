@@ -19,7 +19,7 @@ class ECloudScheduled(
     suspend fun sign() {
         val list = eCloudService.findBySign(Status.ON)
         for (eCloudEntity in list) {
-            logService.log(eCloudEntity.tgId, LogType.ECloud) {
+            logService.log(eCloudEntity, LogType.ECloud) {
                 eCloudLogic.sign(eCloudEntity)
             }
         }

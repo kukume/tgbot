@@ -28,7 +28,10 @@ class DeleteExtension(
     private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
     private val youPinService: YouPinService,
-    private val nodeSeekService: NodeSeekService
+    private val nodeSeekService: NodeSeekService,
+    private val gloDosService: GlaDosService,
+    private val iqyService: IqyService,
+    private val eCloudService: ECloudService
 ) {
 
     private fun markup(): InlineKeyboardMarkup {
@@ -51,6 +54,9 @@ class DeleteExtension(
         val leiShenDelete = inlineKeyboardButton("雷神加速器", "leiShenDelete")
         val youPinDelete = inlineKeyboardButton("悠悠有品", "youPinDelete")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekDelete")
+        val gloDos = inlineKeyboardButton("GloDos", "gloDosDelete")
+        val iqy = inlineKeyboardButton("爱奇艺", "iqyDelete")
+        val eCloud = inlineKeyboardButton("天翼云盘", "eCloudDelete")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -61,7 +67,8 @@ class DeleteExtension(
             arrayOf(pixivButton, buffButton),
             arrayOf(smZdmButton, aliDriveButton),
             arrayOf(leiShenDelete, youPinDelete),
-            arrayOf(nodeSeek)
+            arrayOf(nodeSeek, gloDos),
+            arrayOf(iqy, eCloud)
         )
     }
 
@@ -147,6 +154,18 @@ class DeleteExtension(
         callback("nodeSeekDelete") {
             nodeSeekService.deleteByTgId(tgId)
             editMessageText("删除NodeSeek成功")
+        }
+        callback("gloDosDelete") {
+            gloDosService.deleteByTgId(tgId)
+            editMessageText("删除GloDos成功")
+        }
+        callback("iqyDelete") {
+            iqyService.deleteByTgId(tgId)
+            editMessageText("删除爱奇艺成功")
+        }
+        callback("eCloudDelete") {
+            eCloudService.deleteByTgId(tgId)
+            editMessageText("删除天翼云盘成功")
         }
     }
 

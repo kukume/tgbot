@@ -23,7 +23,7 @@ class AliDriveScheduled(
     suspend fun sign() {
         val list = aliDriveService.findBySign(Status.ON)
         for (aliDriveEntity in list) {
-            logService.log(aliDriveEntity.tgId, LogType.AliDrive) {
+            logService.log(aliDriveEntity, LogType.AliDrive) {
                 delay(3000)
                 aliDriveLogic.sign(aliDriveEntity)
                 if (aliDriveEntity.receive == Status.ON) {
@@ -41,7 +41,7 @@ class AliDriveScheduled(
         if (now.dayOfMonth == lastDay.dayOfMonth) {
             val list = aliDriveService.findBySign(Status.ON)
             for (aliDriveEntity in list) {
-                logService.log(aliDriveEntity.tgId, LogType.ALiDriveReceive) {
+                logService.log(aliDriveEntity, LogType.ALiDriveReceive) {
                     val signList = aliDriveLogic.sign(aliDriveEntity)
                     for (signInLog in signList.signInLogs) {
                         if (!signInLog.isReward) {
@@ -55,7 +55,7 @@ class AliDriveScheduled(
             }
             val taskList = aliDriveService.findByTask(Status.ON)
             for (aliDriveEntity in taskList) {
-                logService.log(aliDriveEntity.tgId, LogType.ALiDriveReceiveTask) {
+                logService.log(aliDriveEntity, LogType.ALiDriveReceiveTask) {
                     val signList = aliDriveLogic.signInList(aliDriveEntity)
                     for (signInInfo in signList.signInInfos) {
                         signInInfo.rewards.lastOrNull()?.let { reward ->
@@ -76,7 +76,7 @@ class AliDriveScheduled(
     suspend fun task() {
         val list = aliDriveService.findByTask(Status.ON)
         for (aliDriveEntity in list) {
-            logService.log(aliDriveEntity.tgId, LogType.AliDriveTask) {
+            logService.log(aliDriveEntity, LogType.AliDriveTask) {
                 aliDriveLogic.finishTask(aliDriveEntity)
                 delay(3000)
             }
@@ -101,7 +101,7 @@ class AliDriveScheduled(
                 }
             }.onSuccess {
                 if (aliDriveEntity.receiveTask == Status.ON) {
-                    logService.log(aliDriveEntity.tgId, LogType.AliDriveReceiveTaskToday) {
+                    logService.log(aliDriveEntity, LogType.AliDriveReceiveTaskToday) {
                         aliDriveLogic.signInList(aliDriveEntity)
                             show = aliDriveLogic.receiveTask(aliDriveEntity)
                     }
@@ -117,7 +117,7 @@ class AliDriveScheduled(
     suspend fun finishDeviceRoom() {
         val list = aliDriveService.findByDeviceRoom(Status.ON)
         for (aliDriveEntity in list) {
-            logService.log(aliDriveEntity.tgId, LogType.AliDriveDeviceRoom) {
+            logService.log(aliDriveEntity, LogType.AliDriveDeviceRoom) {
                 delay(3000)
                 show = aliDriveLogic.finishDeviceRoom(aliDriveEntity)
             }
@@ -163,7 +163,7 @@ class AliDriveScheduled(
         val list = aliDriveService.findByCard(Status.ON)
         for (aliDriveEntity in list) {
             delay(3000)
-            logService.log(aliDriveEntity.tgId, LogType.AliDriveCard) {
+            logService.log(aliDriveEntity, LogType.AliDriveCard) {
                 aliDriveLogic.receiveCard(aliDriveEntity)
             }
         }
