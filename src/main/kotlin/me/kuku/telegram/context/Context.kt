@@ -27,7 +27,7 @@ abstract class Context {
     abstract val message: Message
     abstract val messageThreadId: Int?
 
-    fun sendMessage(text: String, replyKeyboard: Keyboard? = null, parseMode: ParseMode? = null): SendResponse {
+    suspend fun sendMessage(text: String, replyKeyboard: Keyboard? = null, parseMode: ParseMode? = null): SendResponse {
         val sendMessage = SendMessage(chatId, text)
         replyKeyboard?.let {
             sendMessage.replyMarkup(replyKeyboard)
@@ -38,16 +38,16 @@ abstract class Context {
         message.messageThreadId()?.let {
             sendMessage.messageThreadId(it)
         }
-        return bot.execute(sendMessage)
+        return bot.asyncExecute(sendMessage)
     }
 
-    fun Message.delete(timeout: Long = 0) {
+    suspend fun Message.delete(timeout: Long = 0) {
         if (timeout > 0) {
             JobManager.delay(timeout) {
-                bot.execute(DeleteMessage(chatId, this@delete.messageId()))
+                bot.asyncExecute(DeleteMessage(chatId, this@delete.messageId()))
             }
         } else {
-            bot.execute(DeleteMessage(chatId, this.messageId()))
+            bot.asyncExecute(DeleteMessage(chatId, this.messageId()))
         }
     }
 }
@@ -149,7 +149,7 @@ class TelegramContext(override val bot: TelegramBot, val update: Update): Contex
         return InlineKeyboardMarkup(*list.toTypedArray())
     }
 
-    fun editMessageText(text: String, replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(),
+    suspend fun editMessageText(text: String, replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(),
                         parseMode: ParseMode? = null,
                         returnButton: Boolean = true,
                         top: Boolean = false,
@@ -162,10 +162,10 @@ class TelegramContext(override val bot: TelegramBot, val update: Update): Contex
         val editMessageText = EditMessageText(chatId, messageId, text)
             .replyMarkup(markup)
         parseMode?.let { editMessageText.parseMode(parseMode) }
-        bot.execute(editMessageText)
+        bot.asyncExecute(editMessageText)
     }
 
-    fun editMessageMedia(media: InputMedia<*>, replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(),
+    suspend fun editMessageMedia(media: InputMedia<*>, replyMarkup: InlineKeyboardMarkup = InlineKeyboardMarkup(),
                          returnButton: Boolean = true,
                          top: Boolean = false,
                          goBackStep: Int = 1,
@@ -176,19 +176,19 @@ class TelegramContext(override val bot: TelegramBot, val update: Update): Contex
         val messageId = message.messageId()
         val editMessageMedia = EditMessageMedia(chatId, messageId, media)
             .replyMarkup(markup)
-        bot.execute(editMessageMedia)
+        bot.asyncExecute(editMessageMedia)
     }
 
-    fun answerCallbackQuery(text: String, showAlert: Boolean = false) {
+    suspend fun answerCallbackQuery(text: String, showAlert: Boolean = false) {
         if (this::query.isInitialized) {
             val answerCallbackQuery = AnswerCallbackQuery(query.id())
                 .showAlert(showAlert)
                 .text(text)
-            bot.execute(answerCallbackQuery)
+            bot.asyncExecute(answerCallbackQuery)
         }
     }
 
-    fun waiting() {
+    suspend fun waiting() {
         editMessageText("请稍后...", returnButton = false)
     }
 }
@@ -207,8 +207,8 @@ class MonitorReturn(
     private val telegramBot: TelegramBot
 ) {
 
-    fun Update.re() {
-        val mes = message()?.messageId()?: callbackQuery()?.message()?.messageId() ?: return
+    suspend fun Update.re() {
+        val mes = message()?.messageId()?: callbackQuery()?.maybeInaccessibleMessage()?.messageId() ?: return
         val data = callbackQuery()?.data() ?: return
         val tgId = callbackQuery().from().id()
         val key = "$tgId$mes$data"
@@ -220,10 +220,10 @@ class MonitorReturn(
                 val message = first.message!!
                 val editMessageText = EditMessageText(tgId, mes, message.text())
                     .replyMarkup(message.replyMarkup())
-                telegramBot.execute(editMessageText)
+                telegramBot.asyncExecute(editMessageText)
             } else {
                 val editMessageText = EditMessageText(tgId, mes, "该条消息已过期，请重新发送指令以进行操作")
-                telegramBot.execute(editMessageText)
+                telegramBot.asyncExecute(editMessageText)
             }
             callbackHistory.remove(returnKey)
             callbackHistoryKey.remove(returnKey)

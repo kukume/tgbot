@@ -5,6 +5,7 @@ import com.pengrad.telegrambot.request.SendPhoto
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.HuYaLogic
 import me.kuku.telegram.context.sendTextMessage
@@ -47,7 +48,7 @@ class HuYaScheduled(
                             client.get(videoCaptureUrl).body<ByteArray>().let {
                                 val sendPhoto =
                                     SendPhoto(tgId, text).caption(text).fileName("huYa.jpg")
-                                telegramBot.execute(sendPhoto)
+                                telegramBot.asyncExecute(sendPhoto)
                             }
                         }
                     }

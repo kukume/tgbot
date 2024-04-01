@@ -100,7 +100,7 @@ class AbilitySubscriber {
                 message.messageThreadId()?.let { threadId ->
                     sendMessage.messageThreadId(threadId)
                 }
-                bot.execute(sendMessage)
+                bot.asyncExecute(sendMessage)
             } else {
                 val abilityContext = AbilityContext(bot, update)
                 invokeAbility(abilityContext, it.block)

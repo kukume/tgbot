@@ -2,6 +2,7 @@ package me.kuku.telegram.scheduled
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendMessage
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.ConfigService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.V2exLogic
@@ -44,7 +45,7 @@ class V2exScheduled(
                     链接：${v2exTopic.url}
                 """.trimIndent()
                 val sendMessage = SendMessage(configEntity.tgId, str)
-                telegramBot.execute(sendMessage)
+                telegramBot.asyncExecute(sendMessage)
             }
         }
     }

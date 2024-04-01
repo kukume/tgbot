@@ -5,6 +5,7 @@ import com.pengrad.telegrambot.request.SendVideo
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.WeiboLogic
 import me.kuku.telegram.logic.WeiboPojo
@@ -60,7 +61,7 @@ class WeiboScheduled(
                             client.get(videoUrl).body<ByteArray>().let {
                                 val sendVideo = SendVideo(tgId, it).caption(text)
                                     .fileName("${weiboPojo.bid}.mp4")
-                                telegramBot.execute(sendVideo)
+                                telegramBot.asyncExecute(sendVideo)
                             }
                         } else if (weiboPojo.imageUrl.isNotEmpty() || weiboPojo.forwardImageUrl.isNotEmpty()) {
                             val imageList = weiboPojo.imageUrl

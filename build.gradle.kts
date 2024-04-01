@@ -22,7 +22,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
-    implementation("com.github.pengrad:java-telegram-bot-api:7.0.1")
+    implementation("com.github.pengrad:java-telegram-bot-api:7.1.1")
     implementation("me.kuku:utils:2.3.9.0")
     implementation("me.kuku:ktor-spring-boot-starter:2.3.9.1")
     implementation("org.jsoup:jsoup:1.16.1")

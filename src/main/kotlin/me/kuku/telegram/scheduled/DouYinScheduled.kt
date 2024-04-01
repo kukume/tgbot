@@ -5,6 +5,7 @@ import com.pengrad.telegrambot.request.SendVideo
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.DouYinService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.DouYinLogic
@@ -47,7 +48,7 @@ class DouYinScheduled(
                     client.get(url).body<ByteArray>().let {
                         val sendVideo = SendVideo(tgId, it).fileName("${MyUtils.randomLetter(6)}.mp4")
                             .caption("#抖音推送\n#${douYinWork.nickname}\n${douYinWork.desc}\n链接：${douYinWork.url}")
-                        telegramBot.execute(sendVideo)
+                        telegramBot.asyncExecute(sendVideo)
                     }
                 }
             }

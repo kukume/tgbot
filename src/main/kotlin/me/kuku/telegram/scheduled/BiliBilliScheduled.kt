@@ -8,6 +8,7 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramConfig
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.BiliBiliPojo
@@ -67,11 +68,11 @@ class BiliBilliScheduled(
                         val text = "#哔哩哔哩开播提醒\n#$name $msg\n标题：${live.title}\n链接：${live.url}"
                         val imageUrl = live.imageUrl
                         if (imageUrl.isEmpty())
-                            telegramBot.execute(SendMessage(tgId, text))
+                            telegramBot.asyncExecute(SendMessage(tgId, text))
                         else {
                             client.get(imageUrl).body<ByteArray>().let {
                                 val sendPhoto = SendPhoto(tgId, it).caption(text).fileName("live.jpg")
-                                telegramBot.execute(sendPhoto)
+                                telegramBot.asyncExecute(sendPhoto)
                             }
                         }
                     }
@@ -108,7 +109,7 @@ class BiliBilliScheduled(
                                 file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
                                 val sendVideo =
                                     SendVideo(tgId, file).caption(text)
-                                telegramBot.execute(sendVideo)
+                                telegramBot.asyncExecute(sendVideo)
                             } finally {
                                 file?.delete()
                             }
@@ -116,9 +117,9 @@ class BiliBilliScheduled(
                             val picList = biliBiliPojo.picList
                             picList.addAll(biliBiliPojo.forwardPicList)
                             telegramBot.sendPic(tgId, text, picList)
-                        } else telegramBot.execute(SendMessage(tgId, text))
+                        } else telegramBot.asyncExecute(SendMessage(tgId, text))
                     } catch (e: Exception) {
-                        telegramBot.execute(SendMessage(tgId, text))
+                        telegramBot.asyncExecute(SendMessage(tgId, text))
                     }
                 }
             }

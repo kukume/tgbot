@@ -1,6 +1,5 @@
 package me.kuku.telegram.extension
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.InputMediaPhoto
@@ -48,7 +47,7 @@ class ToolExtension(
                 val card = ygoLogic.searchDetail(id.toLong())
                 val sendPhoto = SendPhoto(chatId, OkHttpKtUtils.getBytes(card.imageUrl))
                 sendPhoto.caption("中文名：${card.chineseName}\n日文名：${card.japaneseName}\n英文名：${card.englishName}\n效果：\n${card.effect}\n链接：${card.url}")
-                bot.execute(sendPhoto)
+                bot.asyncExecute(sendPhoto)
             }
         }
     }
@@ -85,13 +84,13 @@ class ToolExtension(
                 message.messageThreadId()?.let {
                     sendDocument.messageThreadId(it)
                 }
-                bot.execute(sendDocument)
+                bot.asyncExecute(sendDocument)
             } else {
                 val sendPhoto = SendPhoto(chatId, bytes)
                 message.messageThreadId()?.let {
                     sendPhoto.messageThreadId(it)
                 }
-                bot.execute(sendPhoto)
+                bot.asyncExecute(sendPhoto)
             }
         }
         sub("loliconmulti", locality = Locality.ALL) {
@@ -112,13 +111,13 @@ class ToolExtension(
             message.messageThreadId()?.let {
                 sendMediaGroup.messageThreadId(it)
             }
-            bot.execute(sendMediaGroup)
+            bot.asyncExecute(sendMediaGroup)
         }
         sub("saucenao") {
             val photos = update.message().photo()
             val photoSize = photos.max() ?: error("未发现图片")
             val getFile = GetFile(photoSize.fileId())
-            val fileResponse = bot.execute(getFile)
+            val fileResponse = bot.asyncExecute(getFile)
             val byteArray = fileResponse.file().byteArray()
             val list = toolLogic.saucenao(byteArray)
             if (list.isEmpty()) error("未找到结果")
@@ -148,7 +147,7 @@ class ToolExtension(
                     val sendVideo =
                         SendVideo(chatId, file).caption(bvId)
                     messageThreadId?.let { sendVideo.messageThreadId(it) }
-                    bot.execute(sendVideo)
+                    bot.asyncExecute(sendVideo)
                 }
                 file.delete()
             }
@@ -170,7 +169,7 @@ class ToolExtension(
                             val sendVideo = SendVideo(chatId, it).fileName("${twitterPojo.id}.mp4")
                                 .caption(text)
                             messageThreadId?.let { id -> sendVideo.messageThreadId(id) }
-                            bot.execute(sendVideo)
+                            bot.asyncExecute(sendVideo)
                         }
                     } else if (twitterPojo.photoList.isNotEmpty() || twitterPojo.forwardPhotoList.isNotEmpty()) {
                         val imageList = twitterPojo.photoList

@@ -3,6 +3,7 @@ package me.kuku.telegram.scheduled
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.SendMessage
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.LeiShenService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.LeiShenLogic
@@ -51,7 +52,7 @@ class LeiShenScheduled(
                     #雷神加速器未暂停时间提醒 2小时提醒一次
                     您的雷神加速器未暂停时间，如果您未在玩游戏，请尽快暂停
                 """.trimIndent()).replyMarkup(InlineKeyboardMarkup(inlineKeyboardButton("暂停时间", "leiShenPause")))
-                telegramBot.execute(sendMessage)
+                telegramBot.asyncExecute(sendMessage)
             }
         }
     }

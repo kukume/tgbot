@@ -55,16 +55,16 @@ class ContextSession(
             contextSessionCacheMap.remove(tgId)?.let {
                 value.continuation.resume(message()).also {
                     val deleteMessage = DeleteMessage(message().chat().id().toString(), message().messageId())
-                    telegramBot.execute(deleteMessage)
+                    telegramBot.asyncExecute(deleteMessage)
                 }
             }
         } else {
             val deleteMessage = DeleteMessage(message().chat().id().toString(), message().messageId())
-            telegramBot.execute(deleteMessage)
+            telegramBot.asyncExecute(deleteMessage)
             val lastMessage = value.lastMessage
             val editMessageText = EditMessageText(lastMessage.chatId, lastMessage.messageId, value.errMessage)
                 .replyMarkup(lastMessage.replyMarkup)
-            telegramBot.execute(editMessageText)
+            telegramBot.asyncExecute(editMessageText)
         }
     }
 

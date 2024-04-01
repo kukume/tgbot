@@ -5,6 +5,7 @@ import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.SendMessage
 import me.kuku.telegram.config.TelegramConfig
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.BotConfigService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.utils.githubCommit
@@ -40,7 +41,7 @@ class BotConfigScheduled(
                     #github提交推送
                     昨日共有${commitList.size}次提交
                 """.trimIndent()).replyMarkup(InlineKeyboardMarkup(*list.toTypedArray()))
-                telegramBot.execute(sendMessage)
+                telegramBot.asyncExecute(sendMessage)
             }
         }
     }

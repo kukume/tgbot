@@ -10,10 +10,7 @@ import com.pengrad.telegrambot.request.SendPhoto
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
-import me.kuku.telegram.context.AbilitySubscriber
-import me.kuku.telegram.context.TelegramSubscribe
-import me.kuku.telegram.context.inlineKeyboardButton
-import me.kuku.telegram.context.nextMessage
+import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.exception.QrcodeScanException
 import me.kuku.telegram.logic.*
@@ -106,7 +103,7 @@ class LoginExtension(
             var photoMessage: Message?
             OkHttpKtUtils.getBytes(qrcode.image).let {
                 val photo = SendPhoto(chatId, it)
-                photoMessage = bot.execute(photo).message()
+                photoMessage = bot.asyncExecute(photo).message()
                 editMessageText("请使用百度app扫描以下二维码登陆，百度网盘等均可", returnButton = false)
             }
             val baiduEntity = baiduService.findByTgId(query.from().id()) ?: BaiduEntity().init()
@@ -141,7 +138,7 @@ class LoginExtension(
             var photoMessage: Message?
             qrcode(qrcode.url).let {
                 val photo = SendPhoto(chatId, it)
-                photoMessage = bot.execute(photo).message()
+                photoMessage = bot.asyncExecute(photo).message()
                 editMessageText("请使用哔哩哔哩app扫描以下二维码登陆", returnButton = false)
             }
             var i = 0
@@ -188,7 +185,7 @@ class LoginExtension(
             var photoMessage: Message?
             qrcode(imageUrl).let {
                 val photo = SendPhoto(chatId, it)
-                photoMessage = bot.execute(photo).message()
+                photoMessage = bot.asyncExecute(photo).message()
                 editMessageText("请使用斗鱼app扫码二维码登录", returnButton = false)
             }
             var i = 0
@@ -251,7 +248,7 @@ class LoginExtension(
             val photoMessage: Message?
             OkHttpKtUtils.getBytes(qrcode.url).let {
                 val photo = SendPhoto(chatId, it)
-                photoMessage = bot.execute(photo).message()
+                photoMessage = bot.asyncExecute(photo).message()
                 editMessageText("请使用虎牙App扫描二维码登录", returnButton = false)
             }
             var i = 0
@@ -340,7 +337,7 @@ class LoginExtension(
             var photoMessage: Message?
             qrcode(qrcode.url).let {
                 val photo = SendPhoto(chatId, it)
-                photoMessage = bot.execute(photo).message()
+                photoMessage = bot.asyncExecute(photo).message()
                 editMessageText("请使用米游社扫描下面二维码登录", returnButton = false)
             }
             var i = 0
@@ -417,7 +414,7 @@ class LoginExtension(
             var photoMessage: Message?
             qrcode(url).let {
                 val photo = SendPhoto(chatId, it)
-                photoMessage = bot.execute(photo).message()
+                photoMessage = bot.asyncExecute(photo).message()
                 editMessageText("请使用网易云音乐App扫描下面二维码登录", returnButton = false)
             }
             var scan = true
@@ -558,7 +555,7 @@ class LoginExtension(
             var photoMessage: Message?
             qrcode.baseImage.base64Decode().let {
                 val photo = SendPhoto(chatId, it)
-                photoMessage = bot.execute(photo).message()
+                photoMessage = bot.asyncExecute(photo).message()
                 editMessageText("请使用抖音App扫码登录", returnButton = false)
             }
             var i = 0
@@ -665,7 +662,7 @@ class LoginExtension(
             val qrcode = BuffLogic.login1()
             val byteArray = qrcode(qrcode.url)
             val photo = SendPhoto(chatId, byteArray)
-            val photoMessage = bot.execute(photo).message()
+            val photoMessage = bot.asyncExecute(photo).message()
             editMessageText("请使用网易buffApp扫码登录", returnButton = false)
             while (true) {
                 delay(3000)
@@ -736,7 +733,7 @@ class LoginExtension(
             var photoMessage: Message?
             client.get(wechatQrcode.url).body<ByteArray>().let {
                 val sendPhoto = SendPhoto(chatId, it)
-                photoMessage = bot.execute(sendPhoto).message()
+                photoMessage = bot.asyncExecute(sendPhoto).message()
                 editMessageText("请先在网页成功使用微信扫码成功登录一次，使用微信扫码登录，如未关注公众号，扫码关注公众号后再扫一次", returnButton = false)
             }
             var i = 0
@@ -767,7 +764,7 @@ class LoginExtension(
             var photoMessage: Message?
             qrcode(url).let {
                 val sendPhoto = SendPhoto(chatId, it)
-                photoMessage = bot.execute(sendPhoto).message()
+                photoMessage = bot.asyncExecute(sendPhoto).message()
                 editMessageText("请使用什么值得买App扫码登陆", returnButton = false)
             }
             var i = 0
@@ -807,7 +804,7 @@ class LoginExtension(
             var photoMessage: Message?
             qrcode(qrcode.qrcodeUrl).let {
                 val sendPhoto = SendPhoto(chatId, it)
-                photoMessage = bot.execute(sendPhoto).message()
+                photoMessage = bot.asyncExecute(sendPhoto).message()
                 editMessageText("请使用阿里云盘app扫码登陆", returnButton = false)
             }
             var i = 0
@@ -981,7 +978,7 @@ class LoginExtension(
             var photoMessage: Message?
             qrcode.imageUrl.let {
                 val sendPhoto = SendPhoto(chatId, it)
-                photoMessage = bot.execute(sendPhoto).message()
+                photoMessage = bot.asyncExecute(sendPhoto).message()
                 editMessageText("请使用爱奇艺App扫码登陆", returnButton = false)
             }
             var i = 0

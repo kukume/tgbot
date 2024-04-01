@@ -24,7 +24,7 @@ suspend fun TelegramBot.sendPic(tgId: Long, text: String, picUrl: List<String>, 
         messageThreadId?.let {
             sendPhoto.messageThreadId(it)
         }
-        execute(sendPhoto)
+        asyncExecute(sendPhoto)
     } else if (picUrl.isEmpty()) {
         sendTextMessage(tgId, text, messageThreadId)
     } else {
@@ -40,14 +40,14 @@ suspend fun TelegramBot.sendPic(tgId: Long, text: String, picUrl: List<String>, 
         messageThreadId?.let {
             sendMediaGroup.messageThreadId(it)
         }
-        execute(sendMediaGroup)
+        asyncExecute(sendMediaGroup)
     }
 }
 
-fun TelegramBot.sendTextMessage(tgId: Long, text: String, messageThreadId: Int? = null) {
+suspend fun TelegramBot.sendTextMessage(tgId: Long, text: String, messageThreadId: Int? = null) {
     val sendMessage = SendMessage(tgId, text)
     messageThreadId?.let { sendMessage.messageThreadId(it) }
-    execute(sendMessage)
+    asyncExecute(sendMessage)
 }
 
 suspend fun File.byteArray(): ByteArray {

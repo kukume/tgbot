@@ -164,7 +164,7 @@ class SettingExtension(
         callback("settingsSendLog") {
             val file = File("tmp" + File.separator + "spring.log")
             val sendDocument = SendDocument(tgId, file)
-            bot.execute(sendDocument)
+            bot.asyncExecute(sendDocument)
             editMessageText("发送日志文件成功")
         }
         callback("settingsClearLog") {

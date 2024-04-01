@@ -89,7 +89,7 @@ class PushController(
                 parseMode?.let {
                     sendMessage.parseMode(ParseMode.valueOf(parseMode))
                 }
-                telegramBot.execute(sendMessage)
+                telegramBot.asyncExecute(sendMessage)
                 respond(CommonResult.success<Unit>())
             }
 
@@ -129,7 +129,7 @@ class PushController(
                         sendVideo.messageThreadId(it)
                     }
                     sendVideo.caption(sb.toString())
-                    telegramBot.execute(sendVideo)
+                    telegramBot.asyncExecute(sendVideo)
                     call.respond("""{"message": "success"}""")
                     return@post
                 }
@@ -140,7 +140,7 @@ class PushController(
                         sendDocument.messageThreadId(it)
                     }
                     sendDocument.caption(sb.toString())
-                    telegramBot.execute(sendDocument)
+                    telegramBot.asyncExecute(sendDocument)
                     call.respond("""{"message": "success"}""")
                     return@post
                 }

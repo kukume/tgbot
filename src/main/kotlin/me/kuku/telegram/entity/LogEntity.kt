@@ -2,6 +2,7 @@ package me.kuku.telegram.entity
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendMessage
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.utils.SpringUtils
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
@@ -17,10 +18,10 @@ class LogEntity: BaseEntity() {
     var errReason: String = ""
     var exceptionStack: String = ""
 
-    fun sendFailMessage(message: String? = null) {
+    suspend fun sendFailMessage(message: String? = null) {
         val telegramBot = SpringUtils.getBean<TelegramBot>()
         val sendMessage = SendMessage(tgId, "#自动签到失败提醒\n${type.value}执行失败，${message ?: "未知异常原因，请重新执行指令以查看原因"}")
-        telegramBot.execute(sendMessage)
+        telegramBot.asyncExecute(sendMessage)
     }
 
     fun success() = text.contains("成功")

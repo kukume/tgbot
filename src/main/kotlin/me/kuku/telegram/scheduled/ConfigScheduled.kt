@@ -7,6 +7,7 @@ import com.pengrad.telegrambot.request.SendVideo
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.ConfigService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.ToolLogic
@@ -14,7 +15,6 @@ import me.kuku.utils.DateTimeFormatterUtils
 import me.kuku.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.net.ConnectException
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -34,7 +34,7 @@ class ConfigScheduled(
             for (configEntity in entityList) {
                 val sendVideo =
                     SendVideo(configEntity.tgId.toString(), file).caption("#新闻联播")
-                telegramBot.execute(sendVideo)
+                telegramBot.asyncExecute(sendVideo)
             }
         } finally {
             file.delete()
@@ -71,7 +71,7 @@ class ConfigScheduled(
                     线报酷链接：${xianBao.urlIncludeDomain()}
                 """.trimIndent()
                 val sendMessage = SendMessage(configEntity.tgId, str)
-                telegramBot.execute(sendMessage)
+                telegramBot.asyncExecute(sendMessage)
             }
         }
     }

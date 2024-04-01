@@ -3,6 +3,7 @@ package me.kuku.telegram.scheduled
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendVideo
 import kotlinx.coroutines.delay
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.entity.TwitterService
 import me.kuku.telegram.logic.TwitterLogic
@@ -48,7 +49,7 @@ class TwitterScheduled(
                             OkHttpKtUtils.getBytes(videoUrl).let {
                                 val sendVideo = SendVideo(tgId, it).fileName("${twitterPojo.id}.mp4")
                                     .caption(text)
-                                telegramBot.execute(sendVideo)
+                                telegramBot.asyncExecute(sendVideo)
                             }
                         } else if (twitterPojo.photoList.isNotEmpty() || twitterPojo.forwardPhotoList.isNotEmpty()) {
                             val imageList = twitterPojo.photoList

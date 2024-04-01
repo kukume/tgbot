@@ -3,6 +3,7 @@ package me.kuku.telegram.scheduled
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendMessage
 import kotlinx.coroutines.delay
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.YouPinEntity
 import me.kuku.telegram.entity.YouPinService
 import me.kuku.telegram.logic.YouPinLogic
@@ -32,7 +33,7 @@ class YouPinScheduled(
                 val list = market.commodities ?: continue
                 if (list.isNotEmpty()) {
                     val commodity = list[0]
-                    telegramBot.execute(
+                    telegramBot.asyncExecute(
                         SendMessage(entity.tgId, """
                         #悠悠有品饰品价格推送
                         符合条件价格最便宜的
@@ -47,7 +48,7 @@ class YouPinScheduled(
                 val newMarket = YouPinLogic.market(entity, monitor.templateId, 1,
                     minAbrade = monitor.minAbrade, maxAbrade = monitor.maxAbrade, listSortType = 4)
                 newMarket.commodities?.getOrNull(0)?.let {
-                    telegramBot.execute(
+                    telegramBot.asyncExecute(
                         SendMessage(entity.tgId, """
                         #悠悠有品饰品价格推送
                         符合条件押金最便宜的

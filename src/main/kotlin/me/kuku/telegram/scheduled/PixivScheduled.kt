@@ -6,7 +6,10 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.request.InputMediaPhoto
 import com.pengrad.telegrambot.request.SendMediaGroup
 import com.pengrad.telegrambot.request.SendPhoto
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.PixivService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.PixivLogic
@@ -52,22 +55,26 @@ class PixivScheduled(
                         if (innerList.size == 1) {
                             val url = imageList[0]
                             val name = url.substring(url.lastIndexOf('/') + 1)
-                            PixivLogic.imageIs(url).readAllBytes().let {
+                            withContext(Dispatchers.IO) {
+                                PixivLogic.imageIs(url).readAllBytes()
+                            }.let {
                                 val sendPhoto = SendPhoto(tgId, it).fileName("$name.jpg")
                                     .caption(text)
-                                telegramBot.execute(sendPhoto)
+                                telegramBot.asyncExecute(sendPhoto)
                             }
                         } else {
                             val inputMediaList = mutableListOf<InputMediaPhoto>()
                             for (imageUrl in innerList) {
                                 val iis = PixivLogic.imageIs(imageUrl)
                                 val name = imageUrl.substring(imageUrl.lastIndexOf('/') + 1)
-                                val mediaPhoto = InputMediaPhoto(iis.readAllBytes())
+                                val mediaPhoto = InputMediaPhoto(withContext(Dispatchers.IO) {
+                                    iis.readAllBytes()
+                                })
                                     .fileName(name).caption(text)
                                 inputMediaList.add(mediaPhoto)
                             }
                             val sendMediaGroup = SendMediaGroup(tgId, *inputMediaList.toTypedArray())
-                            telegramBot.execute(sendMediaGroup)
+                            telegramBot.asyncExecute(sendMediaGroup)
                         }
                     }
 
