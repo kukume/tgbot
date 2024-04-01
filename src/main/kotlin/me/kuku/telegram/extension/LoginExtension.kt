@@ -36,11 +36,9 @@ class LoginExtension(
     private val douYinService: DouYinService,
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
-    private val buffService: BuffService,
     private val smZdmService: SmZdmService, private val smZdmLogic: SmZdmLogic,
     private val aliDriveLogic: AliDriveLogic, private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
-    private val youPinService: YouPinService,
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService,
     private val iqyService: IqyService,
@@ -61,11 +59,9 @@ class LoginExtension(
         val douYinButton = InlineKeyboardButton("抖音").callbackData("douYinLogin")
         val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterLogin")
         val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivLogin")
-        val buffButton = InlineKeyboardButton("网易Buff").callbackData("buffLogin")
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmLogin")
         val aliDriveButton = inlineKeyboardButton("阿里云盘", "aliDriveLogin")
         val leiShenButton = inlineKeyboardButton("雷神加速器", "leiShenLogin")
-        val youPingButton = inlineKeyboardButton("悠悠有品", "youPingLogin")
         val nodeSeekButton = inlineKeyboardButton("NodeSeek", "nodeSeekLogin")
         val gloDos = inlineKeyboardButton("GloDos", "gloDosLogin")
         val iqy = inlineKeyboardButton("爱奇艺", "iqyLogin")
@@ -77,9 +73,8 @@ class LoginExtension(
             arrayOf(miHoYoButton, netEaseButton),
             arrayOf(stepButton, weiboStepButton),
             arrayOf(douYinButton, twitterButton),
-            arrayOf(pixivButton, buffButton),
-            arrayOf(smZdmButton, aliDriveButton),
-            arrayOf(leiShenButton, youPingButton),
+            arrayOf(pixivButton, smZdmButton),
+            arrayOf(aliDriveButton, leiShenButton),
             arrayOf(nodeSeekButton, gloDos),
             arrayOf(iqy, eCloud)
         )
@@ -648,51 +643,6 @@ class LoginExtension(
         }
     }
 
-    fun TelegramSubscribe.buffLogin() {
-        callback("buffLogin") {
-            val loginButton = inlineKeyboardButton("使用app扫码登陆", "buffLoginByQrcode")
-            val cookieButton = inlineKeyboardButton("cookie登录", "buffLoginByCookie")
-            val markup = InlineKeyboardMarkup(
-                arrayOf(loginButton),
-                arrayOf(cookieButton)
-            )
-            editMessageText("请选择网易buff登录方式", markup)
-        }
-        callback("buffLoginByQrcode") {
-            val qrcode = BuffLogic.login1()
-            val byteArray = qrcode(qrcode.url)
-            val photo = SendPhoto(chatId, byteArray)
-            val photoMessage = bot.asyncExecute(photo).message()
-            editMessageText("请使用网易buffApp扫码登录", returnButton = false)
-            while (true) {
-                delay(3000)
-                try {
-                    val buffEntity = BuffLogic.login2(qrcode)
-                    val saveEntity = buffService.findByTgId(tgId) ?: BuffEntity().also { entity -> entity.tgId = tgId }
-                    saveEntity.csrf = buffEntity.csrf
-                    saveEntity.cookie = buffEntity.cookie
-                    buffService.save(saveEntity)
-                    editMessageText("绑定网易buff成功")
-                    break
-                } catch (_: QrcodeScanException) {
-                } catch (e: Exception) {
-                    editMessageText(e.message ?: "未知错误")
-                    break
-                }
-            }
-            photoMessage.delete()
-        }
-        callback("buffLoginByCookie") {
-            editMessageText("请发送网易buff的cookie")
-            val cookie = nextMessage().text()
-            BuffLogic.search(BuffEntity().also { en -> en.cookie = cookie }, "m9刺刀")
-            val buffEntity = buffService.findByTgId(tgId) ?: BuffEntity().also { ii -> ii.tgId = tgId }
-            buffEntity.cookie = cookie
-            buffService.save(buffEntity)
-            editMessageText("绑定网易buff成功")
-        }
-    }
-
     fun TelegramSubscribe.smZdm() {
         callback("smZdmLogin") {
             val loginButton = inlineKeyboardButton("使用手机验证码登陆", "smZdmLoginByPhoneCode")
@@ -860,40 +810,6 @@ class LoginExtension(
             leiShenEntity.init<LeiShenEntity>()
             leiShenService.save(leiShenEntity)
             editMessageText("绑定雷神加速器成功")
-        }
-    }
-
-    fun TelegramSubscribe.youPinLogin() {
-        callback("youPingLogin") {
-            editMessageText("请选择悠悠有品的登陆方式", InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("使用短信登陆", "youPinSmsLogin")),
-                arrayOf(inlineKeyboardButton("使用token登录", "youPinCookieLogin"))
-            ))
-        }
-        callback("youPinSmsLogin") {
-            editMessageText("请发送您的手机号")
-            val phone = nextMessage(errMessage = "您发送的不为手机号，请重新发送") { text().length == 11 }.text()
-            val loginCache = YouPinLogic.smsLogin1(phone)
-            editMessageText("请发送验证码")
-            val code = nextMessage(1000 * 60 * 2).text()
-            val newEntity = YouPinLogic.smsLogin2(loginCache, code)
-            val youPinEntity = youPinService.findByTgId(tgId) ?: YouPinEntity().also { it.tgId = tgId }
-            youPinEntity.uk = newEntity.uk
-            youPinEntity.token = newEntity.token
-            youPinEntity.userid = newEntity.userid
-            youPinService.save(youPinEntity)
-            editMessageText("绑定悠悠有品成功")
-        }
-        callback("youPinCookieLogin") {
-            editMessageText("请发送您的cookie，带上Bearer ")
-            val token = nextMessage().text()
-            val youPinEntity = youPinService.findByTgId(tgId) ?: YouPinEntity().also { it.tgId = tgId }
-            youPinEntity.token = token
-            youPinEntity.uk = YouPinLogic.uk()
-            val userInfo = YouPinLogic.userInfo(youPinEntity)
-            youPinEntity.userid = userInfo.userid
-            youPinService.save(youPinEntity)
-            editMessageText("绑定悠悠有品成功")
         }
     }
 

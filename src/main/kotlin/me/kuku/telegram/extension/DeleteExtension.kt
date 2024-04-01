@@ -23,11 +23,9 @@ class DeleteExtension(
     private val douYinService: DouYinService,
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
-    private val buffService: BuffService,
     private val smZdmService: SmZdmService,
     private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
-    private val youPinService: YouPinService,
     private val nodeSeekService: NodeSeekService,
     private val gloDosService: GlaDosService,
     private val iqyService: IqyService,
@@ -48,11 +46,9 @@ class DeleteExtension(
         val douYinButton = InlineKeyboardButton("抖音").callbackData("douYinDelete")
         val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterDelete")
         val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivDelete")
-        val buffButton = InlineKeyboardButton("网易buff").callbackData("buffDelete")
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmDelete")
         val aliDriveButton = inlineKeyboardButton("阿里云盘", "aliDriveDelete")
         val leiShenDelete = inlineKeyboardButton("雷神加速器", "leiShenDelete")
-        val youPinDelete = inlineKeyboardButton("悠悠有品", "youPinDelete")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekDelete")
         val gloDos = inlineKeyboardButton("GloDos", "gloDosDelete")
         val iqy = inlineKeyboardButton("爱奇艺", "iqyDelete")
@@ -64,9 +60,8 @@ class DeleteExtension(
             arrayOf(miHoYoButton, netEaseButton),
             arrayOf(stepButton, weiboStepButton),
             arrayOf(douYinButton, twitterButton),
-            arrayOf(pixivButton, buffButton),
-            arrayOf(smZdmButton, aliDriveButton),
-            arrayOf(leiShenDelete, youPinDelete),
+            arrayOf(pixivButton, smZdmButton),
+            arrayOf(aliDriveButton, leiShenDelete),
             arrayOf(nodeSeek, gloDos),
             arrayOf(iqy, eCloud)
         )
@@ -131,10 +126,6 @@ class DeleteExtension(
             pixivService.deleteByTgId(tgId)
             editMessageText("删除Pixiv成功")
         }
-        callback("buffDelete") {
-            buffService.deleteByTgId(tgId)
-            editMessageText("删除网易Buff成功")
-        }
         callback("smZdmDelete") {
             smZdmService.deleteByTgId(tgId)
             editMessageText("删除什么值得买成功")
@@ -146,10 +137,6 @@ class DeleteExtension(
         callback("leiShenDelete") {
             leiShenService.deleteByTgId(tgId)
             editMessageText("删除雷神加速器成功")
-        }
-        callback("youPinDelete") {
-            youPinService.deleteByTgId(tgId)
-            editMessageText("删除悠悠有品成功")
         }
         callback("nodeSeekDelete") {
             nodeSeekService.deleteByTgId(tgId)
