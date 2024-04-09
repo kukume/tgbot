@@ -24,7 +24,6 @@ class NetEaseEntity: BaseEntity() {
     fun androidCookie() = "os=android; ${cookie()}"
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface NetEaseRepository: CoroutineCrudRepository<NetEaseEntity, String> {
 
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): NetEaseEntity?

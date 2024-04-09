@@ -15,7 +15,6 @@ class PixivEntity: BaseEntity() {
 }
 
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface PixivRepository: CoroutineCrudRepository<PixivEntity, String> {
 
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): PixivEntity?

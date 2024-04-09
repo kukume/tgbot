@@ -1,5 +1,3 @@
-@file:Suppress("SpringDataRepositoryMethodReturnTypeInspection")
-
 package me.kuku.telegram.entity
 
 import me.kuku.telegram.config.TelegramConfig

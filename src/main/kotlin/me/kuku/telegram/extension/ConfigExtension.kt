@@ -45,11 +45,7 @@ class ConfigExtension(
 
     fun AbilitySubscriber.config() {
         sub("config") {
-            val configEntity = configService.findByTgId(tgId)?: run {
-                val configEntity = ConfigEntity()
-                configEntity.tgId = tgId
-                configService.save(configEntity)
-            }
+            val configEntity = configService.findByTgId(tgId)?: configService.save(ConfigEntity().init())
             val markup = keyboardMarkup(configEntity)
             sendMessage(text(configEntity), replyKeyboard = markup, parseMode = ParseMode.MarkdownV2)
         }

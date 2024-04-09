@@ -22,9 +22,8 @@ class ConfigEntity: BaseEntity() {
     fun rrOcrKey() = rrOcrKey.ifEmpty { null }
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface ConfigRepository: CoroutineCrudRepository<ConfigEntity, String> {
-    suspend fun findByTgId(tgId: Long): ConfigEntity?
+    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): ConfigEntity?
     suspend fun findByPositiveEnergy(positiveEnergy: Status): List<ConfigEntity>
     suspend fun findByV2exPush(v2exPush: Status): List<ConfigEntity>
     suspend fun findByXianBaoPush(push: Status): List<ConfigEntity>
@@ -39,7 +38,7 @@ class ConfigService(
 
     suspend fun save(configEntity: ConfigEntity): ConfigEntity = configRepository.save(configEntity)
 
-    suspend fun findByTgId(tgId: Long) = configRepository.findByTgId(tgId)
+    suspend fun findByTgId(tgId: Long) = configRepository.findEnableEntityByTgId(tgId) as? ConfigEntity
 
     suspend fun findAll(): List<ConfigEntity> = configRepository.findAll().toList()
 

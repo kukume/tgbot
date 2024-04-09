@@ -25,7 +25,6 @@ class AliDriveEntity: BaseEntity() {
     data class Upload(val driveId: Int, val fileId: String)
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface AliDriveRepository: CoroutineCrudRepository<AliDriveEntity, String> {
 
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): AliDriveEntity?

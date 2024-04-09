@@ -14,7 +14,6 @@ class ECloudEntity: BaseEntity() {
     var sign: Status = Status.OFF
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface ECloudRepository: CoroutineCrudRepository<ECloudEntity, String> {
     suspend fun findBySign(sign: Status): List<ECloudEntity>
 

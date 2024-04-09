@@ -16,7 +16,6 @@ class PushEntity {
     var key: String = ""
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface PushRepository: CoroutineCrudRepository<PushEntity, String> {
     suspend fun findByTgId(tgId: Long): PushEntity?
 

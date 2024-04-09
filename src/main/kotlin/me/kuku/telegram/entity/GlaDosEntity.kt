@@ -13,7 +13,6 @@ class GlaDosEntity: BaseEntity() {
     var sign: Status = Status.OFF
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface GlaDosRepository: CoroutineCrudRepository<GlaDosEntity, String> {
 
     suspend fun findBySign(sign: Status): List<GlaDosEntity>

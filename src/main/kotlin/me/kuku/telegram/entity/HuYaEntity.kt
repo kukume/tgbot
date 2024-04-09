@@ -13,7 +13,6 @@ class HuYaEntity: BaseEntity() {
     var live: Status = Status.OFF
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface HuYaRepository: CoroutineCrudRepository<HuYaEntity, String> {
 
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): HuYaEntity?

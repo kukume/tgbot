@@ -18,7 +18,6 @@ class StepEntity: BaseEntity() {
     var offset: Status = Status.OFF
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface StepRepository: CoroutineCrudRepository<StepEntity, String> {
 
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): StepEntity?

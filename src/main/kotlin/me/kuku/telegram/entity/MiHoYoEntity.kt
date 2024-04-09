@@ -28,7 +28,6 @@ class MiHoYoEntity: BaseEntity() {
     }
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface MiHoYoRepository: CoroutineCrudRepository<MiHoYoEntity, String> {
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): MiHoYoEntity?
 

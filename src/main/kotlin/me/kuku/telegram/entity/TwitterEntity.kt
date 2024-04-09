@@ -16,7 +16,6 @@ class TwitterEntity: BaseEntity() {
     var push: Status = Status.OFF
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface TwitterRepository: CoroutineCrudRepository<TwitterEntity, String> {
 
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): TwitterEntity?

@@ -15,7 +15,6 @@ class WeiboEntity: BaseEntity() {
     var sign: Status = Status.OFF
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface WeiboRepository: CoroutineCrudRepository<WeiboEntity, String> {
 
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): WeiboEntity?

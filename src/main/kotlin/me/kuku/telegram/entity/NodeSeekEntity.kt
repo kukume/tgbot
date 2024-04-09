@@ -19,7 +19,6 @@ class NodeSeekEntity: BaseEntity() {
 
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface NodeSeekRepository: CoroutineCrudRepository<NodeSeekEntity, String> {
 
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): NodeSeekEntity?

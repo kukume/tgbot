@@ -1,6 +1,7 @@
 package me.kuku.telegram.entity
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import me.kuku.telegram.context.AbilityContext
 import me.kuku.telegram.context.TelegramContext
 import me.kuku.telegram.utils.SpringUtils
 import org.springframework.aop.framework.AopProxyUtils
@@ -29,6 +30,14 @@ open class BaseEntity {
         this@BaseEntity.tgName = tgId.tgName()
         return this as T
     }
+
+    context(AbilityContext)
+    suspend inline fun <reified T: BaseEntity> init(): T{
+        this@BaseEntity.tgId = this@AbilityContext.tgId
+        this@BaseEntity.tgName = tgId.tgName()
+        return this as T
+    }
+
 }
 
 enum class Status {

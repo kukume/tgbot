@@ -18,7 +18,6 @@ class KuGouEntity: BaseEntity() {
     var sign: Status = Status.OFF
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface KuGouRepository: CoroutineCrudRepository<KuGouEntity, String> {
 
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): KuGouEntity?

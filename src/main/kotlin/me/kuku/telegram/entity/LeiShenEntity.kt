@@ -1,5 +1,3 @@
-@file:Suppress("SpringDataRepositoryMethodReturnTypeInspection")
-
 package me.kuku.telegram.entity
 
 import org.springframework.data.annotation.Id

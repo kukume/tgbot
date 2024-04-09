@@ -57,7 +57,6 @@ enum class LogType(val value: String) {
     ECloud("天翼云盘")
 }
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface LogRepository: CoroutineCrudRepository<LogEntity, String> {
     suspend fun findByTgId(tgId: Long): List<LogEntity>
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): List<LogEntity>
