@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Document("config")
 class ConfigEntity: BaseEntity() {
@@ -23,6 +24,7 @@ class ConfigEntity: BaseEntity() {
 }
 
 interface ConfigRepository: CoroutineCrudRepository<ConfigEntity, String> {
+    suspend fun findByTgId(tgId: Long): List<ConfigEntity>
     suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): ConfigEntity?
     suspend fun findByPositiveEnergy(positiveEnergy: Status): List<ConfigEntity>
     suspend fun findByV2exPush(v2exPush: Status): List<ConfigEntity>
@@ -38,7 +40,15 @@ class ConfigService(
 
     suspend fun save(configEntity: ConfigEntity): ConfigEntity = configRepository.save(configEntity)
 
-    suspend fun findByTgId(tgId: Long) = configRepository.findEnableEntityByTgId(tgId) as? ConfigEntity
+    @Transactional
+    suspend fun findByTgId(tgId: Long): ConfigEntity? {
+        val list = configRepository.findByTgId(tgId)
+        if (list.size > 1) {
+            val subList = list.subList(1, list.size)
+            configRepository.deleteAll(subList)
+        }
+        return list.firstOrNull()
+    }
 
     suspend fun findAll(): List<ConfigEntity> = configRepository.findAll().toList()
 
