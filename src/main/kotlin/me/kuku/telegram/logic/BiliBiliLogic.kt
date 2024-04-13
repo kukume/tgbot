@@ -388,7 +388,8 @@ object BiliBiliLogic {
     }
 
     suspend fun ranking(): List<BiliBiliRanking> {
-        val jsonNode = OkHttpKtUtils.getJson("https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all")
+        val jsonNode = client.get("https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all")
+            .body<JsonNode>()
         val jsonArray = jsonNode["data"]["list"]
         val list = mutableListOf<BiliBiliRanking>()
         for (singleJsonNode in jsonArray) {

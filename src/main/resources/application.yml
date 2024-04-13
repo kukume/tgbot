@@ -14,6 +14,16 @@ spring:
   threads:
     virtual:
       enabled: true
+  mail:
+    host: smtp.office365.com
+    username: x@x.com
+    password: 0
+    properties:
+      mail:
+        from: x@x.com
+        smtp:
+          starttls:
+            enable: true
 logging:
   file:
     path: ./tmp
