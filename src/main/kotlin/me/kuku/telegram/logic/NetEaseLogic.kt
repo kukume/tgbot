@@ -443,7 +443,7 @@ object NetEaseLogic {
 
     private suspend fun shareMySong(netEaseEntity: NetEaseEntity, songId: Long, msg: String = "每日分享"): Long {
         val checkTokenNode = client.post("$api/exec/netEase/checkToken").body<JsonNode>()
-        val checkToken = checkTokenNode["checkToken"].asText() ?: error("获取checkToken失败，请检查api")
+        val checkToken = checkTokenNode["checkToken"]?.asText() ?: error("获取checkToken失败，请重试或检查api")
         val jsonNode = client.post("$domain/weapi/share/friends/resource") {
             setParams(mapOf("type" to "song", "id" to songId.toString(), "msg" to msg,
                 "uuid" to "publish-${System.currentTimeMillis()}${MyUtils.randomNum(5)}", "checkToken" to checkToken))

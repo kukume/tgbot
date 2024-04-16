@@ -106,7 +106,7 @@ class ExecExtension(
         }
         callback("biliBiliSign") {
             val biliBiliEntity = firstArg<BiliBiliEntity>()
-            val firstRank = BiliBiliLogic.ranking()[0]
+            val firstRank = BiliBiliLogic.ranking(biliBiliEntity)[0]
             BiliBiliLogic.watchVideo(biliBiliEntity, firstRank)
             delay(1000)
             BiliBiliLogic.share(biliBiliEntity, firstRank.aid)
