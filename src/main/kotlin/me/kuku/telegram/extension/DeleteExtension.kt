@@ -20,7 +20,6 @@ class DeleteExtension(
     private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
-    private val douYinService: DouYinService,
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
     private val smZdmService: SmZdmService,
@@ -43,7 +42,6 @@ class DeleteExtension(
         val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseDelete")
         val stepButton = InlineKeyboardButton("修改步数").callbackData("stepDelete")
         val weiboStepButton = InlineKeyboardButton("微博").callbackData("weiboDelete")
-        val douYinButton = InlineKeyboardButton("抖音").callbackData("douYinDelete")
         val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterDelete")
         val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivDelete")
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmDelete")
@@ -59,11 +57,11 @@ class DeleteExtension(
             arrayOf(huYaButton, kuGouButton),
             arrayOf(miHoYoButton, netEaseButton),
             arrayOf(stepButton, weiboStepButton),
-            arrayOf(douYinButton, twitterButton),
-            arrayOf(pixivButton, smZdmButton),
-            arrayOf(aliDriveButton, leiShenDelete),
-            arrayOf(nodeSeek, gloDos),
-            arrayOf(iqy, eCloud)
+            arrayOf(twitterButton, pixivButton),
+            arrayOf(smZdmButton, aliDriveButton),
+            arrayOf(leiShenDelete, nodeSeek),
+            arrayOf(gloDos, iqy),
+            arrayOf(eCloud)
         )
     }
 
@@ -113,10 +111,6 @@ class DeleteExtension(
         callback("weiboDelete") {
             weiboService.deleteByTgId(tgId)
             editMessageText("删除微博成功")
-        }
-        callback("douYinDelete") {
-            douYinService.deleteByTgId(tgId)
-            editMessageText("删除抖音成功")
         }
         callback("twitterDelete") {
             twitterService.deleteByTgId(tgId)

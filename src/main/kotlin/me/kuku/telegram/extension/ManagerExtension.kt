@@ -24,7 +24,6 @@ class ManagerExtension(
     private val weiboService: WeiboService,
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
-    private val douYinService: DouYinService,
     private val smZdmService: SmZdmService,
     private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
@@ -47,7 +46,6 @@ class ManagerExtension(
         val weiboButton = InlineKeyboardButton("微博").callbackData("weiboManager")
         val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterManager")
         val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivManager")
-        val douYinButton = InlineKeyboardButton("抖音").callbackData("douYinManager")
         val smZdmButton = InlineKeyboardButton("什么值得买").callbackData("smZdmManager")
         val aliDrive = inlineKeyboardButton("阿里云盘", "aliDriveManager")
         val leiShen = inlineKeyboardButton("雷神加速器", "leiShenManager")
@@ -62,10 +60,10 @@ class ManagerExtension(
             arrayOf(miHoYoButton, netEaseButton),
             arrayOf(xiaomiStepButton, weiboButton),
             arrayOf(twitterButton, pixivButton),
-            arrayOf(douYinButton, smZdmButton),
-            arrayOf(aliDrive, leiShen),
-            arrayOf(nodeSeek, glaDos),
-            arrayOf(iqy, eCloud)
+            arrayOf(smZdmButton, aliDrive),
+            arrayOf(leiShen, nodeSeek),
+            arrayOf(glaDos, iqy),
+            arrayOf(eCloud)
         )
     }
 
@@ -339,22 +337,6 @@ class ManagerExtension(
             editMessageText("""
                 pixiv管理
             """.trimIndent(), inlineKeyboardMarkup, top = true)
-        }
-    }
-
-    fun TelegramSubscribe.douYinManager() {
-        before { set(douYinService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定抖音账号")) }
-        callback("douYinManager") {}
-        callback("douYinPushSwitch") { firstArg<DouYinEntity>().also { it.push = !it.push } }
-        after {
-            val douYinEntity = firstArg<DouYinEntity>()
-            douYinService.save(douYinEntity)
-            val pushButton = inlineKeyboardButton("${douYinEntity.push}视频推送",
-                "douYinPushSwitch")
-            val markup = InlineKeyboardMarkup(arrayOf(pushButton))
-            editMessageText("""
-                抖音管理
-            """.trimIndent(), markup, top = true)
         }
     }
 

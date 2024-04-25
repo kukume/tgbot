@@ -33,7 +33,6 @@ class LoginExtension(
     private val stepService: StepService,
     private val weiboService: WeiboService,
     private val miHoYoService: MiHoYoService, private val miHoYoLogic: MiHoYoLogic,
-    private val douYinService: DouYinService,
     private val twitterService: TwitterService,
     private val pixivService: PixivService,
     private val smZdmService: SmZdmService, private val smZdmLogic: SmZdmLogic,
@@ -56,7 +55,6 @@ class LoginExtension(
         val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseLogin")
         val stepButton = InlineKeyboardButton("刷步数").callbackData("stepLogin")
         val weiboStepButton = InlineKeyboardButton("微博").callbackData("weiboLogin")
-        val douYinButton = InlineKeyboardButton("抖音").callbackData("douYinLogin")
         val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterLogin")
         val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivLogin")
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmLogin")
@@ -72,11 +70,11 @@ class LoginExtension(
             arrayOf(huYaButton, kuGouButton),
             arrayOf(miHoYoButton, netEaseButton),
             arrayOf(stepButton, weiboStepButton),
-            arrayOf(douYinButton, twitterButton),
-            arrayOf(pixivButton, smZdmButton),
-            arrayOf(aliDriveButton, leiShenButton),
-            arrayOf(nodeSeekButton, gloDos),
-            arrayOf(iqy, eCloud)
+            arrayOf(twitterButton, pixivButton),
+            arrayOf(smZdmButton, aliDriveButton),
+            arrayOf(leiShenButton, nodeSeekButton),
+            arrayOf(gloDos, iqy),
+            arrayOf(eCloud)
         )
     }
 
@@ -536,45 +534,6 @@ class LoginExtension(
             weiboEntity.cookie = newEntity.cookie
             weiboService.save(weiboEntity)
             editMessageText("绑定微博成功")
-        }
-    }
-
-    fun TelegramSubscribe.douYinLogin() {
-        callback("douYinLogin") {
-            editMessageText("请选择抖音登录方式", InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("使用抖音app扫码登录", "douYinQrcodeLogin"))
-            ))
-        }
-        callback("douYinQrcodeLogin") {
-            val qrcode = DouYinLogic.qrcode()
-            var photoMessage: Message?
-            qrcode.baseImage.base64Decode().let {
-                val photo = SendPhoto(chatId, it)
-                photoMessage = bot.asyncExecute(photo).message()
-                editMessageText("请使用抖音App扫码登录", returnButton = false)
-            }
-            var i = 0
-            while (true) {
-                if (i++ > 20) {
-                    editMessageText("抖音二维码已过期")
-                    break
-                }
-                val result = DouYinLogic.checkQrcode(qrcode)
-                if (result.code == 200) {
-                    val newDouYinEntity = result.data()
-                    val douYinEntity = douYinService.findByTgId(tgId) ?: DouYinEntity().init()
-                    douYinEntity.cookie = newDouYinEntity.cookie
-                    douYinEntity.userid = newDouYinEntity.userid
-                    douYinEntity.secUserid = newDouYinEntity.secUserid
-                    douYinService.save(douYinEntity)
-                    editMessageText("绑定抖音成功")
-                    break
-                } else if (result.code == 500) {
-                    editMessageText("绑定抖音失败，${result.message}")
-                }
-                delay(2000)
-            }
-            photoMessage?.delete()
         }
     }
 
