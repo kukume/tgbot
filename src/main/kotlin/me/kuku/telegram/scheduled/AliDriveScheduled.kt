@@ -84,7 +84,7 @@ class AliDriveScheduled(
         }
     }
 
-    @Scheduled(cron = "43 30 4 * * ?")
+    @Scheduled(cron = "43 30 5 * * ?")
     suspend fun receiveTodayTask() {
         val list = aliDriveService.findByTask(Status.ON)
         for (aliDriveEntity in list) {
