@@ -218,10 +218,22 @@ class AliDriveLogic(
         if (this["code"].asInt() != 200) error(this["message"].asText())
     }
 
+    private fun addZero(day: Int): String {
+        val dayString = day.toString()
+        return if (dayString.length == 1 && !dayString.startsWith("0")) "0$dayString" else dayString
+    }
+
+    private suspend fun reallyDay(aliDriveEntity: AliDriveEntity, day: Int): String {
+        val signInList = signInList(aliDriveEntity)
+        val dayString = addZero(day)
+        return signInList.signInInfos.find { it.date == dayString }?.day ?: error("您没有完成这天的任务")
+    }
+
     suspend fun receive(aliDriveEntity: AliDriveEntity, day: Int = LocalDate.now().dayOfMonth): String {
         val accessToken = accessToken(aliDriveEntity)
+        val newDay = reallyDay(aliDriveEntity, day)
         val jsonNode = client.post("https://member.aliyundrive.com/v1/activity/sign_in_reward?_rx-s=mobile") {
-            setJsonBody("""{"signInDay": $day}""")
+            setJsonBody("""{"signInDay": $newDay}""")
             headers {
                 append("Authorization", accessToken)
             }
@@ -233,8 +245,9 @@ class AliDriveLogic(
 
     suspend fun receiveTask(aliDriveEntity: AliDriveEntity, day: Int = LocalDate.now().dayOfMonth): String {
         val accessToken = accessToken(aliDriveEntity)
+        val newDay = reallyDay(aliDriveEntity, day)
         val jsonNode = client.post("https://member.aliyundrive.com/v2/activity/sign_in_task_reward?_rx-s=mobile") {
-            setJsonBody("""{"signInDay": $day}""")
+            setJsonBody("""{"signInDay": $newDay}""")
             headers {
                 append("Authorization", accessToken)
             }
@@ -1286,7 +1299,7 @@ class AliDriveSignIn {
     var signInInfos: MutableList<SignInInfo> = mutableListOf()
 
     class SignInInfo {
-        var day: Int = 0
+        var day: String = "0"
         var date: String? = null
         var blessing: String = ""
         var status: String = ""

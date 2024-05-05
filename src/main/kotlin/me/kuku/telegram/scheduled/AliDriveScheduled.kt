@@ -58,11 +58,11 @@ class AliDriveScheduled(
                 logService.log(aliDriveEntity, LogType.ALiDriveReceiveTask) {
                     val signList = aliDriveLogic.signInList(aliDriveEntity)
                     for (signInInfo in signList.signInInfos) {
-                        signInInfo.rewards.lastOrNull()?.let { reward ->
+                        signInInfo.rewards.getOrNull(1)?.let { reward ->
                             if (reward.status == "finished") {
                                 delay(3000)
                                 kotlin.runCatching {
-                                    aliDriveLogic.receiveTask(aliDriveEntity, signInInfo.day)
+                                    aliDriveLogic.receiveTask(aliDriveEntity, signInInfo.day.toInt())
                                 }
                             }
                         }
