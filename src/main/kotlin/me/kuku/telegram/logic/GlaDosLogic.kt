@@ -3,11 +3,9 @@ package me.kuku.telegram.logic
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import me.kuku.telegram.entity.GlaDosEntity
-import me.kuku.utils.client
-import me.kuku.utils.cookie
-import me.kuku.utils.cookieString
-import me.kuku.utils.setJsonBody
+import me.kuku.utils.*
 
 object GlaDosLogic {
 
@@ -35,7 +33,7 @@ object GlaDosLogic {
         val jsonNode = client.post("https://glados.space/api/user/checkin") {
             setJsonBody("""{"token":"glados.one"}""")
             cookieString(entity.cookie)
-        }.body<JsonNode>()
+        }.bodyAsText().toJsonNode()
         jsonNode.check()
         return jsonNode["message"].asText()
     }
