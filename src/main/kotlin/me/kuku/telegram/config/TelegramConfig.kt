@@ -104,6 +104,7 @@ class TelegramBean(
                                 telegramSubscribe.invoke(telegramBot, update)
                             }
                         }
+                        abilitySubscriberList.repeatCheck(telegramBot, update)
                     }
                 }
             }

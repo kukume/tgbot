@@ -278,7 +278,7 @@ object NetEaseLogic {
                 return musicianReceive(netEaseEntity, mission)
             }
         }
-        error("没有找到音乐人签到任务")
+        error("没有找到音乐人签到任务：$name")
     }
 
     private suspend fun finishStageMission(netEaseEntity: NetEaseEntity, name: String) {
@@ -291,7 +291,7 @@ object NetEaseLogic {
                 return musicianReceive(netEaseEntity, mission)
             }
         }
-        error("没有找到音乐人签到任务")
+        error("没有找到音乐人签到任务：$name")
     }
 
     suspend fun publish(netEaseEntity: NetEaseEntity) {

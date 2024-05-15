@@ -10,6 +10,9 @@ import io.ktor.http.*
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.WeiboEntity
+import me.kuku.telegram.exception.qrcodeExpire
+import me.kuku.telegram.exception.qrcodeNotScanned
+import me.kuku.telegram.exception.qrcodeScanned
 import me.kuku.utils.*
 import org.jsoup.Jsoup
 
@@ -140,46 +143,42 @@ object WeiboLogic {
         } else CommonResult.failure("查询失败，请稍后重试！")
     }
 
-    suspend fun login(username: String, password: String): WeiboLoginVerify {
-        val map = mapOf("username" to username, "password" to password, "savestate" to "1", "r" to "https://m.weibo.cn/",
-            "ec" to "0", "pagerefer" to "https://m.weibo.cn/", "entry" to "mweibo", "wentry" to "", "loginfrom" to "",
-            "client_id" to "", "code" to "", "qq" to "", "mainpageflag" to "1", "hff" to "", "hfp" to "")
-        val jsonNode = OkHttpKtUtils.postJson("https://passport.weibo.cn/sso/login", map,
-            OkUtils.referer("https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2F"))
+    suspend fun login1(): WeiboQrcode {
+        val jsonNode = client.get("https://passport.weibo.com/sso/v2/qrcode/image?entry=wapsso&size=180") {
+            referer("https://passport.weibo.com/sso/signin?entry=wapsso&source=wapssowb&url=https%3A%2F%2Fm.weibo.cn%2F")
+        }.body<JsonNode>()
+        val data = jsonNode["data"]
+        return WeiboQrcode(data["qrid"].asText(), data["image"].asText())
+    }
+
+    @Suppress("DuplicatedCode")
+    suspend fun login2(weiboQrcode: WeiboQrcode): WeiboEntity {
+        val jsonNode = client.get("https://passport.weibo.com/sso/v2/qrcode/check?entry=wapsso&source=wapssowb&url=https:%2F%2Fm.weibo.cn%2F&qrid=${weiboQrcode.qrId}") {
+            referer("https://passport.weibo.com/sso/signin?entry=wapsso&source=wapssowb&url=https%3A%2F%2Fm.weibo.cn%2F")
+        }.body<JsonNode>()
         val code = jsonNode["retcode"].asInt()
-        if (code != 50050011) error(jsonNode.getString("msg"))
-        else {
-            val data = jsonNode["data"]
-            val errUrl = data.getString("errurl")
-            val id = MyUtils.regex("id=", "&", errUrl) ?: error("登陆失败，请稍后再试")
-            val cookie = "FID=$id; "
-            val html = OkHttpKtUtils.getStr("https://passport.weibo.cn/signin/secondverify/index?first_enter=1&c=", OkUtils.cookie(cookie))
-            val phone = MyUtils.regex("\"maskMobile\":\"", "\"", html)!!
-            return WeiboLoginVerify(cookie, phone, id)
+        return when(code) {
+            50114001 -> qrcodeNotScanned()
+            50114002 -> qrcodeScanned()
+            20000000 -> {
+                val url = jsonNode["data"]["url"].asText()
+                val firstResponse = client.get(url)
+                val secondUrl = firstResponse.headers["location"]!!
+                val secondResponse = client.get(secondUrl) {
+                    referer("https://passport.weibo.com/")
+                }
+                val thirdUrl = secondResponse.headers["location"]!!
+                val thirdResponse = client.get(thirdUrl) { referer("https://passport.weibo.com/") }
+                val fourUrl = thirdResponse.headers["location"]!!
+                val fourResponse = client.get(fourUrl) { referer("https://passport.weibo.com/") }
+                val fiveUrl = fourResponse.headers["location"]!!
+                val fiveResponse = client.get(fiveUrl) { referer("https://passport.weibo.com/") }
+                WeiboEntity().also { it.cookie = fiveResponse.cookie() }
+            }
+            else -> qrcodeExpire()
         }
     }
 
-    suspend fun loginByPrivateMsg1(weiboLoginVerify: WeiboLoginVerify) {
-        val jsonNode = OkHttpKtUtils.getJson("https://passport.weibo.cn/signin/secondverify/ajsend?msg_type=private_msg",
-            OkUtils.cookie(weiboLoginVerify.cookie))
-        if (jsonNode["retcode"].asInt() != 100000) error(jsonNode["msg"].asText())
-    }
-
-    suspend fun loginByPrivateMsg2(weiboLoginVerify: WeiboLoginVerify, code: String): WeiboEntity {
-        val jsonNode = OkHttpKtUtils.getJson("https://passport.weibo.cn/signin/secondverify/ajcheck?msg_type=private_msg&code=$code",
-            OkUtils.cookie(weiboLoginVerify.cookie))
-        if (jsonNode["retcode"].asInt() != 100000) error(jsonNode["msg"].asText())
-        val url = jsonNode["data"]["url"].asText()
-        val firstResponse = OkHttpKtUtils.get(url).apply { close() }
-        val secondUrl = firstResponse.header("location")!!
-        val secondResponse = OkHttpKtUtils.get(secondUrl).apply { close() }
-        val thirdUrl = secondResponse.header("location")!!
-        val thirdResponse = OkHttpUtils.get(thirdUrl).apply { close() }
-        val forthUrl = thirdResponse.header("location")!!
-        val forthResponse = OkHttpUtils.get(forthUrl).apply { close() }
-        forthResponse.close()
-        return WeiboEntity().also { it.cookie = OkUtils.cookie(forthResponse) }
-    }
 
     suspend fun friendWeibo(weiboEntity: WeiboEntity): CommonResult<List<WeiboPojo>> {
         val str = OkHttpKtUtils.getStr("https://m.weibo.cn/feed/friends?",
@@ -403,3 +402,5 @@ data class WeiboToken(
 )
 
 data class WeiboLoginVerify(val cookie: String, val phone: String, val id: String)
+
+data class WeiboQrcode(val qrId: String, val image: String)

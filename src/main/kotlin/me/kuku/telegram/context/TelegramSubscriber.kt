@@ -3,6 +3,7 @@ package me.kuku.telegram.context
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Chat
 import com.pengrad.telegrambot.model.Update
+import com.pengrad.telegrambot.request.DeleteMessage
 import com.pengrad.telegrambot.request.GetMe
 import com.pengrad.telegrambot.request.SendMessage
 import kotlinx.coroutines.Dispatchers
@@ -64,7 +65,7 @@ class AbilitySubscriber {
     private fun Chat.Type.isPrivate() = this == Chat.Type.Private
     private fun Chat.Type.isGroup() = this == Chat.Type.group || this == Chat.Type.supergroup
 
-    suspend fun invoke(bot: TelegramBot, update: Update) {
+    suspend fun invoke(bot: TelegramBot, update: Update, delete: Boolean = false) {
         val message = update.message() ?: return
         val text = message.text() ?: message.caption() ?: return
         val messageSplit = text.split(" ")
@@ -102,6 +103,10 @@ class AbilitySubscriber {
                 }
                 bot.asyncExecute(sendMessage)
             } else {
+                if (delete) {
+                    val deleteMessage = DeleteMessage(message.chat().id(), message.messageId())
+                    bot.asyncExecute(deleteMessage)
+                }
                 val abilityContext = AbilityContext(bot, update)
                 invokeAbility(abilityContext, it.block)
             }
@@ -233,6 +238,16 @@ class TelegramSubscribe {
         }
     }
 
+}
+
+suspend fun List<AbilitySubscriber>.repeatCheck(bot: TelegramBot, update: Update) {
+    val callbackQuery = update.callbackQuery() ?: return
+    val clazz = update::class.java
+    clazz.getDeclaredField("message").also { it.isAccessible = true }.set(update, callbackQuery.maybeInaccessibleMessage())
+    val message = update.message()
+    val messageClazz = message::class.java
+    messageClazz.getDeclaredField("text").also { it.isAccessible = true }.set(message, update.callbackQuery().data())
+    this.forEach { it.invoke(bot, update, true) }
 }
 
 

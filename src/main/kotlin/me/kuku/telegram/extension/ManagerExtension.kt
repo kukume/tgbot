@@ -30,7 +30,8 @@ class ManagerExtension(
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService,
     private val iqyService: IqyService,
-    private val eCloudService: ECloudService
+    private val eCloudService: ECloudService,
+    private val linuxDoService: LinuxDoService
 ) {
 
     private fun managerKeyboardMarkup(): InlineKeyboardMarkup {
@@ -53,6 +54,7 @@ class ManagerExtension(
         val glaDos = inlineKeyboardButton("Glados", "glaDosManager")
         val iqy = inlineKeyboardButton("爱奇艺", "iqyManager")
         val eCloud = inlineKeyboardButton("天翼云盘", "eCloudManager")
+        val linuxDo = inlineKeyboardButton("LinuxDo", "linuxDoManager")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -63,7 +65,7 @@ class ManagerExtension(
             arrayOf(smZdmButton, aliDrive),
             arrayOf(leiShen, nodeSeek),
             arrayOf(glaDos, iqy),
-            arrayOf(eCloud)
+            arrayOf(eCloud, linuxDo)
         )
     }
 
@@ -508,6 +510,24 @@ class ManagerExtension(
             )
             editMessageText("""
                 天翼云盘
+            """.trimIndent(), markup, top = true)
+        }
+    }
+
+    fun TelegramSubscribe.linuxDoManager() {
+        before { linuxDoService.findByTgId(tgId).set("未绑定LinuxDo账号") }
+        callback("linuxDoManager") {}
+        callback("linuxDoSignSwitch") { firstArg<LinuxDoEntity>().also { it.sign = !it.sign } }
+        after {
+            val entity: LinuxDoEntity = firstArg()
+            linuxDoService.save(entity)
+            val markup = InlineKeyboardMarkup(
+                arrayOf(
+                    inlineKeyboardButton("${entity.sign}自动签到", "linuxDoSignSwitch"),
+                )
+            )
+            editMessageText("""
+                LinuxDo
             """.trimIndent(), markup, top = true)
         }
     }

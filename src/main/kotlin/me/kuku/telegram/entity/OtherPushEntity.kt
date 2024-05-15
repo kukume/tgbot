@@ -18,7 +18,7 @@ class OtherPushEntity {
     }
 
     class Complex {
-
+        var receiveEmail: String = ""
     }
 }
 

@@ -41,7 +41,8 @@ class LoginExtension(
     private val nodeSeekService: NodeSeekService,
     private val glaDosService: GlaDosService,
     private val iqyService: IqyService,
-    private val eCloudService: ECloudService, private val eCloudLogic: ECloudLogic
+    private val eCloudService: ECloudService, private val eCloudLogic: ECloudLogic,
+    private val linuxDoService: LinuxDoService
 ) {
 
     private fun loginKeyboardMarkup(): InlineKeyboardMarkup {
@@ -64,6 +65,7 @@ class LoginExtension(
         val gloDos = inlineKeyboardButton("GloDos", "gloDosLogin")
         val iqy = inlineKeyboardButton("爱奇艺", "iqyLogin")
         val eCloud = inlineKeyboardButton("天翼云盘", "eCloudLogin")
+        val linuxDo = inlineKeyboardButton("LinuxDo", "linuxDoLogin")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
@@ -74,7 +76,7 @@ class LoginExtension(
             arrayOf(smZdmButton, aliDriveButton),
             arrayOf(leiShenButton, nodeSeekButton),
             arrayOf(gloDos, iqy),
-            arrayOf(eCloud)
+            arrayOf(eCloud, linuxDo)
         )
     }
 
@@ -517,23 +519,38 @@ class LoginExtension(
     fun TelegramSubscribe.weiboLogin() {
         callback("weiboLogin") {
             editMessageText("请选择微博登录方式", InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("使用账号密码登录", "weiboPasswordLogin"))
+                arrayOf(inlineKeyboardButton("使用微博app扫码登陆", "weiboQrcodeLogin"))
             ))
         }
-        callback("weiboPasswordLogin") {
-            editMessageText("请发送微博账号")
-            val account = nextMessage().text()
-            editMessageText("请发送微博密码")
-            val password = nextMessage().text()
-            val weiboLoginVerify = WeiboLogic.login(account, password)
-            WeiboLogic.loginByPrivateMsg1(weiboLoginVerify)
-            editMessageText("微博需要私信验证，请打开微博app或者网页查看*微博安全中心*发送的验证码", parseMode = ParseMode.Markdown)
-            val code = nextMessage(1000 * 60 * 2).text()
-            val newEntity = WeiboLogic.loginByPrivateMsg2(weiboLoginVerify, code)
-            val weiboEntity = weiboService.findByTgId(tgId) ?: WeiboEntity().init()
-            weiboEntity.cookie = newEntity.cookie
-            weiboService.save(weiboEntity)
-            editMessageText("绑定微博成功")
+        callback("weiboQrcodeLogin") {
+            val qrcode = WeiboLogic.login1()
+            val photoMessage: Message?
+            client.get(qrcode.image).body<ByteArray>().let {
+                val sendPhoto = SendPhoto(chatId, it)
+                photoMessage = bot.asyncExecute(sendPhoto).message()
+                editMessageText("使用微博app扫码登陆", returnButton = false)
+            }
+            var i = 0
+            var fail = true
+            while (true) {
+                if (i++ > 20) break
+                delay(3000)
+                try {
+                    val newEntity = WeiboLogic.login2(qrcode)
+                    val weiboEntity = weiboService.findByTgId(tgId) ?: WeiboEntity().init()
+                    weiboEntity.cookie = newEntity.cookie
+                    weiboService.save(weiboEntity)
+                    editMessageText("绑定微博成功")
+                    fail = false
+                    break
+                } catch (e: QrcodeScanException) {
+                    continue
+                }
+            }
+            photoMessage?.delete()
+            if (fail) {
+                editMessageText("微博二维码已过期")
+            }
         }
     }
 
@@ -901,6 +918,26 @@ class LoginExtension(
             entity.eCookie = newEntity.eCookie
             eCloudService.save(entity)
             editMessageText("绑定天翼云盘成功")
+        }
+    }
+
+    fun TelegramSubscribe.linuxDoLogin() {
+        callback("linuxDoLogin") {
+            editMessageText("""
+                请选择LinuxDo的登陆方式
+                cookie登陆，请新开一个无痕浏览器抓包获取cookie
+            """.trimIndent(), InlineKeyboardMarkup(
+                arrayOf(inlineKeyboardButton("cookie登陆", "linuxDoCookieLogin"))
+            ))
+        }
+        callback("linuxDoCookieLogin") {
+            editMessageText("请发送LinuxDo的cookie")
+            val text = nextMessage().text()
+            LinuxDoLogic.check(text)
+            val linuxDoEntity = linuxDoService.findByTgId(tgId) ?: LinuxDoEntity().init()
+            linuxDoEntity.cookie = text
+            linuxDoService.save(linuxDoEntity)
+            editMessageText("绑定LinuxDo成功")
         }
     }
 

@@ -1,6 +1,7 @@
 package me.kuku.telegram.entity
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import kotlinx.coroutines.reactive.awaitFirst
 import me.kuku.telegram.context.AbilityContext
 import me.kuku.telegram.context.TelegramContext
 import me.kuku.telegram.utils.SpringUtils
@@ -8,10 +9,14 @@ import org.springframework.aop.framework.AopProxyUtils
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.mongodb.core.index.Indexed
+import org.springframework.data.repository.NoRepositoryBean
 import org.springframework.data.repository.Repository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import reactor.core.publisher.Flux
 import java.time.LocalDateTime
 import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.declaredFunctions
+import kotlin.reflect.full.functions
 
 open class BaseEntity {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -73,15 +78,28 @@ suspend fun Long.tgName(): String? {
 suspend fun Repository<out BaseEntity, *>.findEnableEntityByTgId(tgId: Long): BaseEntity? {
     val clazz = AopProxyUtils.proxiedUserInterfaces(this)[0].kotlin
     val name = tgId.tgName()
-    val function = clazz.declaredFunctions.find { it.name == "findByTgIdAndTgName" }
+    val function = clazz.functions.find { it.name == "findByTgIdAndTgName" }
         ?: error("当前身份是${name ?: "主身份"}，但是该功能没有提供多账号查询函数")
-    return function.callSuspend(this, tgId, name) as? BaseEntity
+    val result = function.callSuspend(this, tgId, name)
+    return if (result is Flux<*>) {
+        result.collectList().awaitFirst().firstOrNull() as? BaseEntity
+    } else {
+        result as? BaseEntity
+    }
 }
 
 suspend fun Repository<out BaseEntity, *>.deleteEnableEntityByTgId(tgId: Long) {
     val clazz = AopProxyUtils.proxiedUserInterfaces(this)[0].kotlin
     val name = tgId.tgName()
-    val function = clazz.declaredFunctions.find { it.name == "deleteByTgIdAndTgName" }
+    val function = clazz.functions.find { it.name == "deleteByTgIdAndTgName" }
         ?: error("当前身份是${name ?: "主身份"}，但是该功能没有提供多账号查询函数")
-    function.callSuspend(this, tgId, name) as? BaseEntity
+    function.callSuspend(this, tgId, name)
+}
+
+@NoRepositoryBean
+interface CoroutineCrudMultipleRepository<T, ID>: CoroutineCrudRepository<T, ID> {
+
+    fun findByTgIdAndTgName(tgId: Long, tgName: String?): T?
+    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+
 }
