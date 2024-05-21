@@ -7,8 +7,7 @@ import io.ktor.client.statement.*
 import me.kuku.telegram.config.api
 import me.kuku.telegram.entity.LinuxDoEntity
 import me.kuku.telegram.entity.LinuxDoService
-import me.kuku.utils.client
-import me.kuku.utils.cookieString
+import me.kuku.utils.*
 import org.jsoup.Jsoup
 import org.springframework.stereotype.Service
 
@@ -52,6 +51,35 @@ class LinuxDoLogic(
 
             }
             return list
+        }
+
+        suspend fun login(username: String, password: String): String {
+            val csrfResponse = client.get("https://linux.do/session/csrf") {
+                headers {
+                    append("X-Requested-With", "XMLHttpRequest")
+                }
+            }
+            val jsonNode = csrfResponse.body<JsonNode>()
+            val csrf = jsonNode["csrf"].asText()
+            val tempCookie = csrfResponse.cookie()
+            val response = client.post("https://linux.do/session") {
+                headers {
+                    append("X-CSRF-Token", csrf)
+                    append("X-Requested-With", "XMLHttpRequest")
+                    cookieString(tempCookie)
+                    origin("https://linux.do")
+                    referer("https://linux.do/")
+                }
+                setFormDataContent {
+                    append("login", username)
+                    append("password", password)
+                    append("second_factor_method", "1")
+                    append("timezone", "Asia/Shanghai")
+                }
+            }
+            val loginNode = response.body<JsonNode>()
+            if (loginNode.has("error")) error(loginNode["error"].asText())
+            return response.cookie()
         }
 
 

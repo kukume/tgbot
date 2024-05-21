@@ -202,7 +202,7 @@ class ExecExtension(
             val netEaseEntity = firstArg<NetEaseEntity>()
             NetEaseLogic.publish(netEaseEntity)
             delay(3000)
-            NetEaseLogic.myMusicComment(netEaseEntity)
+//            NetEaseLogic.myMusicComment(netEaseEntity)
             editMessageText("网易云音乐人推荐任务完成成功")
         }
         callback("netEaseMusicianSign2") {

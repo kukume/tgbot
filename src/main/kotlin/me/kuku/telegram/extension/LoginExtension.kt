@@ -927,7 +927,8 @@ class LoginExtension(
                 请选择LinuxDo的登陆方式
                 cookie登陆，请新开一个无痕浏览器抓包获取cookie
             """.trimIndent(), InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("cookie登陆", "linuxDoCookieLogin"))
+                arrayOf(inlineKeyboardButton("cookie登陆", "linuxDoCookieLogin")),
+                arrayOf(inlineKeyboardButton("密码登陆", "linuxDoPasswordLogin"))
             ))
         }
         callback("linuxDoCookieLogin") {
@@ -937,6 +938,17 @@ class LoginExtension(
             val linuxDoEntity = linuxDoService.findByTgId(tgId) ?: LinuxDoEntity().init()
             linuxDoEntity.cookie = text
             linuxDoService.save(linuxDoEntity)
+            editMessageText("绑定LinuxDo成功")
+        }
+        callback("linuxDoPasswordLogin") {
+            editMessageText("请发送LinuxDo的用户名")
+            val username = nextMessage().text()
+            editMessageText("请发送LinuxDo的密码")
+            val password = nextMessage().text()
+            val cookie = LinuxDoLogic.login(username, password)
+            val entity = linuxDoService.findByTgId(tgId) ?: LinuxDoEntity().init()
+            entity.cookie = cookie
+            linuxDoService.save(entity)
             editMessageText("绑定LinuxDo成功")
         }
     }
