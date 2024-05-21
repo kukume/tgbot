@@ -1,11 +1,11 @@
 @file:Suppress("VulnerableLibrariesLocal")
 
 plugins {
-    val kotlinVersion = "1.9.23"
+    val kotlinVersion = "2.0.0"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "3.2.4"
-    id("io.spring.dependency-management") version "1.1.4"
+    id("org.springframework.boot") version "3.2.5"
+    id("io.spring.dependency-management") version "1.1.5"
     application
 }
 
@@ -23,11 +23,11 @@ dependencies {
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("com.github.pengrad:java-telegram-bot-api:7.2.0")
-    implementation("me.kuku:utils:2.3.10.0")
-    implementation("me.kuku:ktor-spring-boot-starter:2.3.10.0")
+    implementation("com.github.pengrad:java-telegram-bot-api:7.2.1")
+    implementation("me.kuku:utils:2.3.11.0")
+    implementation("me.kuku:ktor-spring-boot-starter:2.3.11.0")
     implementation("org.jsoup:jsoup:1.17.2")
-    val ociVersion = "3.39.0"
+    val ociVersion = "3.41.2"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion") {
@@ -45,9 +45,10 @@ java {
 }
 
 tasks.compileKotlin {
-    kotlinOptions {
+    compilerOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict", "-Xcontext-receivers")
-        jvmTarget = "21"
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
 
