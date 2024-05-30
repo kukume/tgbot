@@ -797,9 +797,9 @@ class LoginExtension(
             ))
         }
         callback("nodeSeekCookieLogin") {
-            editMessageText("请发送cookie，仅提供session即可，session=xxx; ")
-            val cookie = nextMessage(errMessage = "您发送的cookie有误，需包含session=，请重新发送") {
-                text().contains("session=")
+            editMessageText("请发送cookie，请在浏览器抓包该网页的所有cookie")
+            val cookie = nextMessage(errMessage = "您发送的cookie有误，需包含session=和cf_clearance等，请重新发送") {
+                text().contains("session=") && text().contains("cf_clearance=")
             }.text()
             val entity = nodeSeekService.findByTgId(tgId) ?: NodeSeekEntity().init()
             entity.cookie = cookie

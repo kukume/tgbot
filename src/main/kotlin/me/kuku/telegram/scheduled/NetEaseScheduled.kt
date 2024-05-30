@@ -28,10 +28,11 @@ class NetEaseScheduled(
     private suspend fun execMusicianSign(netEaseEntity: NetEaseEntity) {
         NetEaseLogic.musicianSign(netEaseEntity)
         delay(3000)
-//        NetEaseLogic.myMusicComment(netEaseEntity)
+        NetEaseLogic.myMusicComment(netEaseEntity)
         delay(3000)
         NetEaseLogic.publishAndShareMySongAndComment(netEaseEntity)
         delay(1000 * 60)
+        NetEaseLogic.publishMLog(netEaseEntity)
     }
 
     @Scheduled(cron = "0 32 8 * * ?")

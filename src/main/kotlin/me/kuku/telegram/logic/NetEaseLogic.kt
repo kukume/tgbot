@@ -361,7 +361,7 @@ object NetEaseLogic {
         return if (jsonNode.getInteger("code") == 200) {
             val resourceId = jsonNode["data"]["event"]["info"].getLong("resourceId")
             removeDy(netEaseEntity, resourceId)
-            finishCycleMission(netEaseEntity, "发布mlog")
+//            finishCycleMission(netEaseEntity, "发布mlog")
         } else error(jsonNode.getString("message"))
     }
 
@@ -413,7 +413,7 @@ object NetEaseLogic {
         val commentId2 = musicComment(netEaseEntity, netEaseSong.songId)
         delay(2000)
         deleteMusicComment(netEaseEntity, netEaseSong.songId, commentId2)
-        finishStageMission(netEaseEntity, "发表主创说")
+//        finishStageMission(netEaseEntity, "发表主创说")
     }
 
     private fun JsonNode.check() {
