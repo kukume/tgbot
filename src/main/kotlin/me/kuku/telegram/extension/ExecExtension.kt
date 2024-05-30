@@ -182,11 +182,13 @@ class ExecExtension(
             val netEaseSignButton = InlineKeyboardButton("签到").callbackData("netEaseSign")
             val sign1 = InlineKeyboardButton("音乐人签到（推荐任务）").callbackData("netEaseMusicianSign1")
             val sign2 = inlineKeyboardButton("音乐人签到（每日任务）", "netEaseMusicianSign2")
+            val sign3 = inlineKeyboardButton("其他", "netEaseMusicianSign3")
             val vipSign = inlineKeyboardButton("vip签到", "netEaseVipSign")
             val markup = InlineKeyboardMarkup(
                 arrayOf(netEaseSignButton),
                 arrayOf(sign1),
                 arrayOf(sign2),
+                arrayOf(sign3),
                 arrayOf(vipSign)
             )
             editMessageText("网易云音乐", markup)
@@ -211,6 +213,13 @@ class ExecExtension(
             delay(3000)
             NetEaseLogic.publishAndShareMySongAndComment(netEaseEntity)
             editMessageText("网易云音乐人每日任务完成成功")
+        }
+        callback("netEaseMusicianSign3") {
+            val netEaseEntity = firstArg<NetEaseEntity>()
+            NetEaseLogic.publishMLog(netEaseEntity)
+            delay(3000)
+            NetEaseLogic.publishMLog(netEaseEntity)
+            editMessageText("网易云音乐执行成功")
         }
         callback("netEaseVipSign") {
             NetEaseLogic.vipSign(firstArg())
