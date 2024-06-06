@@ -49,9 +49,14 @@ object BiliBiliLogic {
         biliBiliPojo.rid = descJsonNode.getString("rid")
         biliBiliPojo.time = (descJsonNode.getString("timestamp") + "000").toLong()
         biliBiliPojo.bvId = descJsonNode.get("bvid")?.asText() ?: ""
-        biliBiliPojo.isForward = forwardJsonNode != null
-        if (forwardJsonNode != null) {
+        biliBiliPojo.isForward = !forwardJsonNode.isNull
+        if (!forwardJsonNode.isNull) {
             biliBiliPojo.forwardBvId = forwardJsonNode["bvid"]?.asText() ?: ""
+            if (biliBiliPojo.forwardBvId.isEmpty()) {
+                val rid = forwardJsonNode["rid"].asInt()
+                if (rid != 0)
+                    biliBiliPojo.forwardBvId = "av$rid"
+            }
             forwardJsonNode.get("timestamp")?.asText()?.let {
                 biliBiliPojo.forwardTime = (it + "000").toLong()
             }
@@ -91,7 +96,7 @@ object BiliBiliLogic {
                 biliBiliPojo.ipFrom = location
             }
             val originStr = cardJsonNode["origin"]?.asText()
-            if (originStr != null) {
+            if (originStr != null && (originStr.startsWith("{") || originStr.startsWith("["))) {
                 val forwardPicList = biliBiliPojo.forwardPicList
                 val forwardContentJsonNode = originStr.toJsonNode()
                 if (biliBiliPojo.forwardBvId.isNotEmpty()) {
@@ -99,6 +104,8 @@ object BiliBiliLogic {
                         forwardPicList.add(it.asText())
                     }
                 }
+                val ctime = forwardContentJsonNode["ctime"].asInt()
+                biliBiliPojo.forwardTime = ctime * 1000L
                 if (forwardContentJsonNode.contains("item")) {
                     val forwardItemJsonNode = forwardContentJsonNode["item"]
                     biliBiliPojo.forwardText = forwardItemJsonNode["description"]?.asText() ?: ""
