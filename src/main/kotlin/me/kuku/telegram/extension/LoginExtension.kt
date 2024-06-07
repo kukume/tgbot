@@ -214,7 +214,8 @@ class LoginExtension(
     fun TelegramSubscribe.hostLocLogin() {
         callback("hostLocLogin") {
             editMessageText("请选择HostLoc登录方式", InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("使用账号密码登录", "hostLocPasswordLogin"))
+                arrayOf(inlineKeyboardButton("使用账号密码登录", "hostLocPasswordLogin")),
+                arrayOf(inlineKeyboardButton("使用cookie登录", "hostLocCookieLogin"))
             ))
         }
         callback("hostLocPasswordLogin") {
@@ -225,6 +226,15 @@ class LoginExtension(
             val passwordMessage = nextMessage()
             val password = passwordMessage.text()
             val cookie = HostLocLogic.login(account, password)
+            val hostLocEntity = hostLocService.findByTgId(tgId) ?: HostLocEntity().init()
+            hostLocEntity.cookie = cookie
+            hostLocService.save(hostLocEntity)
+            editMessageText("绑定HostLoc成功")
+        }
+        callback("hostLocCookieLogin") {
+            editMessageText("请发送HostLoc的cookie")
+            val cookie = nextMessage().text()
+            HostLocLogic.singleSign(cookie)
             val hostLocEntity = hostLocService.findByTgId(tgId) ?: HostLocEntity().init()
             hostLocEntity.cookie = cookie
             hostLocService.save(hostLocEntity)

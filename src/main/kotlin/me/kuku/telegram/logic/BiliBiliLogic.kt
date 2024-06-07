@@ -142,6 +142,12 @@ object BiliBiliLogic {
                     }
                 }
             }
+            cardJsonNode["title"]?.asText()?.takeIf { it.isNotEmpty() }?.let {
+                text += "|$it"
+            }
+            cardJsonNode["desc"]?.asText()?.takeIf { it.isNotEmpty() }?.let {
+                text += "|$it"
+            }
         }
         biliBiliPojo.text = text ?: "无"
         val type = if (biliBiliPojo.bvId.isEmpty()) {
