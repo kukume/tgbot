@@ -14,7 +14,7 @@ import java.util.*
 
 @Service
 class MiHoYoLogic(
-    private val geeTestLogic: GeeTestLogic
+    private val twoCaptchaLogic: TwoCaptchaLogic
 ) {
 
     context(HttpRequestBuilder)
@@ -178,7 +178,7 @@ class MiHoYoLogic(
             val data = gisJsonNode["data"].asText().toJsonNode()
             val gt = data["gt"].asText()
             val challenge = data["challenge"].asText()
-            val rr = geeTestLogic.rr(gt, "https://static.mohoyo.com", challenge, tgId = tgId)
+            val rr = twoCaptchaLogic.geeTest(gt, challenge,"https://static.mohoyo.com", tgId = tgId)
             val aiGis = "$sessionId;" + """
                 {"geetest_challenge":"${rr.challenge}","geetest_seccode":"${rr.validate}|jordan","geetest_validate":"${rr.validate}"}
             """.trimIndent().base64Encode()
@@ -216,7 +216,7 @@ class MiHoYoLogic(
         val challenge = dataJsonNode.getString("challenge")
         val gt = dataJsonNode.getString("gt")
         val mmtKey = dataJsonNode.getString("mmt_key")
-        val rr = geeTestLogic.rr(gt, "https://bbs.mihoyo.com/ys/", challenge, tgId = tgId)
+        val rr = twoCaptchaLogic.geeTest(gt, challenge,"https://bbs.mihoyo.com/ys/", tgId = tgId)
         val cha = rr.challenge
         val validate = rr.validate
         val rsaKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDvekdPMHN3AYhm/vktJT+YJr7cI5DcsNKqdsx5DZX0gDuWFuIjzdwButrIYPNmRJ1G8ybDIF7oDW2eEpm5sMbL9zs9ExXCdvqrn51qELbqj0XxtMTIpaCHFSI50PfPpTFV9Xt/hmyVwokoOXFlAEgCn+QCgGs52bFoYMtyi+xEQIDAQAB"
@@ -275,13 +275,11 @@ class MiHoYoLogic(
             fix.loginHeader()
         }.body<JsonNode>()
         val dataJsonNode = beforeJsonNode["data"]["mmt_data"]
-        val gt = dataJsonNode.getString("gt")
         val mmtKey = dataJsonNode.getString("mmt_key")
-        val rr = geeTestLogic.rr(gt, "https://user.mihoyo.com/", mmtKey = mmtKey, tgId = tgId,
-            riskType = "icon")
+        val rr = twoCaptchaLogic.geeTestV4(mmtKey, "https://user.mihoyo.com/", tgId = tgId)
         val rsaKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDvekdPMHN3AYhm/vktJT+YJr7cI5DcsNKqdsx5DZX0gDuWFuIjzdwButrIYPNmRJ1G8ybDIF7oDW2eEpm5sMbL9zs9ExXCdvqrn51qELbqj0XxtMTIpaCHFSI50PfPpTFV9Xt/hmyVwokoOXFlAEgCn+QCgGs52bFoYMtyi+xEQIDAQAB"
         val enPassword = password.rsaEncrypt(rsaKey)
-        val data = Jackson.toJsonString(rr.secCode)
+        val data = Jackson.toJsonString(rr)
         val response = client.post("https://webapi.account.mihoyo.com/Api/login_by_password") {
             setFormDataContent {
                 append("account", account)
@@ -365,7 +363,7 @@ class MiHoYoLogic(
         return params.map { (key, value) -> "$key=$value" }.joinToString("&")
     }
 
-    private suspend fun sign(miHoYoEntity: MiHoYoEntity, jsonNode: JsonNode, rrOcrResult: RrOcrResult? = null): JsonNode {
+    private suspend fun sign(miHoYoEntity: MiHoYoEntity, jsonNode: JsonNode, geeTest: GeeTest? = null): JsonNode {
         return client.post("https://api-takumi.mihoyo.com/event/luna/sign") {
             setJsonBody("""
                     {"act_id":"e202311201442471","region":"${jsonNode["region"].asText()}","uid":"${jsonNode.getString("game_uid")}","lang":"zh-cn"}
@@ -374,9 +372,9 @@ class MiHoYoLogic(
             headers {
                 cookieString(miHoYoEntity.cookie)
                 append("x-rpc-signgame", "hk4e")
-                rrOcrResult?.let {
+                geeTest?.let {
                     append("x-rpc-validate", it.validate)
-                    append("x-rpc-seccode", "${it.validate}|jordan")
+                    append("x-rpc-seccode", it.secCode)
                     append("x-rpc-challenge", it.challenge)
                 }
             }
@@ -397,7 +395,7 @@ class MiHoYoLogic(
                     val gt = data["gt"].asText()
                     if (gt.isNotEmpty()) {
                         val challenge = data["challenge"].asText()
-                        val rr = geeTestLogic.rr(gt, "https://webstatic.mihoyo.com/", challenge, tgId = tgId)
+                        val rr = twoCaptchaLogic.geeTest(gt, challenge, "https://webstatic.mihoyo.com/", tgId = tgId)
                         val node = sign(miHoYoEntity, obj, rr)
                         if (node["retcode"].asInt() !in listOf(-5003, 0)) error(jsonNode["message"].asText())
                     }
@@ -452,7 +450,7 @@ class MiHoYoLogic(
         val data = jsonNode["data"]
         val challenge = data["challenge"].asText()
         val gt = data["gt"].asText()
-        val rr = geeTestLogic.rr(gt, "https://bbs.mihoyo.com", challenge, tgId = miHoYoEntity.tgId)
+        val rr = twoCaptchaLogic.geeTest(gt, "https://bbs.mihoyo.com", challenge, tgId = miHoYoEntity.tgId)
         val verifyJsonNode = client.post("https://bbs-api.miyoushe.com/misc/api/verifyVerification") {
             miHoYoEntity.fix.hubNewAppend()
             cookieString(miHoYoEntity.hubCookie())

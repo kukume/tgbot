@@ -21,6 +21,8 @@ class BotConfigEntity {
     var twoCaptchaKey: String = ""
 
     var updatePush: Status = Status.OFF
+
+    fun twoCaptchaKey() = twoCaptchaKey.ifEmpty { null }
 }
 
 

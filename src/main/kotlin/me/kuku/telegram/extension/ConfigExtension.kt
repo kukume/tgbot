@@ -9,7 +9,6 @@ import me.kuku.telegram.context.inlineKeyboardButton
 import me.kuku.telegram.context.nextMessage
 import me.kuku.telegram.entity.ConfigEntity
 import me.kuku.telegram.entity.ConfigService
-import me.kuku.telegram.entity.Status
 import org.springframework.stereotype.Component
 
 @Component
@@ -20,7 +19,6 @@ class ConfigExtension(
     private fun keyboardMarkup(configEntity: ConfigEntity): InlineKeyboardMarkup {
         val positiveEnergySwitch = InlineKeyboardButton("${configEntity.positiveEnergy}新闻联播推送")
             .callbackData("positiveEnergySwitch")
-        val settingRrOcrButton = inlineKeyboardButton("设置rrcor的key", "settingRrOcr")
         val settingTwoCaptcha = inlineKeyboardButton("配置2captcha的key", "settingTwoCaptcha")
         val v2exPushSwitch = inlineKeyboardButton("${configEntity.v2exPush}v2ex推送", "v2exPushSwitch")
         val xianBaoSwitch = inlineKeyboardButton("${configEntity.xianBaoPush}线报推送", "xianBaoSwitch")
@@ -31,14 +29,14 @@ class ConfigExtension(
             arrayOf(v2exPushSwitch),
             arrayOf(xianBaoSwitch),
             arrayOf(epicFreeGameSwitch),
-            arrayOf(settingRrOcrButton, settingTwoCaptcha)
+            arrayOf(settingTwoCaptcha)
         )
     }
 
     fun text(configEntity: ConfigEntity): String {
         return """
+            谨慎充值打码网站，有跑路风险
             配置管理，当前配置：
-            [rrocr](https://www.rrocr.com)的key：`${configEntity.rrOcrKey}`
             [2captcha](https://2captcha.com)的key：`${configEntity.twoCaptchaKey}`
         """.trimIndent()
     }
@@ -57,11 +55,6 @@ class ConfigExtension(
         callback("v2exPushSwitch") { firstArg<ConfigEntity>().also { it.v2exPush = !it.v2exPush } }
         callback("xianBaoSwitch") { firstArg<ConfigEntity>().also { it.xianBaoPush = !it.xianBaoPush } }
         callback("epicFreeGameSwitch") { firstArg<ConfigEntity>().also { it.epicFreeGamePush = !it.epicFreeGamePush } }
-        callback("settingRrOcr") {
-            editMessageText("请发送rrocr的key")
-            val key = nextMessage().text()
-            firstArg<ConfigEntity>().rrOcrKey = key
-        }
         callback("settingTwoCaptcha") {
             editMessageText("请发送2captcha的key")
             val key = nextMessage().text()

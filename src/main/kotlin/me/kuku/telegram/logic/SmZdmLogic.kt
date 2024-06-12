@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class SmZdmLogic(
-    private val geeTestLogic: GeeTestLogic
+    private val twoCaptchaLogic: TwoCaptchaLogic
 ) {
 
     suspend fun login1(phone: String, tgId: Long? = null) {
@@ -157,7 +157,7 @@ class SmZdmLogic(
     }
 
     private suspend fun geeTest(gt: String, challenge: String, referer: String = "https://www.smzdm.com/", tgId: Long? = null): GeeTestResult {
-        val result = geeTestLogic.rr(gt, referer, challenge = challenge, tgId = tgId)
+        val result = twoCaptchaLogic.geeTest(gt, challenge, referer, tgId = tgId)
         return GeeTestResult(result.challenge, result.validate)
 
     }

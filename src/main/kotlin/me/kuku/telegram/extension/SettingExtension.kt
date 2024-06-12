@@ -19,7 +19,6 @@ class SettingExtension(
         val blackSetting = inlineKeyboardButton("黑名单", "blackSetting")
         val adminSetting = inlineKeyboardButton("管理员", "adminSetting")
         val url = inlineKeyboardButton("设置推送url", "pushUrlSetting")
-        val rrOcr = inlineKeyboardButton("设置全局rrocr的key", "settingGlobeRrOcr")
         val twoCaptcha = inlineKeyboardButton("设置全局2captcha的key", "settingGlobeTwoCaptcha")
         val sendLog = inlineKeyboardButton("发送日志", "settingsSendLog")
         val clearLog = inlineKeyboardButton("清空日志", "settingsClearLog")
@@ -27,7 +26,6 @@ class SettingExtension(
         return InlineKeyboardMarkup(
             arrayOf(blackSetting, adminSetting),
             arrayOf(url),
-            arrayOf(rrOcr),
             arrayOf(twoCaptcha),
             arrayOf(sendLog, clearLog),
             arrayOf(updatePush)
@@ -37,8 +35,7 @@ class SettingExtension(
     suspend fun Context.indexMessage() {
         val entity = init()
         val text = """
-            请选择设置选项
-            [rrocr](https://www.rrocr.com)：${entity.rrOcrKey.ifEmpty { "未设置" }}
+            请选择设置选项，谨慎充值打码网站，有跑路风险
             [2captcha](https://2captcha.com)：${entity.twoCaptchaKey.ifEmpty { "未设置" }}
         """.trimIndent()
         if (this is AbilityContext) {
@@ -141,14 +138,6 @@ class SettingExtension(
             entity.pushUrl = url
             botConfigService.save(entity)
             editMessageText("设置推送url成功")
-        }
-        callback("settingGlobeRrOcr") {
-            editMessageText("请发送全局的RrOcr的key")
-            val key = nextMessage().text()
-            val entity = init()
-            entity.rrOcrKey = key
-            botConfigService.save(entity)
-            editMessageText("设置rrocr的key成功")
         }
         callback("settingGlobeTwoCaptcha") {
             editMessageText("请发送全局的2captcha的key")

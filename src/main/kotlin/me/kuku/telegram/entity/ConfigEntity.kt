@@ -13,14 +13,12 @@ class ConfigEntity: BaseEntity() {
     var id: String? = null
     // 正能量推送
     var positiveEnergy: Status = Status.OFF
-    var rrOcrKey: String = ""
     var twoCaptchaKey: String = ""
     var v2exPush: Status = Status.OFF
     var xianBaoPush: Status = Status.OFF // http://new.xianbao.fun/
     var epicFreeGamePush: Status = Status.OFF
 
     fun twoCaptchaKey() = twoCaptchaKey.ifEmpty { null }
-    fun rrOcrKey() = rrOcrKey.ifEmpty { null }
 }
 
 interface ConfigRepository: CoroutineCrudRepository<ConfigEntity, String> {

@@ -802,8 +802,7 @@ class LoginExtension(
     fun TelegramSubscribe.nodeSeekLogin() {
         callback("nodeSeekLogin") {
             editMessageText("请选择NodeSeek的登陆方式\n注意：使用账号密码登录，可能使用无头浏览器无法通过recaptchav3，通过recaptchav2需要前往/config配置2captcha密钥，建议抓取cookie登录", InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("使用cookie登陆", "nodeSeekCookieLogin")),
-//                arrayOf(inlineKeyboardButton("使用账号密码登陆", "nodeSeekPasswordLogin")),
+                arrayOf(inlineKeyboardButton("使用cookie登陆", "nodeSeekCookieLogin"))
             ))
         }
         callback("nodeSeekCookieLogin") {
@@ -813,28 +812,6 @@ class LoginExtension(
             }.text()
             val entity = nodeSeekService.findByTgId(tgId) ?: NodeSeekEntity().init()
             entity.cookie = cookie
-            nodeSeekService.save(entity)
-            editMessageText("绑定NodeSeek成功")
-        }
-        callback("nodeSeekPasswordLogin") {
-            editMessageText("请发送NodeSeek账号")
-            val username = nextMessage().text()
-            editMessageText("请发送NodeSeek密码")
-            val password = nextMessage().text()
-            var cookie: String? = null
-            kotlin.runCatching {
-                cookie = NodeSeekLogic.login(username, password)
-            }.onFailure {
-                val errMessage = it.message ?: "未知错误"
-                if (errMessage.contains("通过recaptchaV3失败")) {
-                    editMessageText("通过recaptchaV3失败，正在打码中")
-                    val key = configService.findByTgId(tgId)?.twoCaptchaKey()
-                    val token = twoCaptchaLogic.recaptchaV2(key, "6LfoOGcjAAAAAMh4fkiqTP48yS5Ey_P61wmfakV3", "https://www.nodeseek.com/signIn.html")
-                    cookie = NodeSeekLogic.login(username, password, token)
-                } else return@callback editMessageText(errMessage)
-            }
-            val entity = nodeSeekService.findByTgId(tgId) ?: NodeSeekEntity().init()
-            cookie?.let {  entity.cookie = it }
             nodeSeekService.save(entity)
             editMessageText("绑定NodeSeek成功")
         }
