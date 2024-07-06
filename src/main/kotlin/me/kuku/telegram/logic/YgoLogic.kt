@@ -42,7 +42,7 @@ class YgoLogic {
         val chineseName = spans[0].text()
         val japaneseName = spans[1].text()
         val englishName = spans[2].text()
-        val cardPassword = spans[3].text()
+        val cardPassword = spans.getOrNull(3)?.text() ?: ""
         val desc = document.select(".desc").first()!!
         val childNodes = desc.childNodes()
         val sb = StringBuilder()
