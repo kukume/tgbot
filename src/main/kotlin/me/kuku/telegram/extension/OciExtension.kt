@@ -283,7 +283,7 @@ class OciExtension(
             kotlin.runCatching {
                 val int = query.data().split("-")[1].toInt()
                 set(int)
-                set(chooseCache["$tgId$int"] ?: error("缓存不存在，请重新发送指令"))
+                (chooseCache["$tgId$int"] ?: error("缓存不存在，请重新发送指令")).set()
             }
         }
         callbackStartsWith("ociLookDetail-") {
