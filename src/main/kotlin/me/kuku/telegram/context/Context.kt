@@ -82,7 +82,7 @@ private val callbackAfter by lazy {
 }
 
 @Suppress("ConstPropertyName")
-private data class History(var message: Message?, var data: String): Serializable {
+private data class History(var message: Message?, var data: String, var text: String? = null): Serializable {
     companion object {
         private const val serialVersionUID = 1L
     }
@@ -118,13 +118,13 @@ class TelegramContext(override val bot: TelegramBot, val update: Update): Contex
             arrayListOf()
         }
         val lastButton = message.replyMarkup().inlineKeyboard().last().last()
-        val lastCallbackData = lastButton.callbackData()
-        if (lastCallbackData == data && lastButton.text() == "返回" && history.find { it.data == lastCallbackData } == null) {
+        val lastCallbackData = lastButton.callbackData
+        if (lastCallbackData == data && lastButton.text == "返回" && history.find { it.data == lastCallbackData } == null) {
             errorAnswerCallbackQuery("该返回按钮不可用，缓存已过期")
         }
         if (history.isEmpty() || (history.lastOrNull() != null && history.last().data != data)) {
             if (history.lastOrNull() == null) {
-                history.addLast(History(message, "return_${UUID.randomUUID()}"))
+                history.addLast(History(message, "return_${UUID.randomUUID()}", message.text()))
             } else {
                 history.last().message = message
             }
@@ -218,7 +218,7 @@ class MonitorReturn(
             val first = list?.first()
             if (first?.data == data) {
                 val message = first.message!!
-                val editMessageText = EditMessageText(tgId, mes, message.text())
+                val editMessageText = EditMessageText(tgId, mes, first.text)
                     .replyMarkup(message.replyMarkup())
                 telegramBot.asyncExecute(editMessageText)
             } else {

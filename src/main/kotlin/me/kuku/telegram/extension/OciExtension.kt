@@ -7,6 +7,7 @@ import com.oracle.bmc.core.model.PortRange
 import com.oracle.bmc.model.BmcException
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
+import com.pengrad.telegrambot.request.GetFile
 import kotlinx.coroutines.delay
 import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.OciEntity
@@ -67,14 +68,19 @@ class OciExtension(
 
     fun TelegramSubscribe.oci() {
         callback("addOci") {
-            editMessageText("请发送租户id")
-            val tenantId = nextMessage().text()
-            editMessageText("请发送用户id")
-            val userid = nextMessage().text()
+            editMessageText("请发送租户id，该id应以ocid1.tenancy.oc1开头")
+            val tenantId = nextMessage(maxTime = 1000 * 60).text()
+            editMessageText("请发送用户id，该id应以ocid1.user.oc1开头")
+            val userid = nextMessage(maxTime = 1000 * 60).text()
             editMessageText("请发送api密钥配置文件中的fingerprint")
-            val fingerprint = nextMessage().text()
-            editMessageText("请发送创建api密钥下载的私钥信息，请复制全部内容并发送")
-            val privateKey = nextMessage().text()
+            val fingerprint = nextMessage(maxTime = 1000 * 60).text()
+            editMessageText("请发送创建api密钥下载的私钥信息，请复制全部内容发送或者发送该私钥文件")
+            val privateKeyMessage = nextMessage(maxTime = 1000 * 60)
+            val privateKey = if (privateKeyMessage.document() != null) {
+                val fileId = privateKeyMessage.document().fileId()
+                val fileResponse = bot.asyncExecute(GetFile(fileId))
+                String(fileResponse.file().byteArray())
+            } else privateKeyMessage.text()
             bindCache.put(tgId, OciEntity().also {
                 it.tenantId = tenantId
                 it.userid = userid
