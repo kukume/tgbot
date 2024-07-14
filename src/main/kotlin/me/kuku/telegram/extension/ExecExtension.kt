@@ -129,6 +129,7 @@ class ExecExtension(
                 editMessageText("正在进行第${i}次访问HostLoc用户主页")
                 HostLocLogic.singleSign(hostLocEntity.cookie)
             }
+            editMessageText("HostLoc签到成功")
         }
     }
 
