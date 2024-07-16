@@ -5,7 +5,6 @@ package me.kuku.telegram.extension
 import com.pengrad.telegrambot.model.Message
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
-import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.SendPhoto
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -801,7 +800,7 @@ class LoginExtension(
 
     fun TelegramSubscribe.nodeSeekLogin() {
         callback("nodeSeekLogin") {
-            editMessageText("请选择NodeSeek的登陆方式\n注意：使用账号密码登录，可能使用无头浏览器无法通过recaptchav3，通过recaptchav2需要前往/config配置2captcha密钥，建议抓取cookie登录", InlineKeyboardMarkup(
+            editMessageText("请选择NodeSeek的登陆方式", InlineKeyboardMarkup(
                 arrayOf(inlineKeyboardButton("使用cookie登陆", "nodeSeekCookieLogin"))
             ))
         }

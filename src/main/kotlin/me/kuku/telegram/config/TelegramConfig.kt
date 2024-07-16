@@ -6,6 +6,7 @@ import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.runBlocking
 import me.kuku.telegram.context.*
 import me.kuku.telegram.utils.SpringUtils
+import me.kuku.utils.OkHttpUtils
 import okhttp3.OkHttpClient
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.ApplicationListener
@@ -177,7 +178,20 @@ class TelegramConfig {
     }
 }
 
-val api: String by lazy {
-    val api = SpringUtils.getBean<TelegramConfig>().api
-    api.ifEmpty { "https://api.jpa.cc" }
-}
+private var tempApi: String? = null
+private const val apiErrorMsg: String = "访问api受限，请联系bot拥有者检查api服务器"
+
+val api: String
+    get() {
+        if (tempApi == null) {
+            val configApi = SpringUtils.getBean<TelegramConfig>().api
+            tempApi = configApi.ifEmpty { "https://api.jpa.cc" }
+        }
+        try {
+            val response = OkHttpUtils.get(tempApi!!)
+            if (response.code == 200) return tempApi!!
+            else error(apiErrorMsg)
+        } catch (e: Exception) {
+            error(apiErrorMsg)
+        }
+    }

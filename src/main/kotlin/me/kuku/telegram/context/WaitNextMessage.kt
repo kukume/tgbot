@@ -33,7 +33,7 @@ private fun updateWaitNextMessageCommon(code: String, maxTime: Long): Message {
     }
 }
 
-fun Update.waitNextMessage(maxTime: Long = 30000): Message {
+fun Update.nextMessage(maxTime: Long = 30000): Message {
     return updateWaitNextMessageCommon(message().chat().id().toString(), maxTime)
 }
 
@@ -92,6 +92,10 @@ suspend fun TelegramContext.nextMessage(maxTime: Long = 30000, errMessage: Strin
         ?: throw CancelNextMessageException()
     editMessageText(waitText)
     return message
+}
+
+fun AbilityContext.nextMessage(maxTime: Long = 30000): Message {
+    return updateWaitNextMessageCommon(message.chat().id().toString(), maxTime)
 }
 
 class CancelNextMessageException: RuntimeException()

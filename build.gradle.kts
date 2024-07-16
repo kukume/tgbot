@@ -47,8 +47,6 @@ java {
 tasks.compileKotlin {
     compilerOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict", "-Xcontext-receivers")
-        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
 
