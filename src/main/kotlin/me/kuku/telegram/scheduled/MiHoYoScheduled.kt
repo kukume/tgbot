@@ -13,7 +13,7 @@ class MiHoYoScheduled(
 ) {
 
 
-    @Scheduled(cron = "0 13 5 * * ?")
+    @Scheduled(cron = "0 13 8 * * ?")
     suspend fun genShinSign() {
         val list = miHoYoService.findBySign(Status.ON)
         for (miHoYoEntity in list) {
@@ -24,7 +24,7 @@ class MiHoYoScheduled(
         }
     }
 
-    @Scheduled(cron = "0 23 5 * * ?")
+    @Scheduled(cron = "0 23 8 * * ?")
     suspend fun mysSign() {
         val list = miHoYoService.findByMysSign(Status.ON)
         for (miHoYoEntity in list) {
