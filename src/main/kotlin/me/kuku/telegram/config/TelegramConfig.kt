@@ -189,6 +189,7 @@ val api: String
         }
         try {
             val response = OkHttpUtils.get(tempApi!!)
+            response.close()
             if (response.code == 200) return tempApi!!
             else error(apiErrorMsg)
         } catch (e: Exception) {
