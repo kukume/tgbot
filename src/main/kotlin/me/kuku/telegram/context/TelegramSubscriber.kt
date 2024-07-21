@@ -144,6 +144,7 @@ data class Ability(val name: String,
 private typealias AbilityContextBody = suspend AbilityContext.() -> Unit
 private typealias CallbackBody = suspend TelegramContext.() -> Unit
 private typealias UpdateBody = Update.() -> Boolean
+private typealias InlineQueryBody = suspend InlineQueryContext.() -> Unit
 
 class TelegramSubscribe {
 
@@ -267,5 +268,25 @@ class MixSubscribe {
         block(telegramSubscribe)
         telegrams.add(telegramSubscribe)
     }
+
+}
+
+class InlineQuerySubscriber {
+
+    private val inlineQueryMap = mutableMapOf<String, InlineQueryBody>()
+
+    operator fun String.invoke(block: InlineQueryBody) {
+        inlineQueryMap[this] = block
+    }
+
+    suspend fun invoke(bot: TelegramBot, update: Update) {
+        val inlineQuery = update.inlineQuery() ?: return
+        val query = inlineQuery.query()
+        inlineQueryMap[query]?.let {
+            val inlineQueryContext = InlineQueryContext(bot, update)
+            it.invoke(inlineQueryContext)
+        }
+    }
+
 
 }

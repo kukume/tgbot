@@ -4,12 +4,10 @@ package me.kuku.telegram.context
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.CallbackQuery
+import com.pengrad.telegrambot.model.InlineQuery
 import com.pengrad.telegrambot.model.Message
 import com.pengrad.telegrambot.model.Update
-import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
-import com.pengrad.telegrambot.model.request.InputMedia
-import com.pengrad.telegrambot.model.request.Keyboard
-import com.pengrad.telegrambot.model.request.ParseMode
+import com.pengrad.telegrambot.model.request.*
 import com.pengrad.telegrambot.request.*
 import com.pengrad.telegrambot.response.SendResponse
 import me.kuku.telegram.utils.CacheManager
@@ -22,8 +20,11 @@ import kotlin.collections.ArrayList
 
 abstract class Context {
     abstract val tgId: Long
-    abstract val chatId: Long
     abstract val bot: TelegramBot
+}
+
+abstract class MessageContext: Context() {
+    abstract val chatId: Long
     abstract val message: Message
     abstract val messageThreadId: Int?
 
@@ -52,7 +53,7 @@ abstract class Context {
     }
 }
 
-class AbilityContext(override val bot: TelegramBot, val update: Update): Context() {
+class AbilityContext(override val bot: TelegramBot, val update: Update): MessageContext() {
 
     override val message: Message = update.message()
 
@@ -89,10 +90,17 @@ private data class History(var message: Message?, var data: String, var text: St
 }
 
 
-class TelegramContext(override val bot: TelegramBot, val update: Update): Context() {
+class TelegramContext(override val bot: TelegramBot, val update: Update): MessageContext() {
     lateinit var query: CallbackQuery
     override val message: Message by lazy {
-        if (this::query.isInitialized) query.message() else update.message()
+        if (this::query.isInitialized) {
+            val tempMessage = query.maybeInaccessibleMessage()
+            if (tempMessage is Message) {
+                tempMessage
+            } else {
+               error("bot can't access the message")
+            }
+        } else update.message()
     }
     override val tgId: Long by lazy {
         if (this::query.isInitialized) query.from().id() else update.chatMember().from().id()
@@ -232,4 +240,19 @@ class MonitorReturn(
         after?.invoke(TelegramContext(telegramBot, this@Update))
     }
 
+}
+
+class InlineQueryContext(override val bot: TelegramBot, val update: Update): Context() {
+    val inlineQuery: InlineQuery = update.inlineQuery() ?: error("inlineQuery is null")
+
+    override val tgId: Long
+        get() = inlineQuery.from().id()
+
+    suspend fun answerInlineQuery(vararg results: InlineQueryResult<*>, cacheTime: Int? = null) {
+        val answerInlineQuery = AnswerInlineQuery(inlineQuery.id(), *results)
+        cacheTime?.let {
+            answerInlineQuery.cacheTime(it)
+        }
+        bot.asyncExecute(answerInlineQuery)
+    }
 }

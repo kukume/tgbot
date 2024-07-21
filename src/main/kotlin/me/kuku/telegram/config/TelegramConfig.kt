@@ -31,6 +31,7 @@ class TelegramBean(
 
     private val telegramSubscribeList = mutableListOf<TelegramSubscribe>()
     private val abilitySubscriberList = mutableListOf<AbilitySubscriber>()
+    private val inlineQuerySubscriberList = mutableListOf<InlineQuerySubscriber>()
     private val updateFunction = mutableListOf<UpdateFunction>()
     private data class UpdateFunction(val function: KFunction<*>, val any: Any)
 
@@ -44,6 +45,7 @@ class TelegramBean(
             }
         }
         val abilitySubscriber = AbilitySubscriber()
+        val inlineQuerySubscriber = InlineQuerySubscriber()
         for (clazz in clazzList) {
             val functions = kotlin.runCatching {
                 clazz.kotlin.declaredMemberExtensionFunctions
@@ -81,10 +83,15 @@ class TelegramBean(
                         abilitySubscriberList.addAll(abilities)
                         telegramSubscribeList.addAll(telegrams)
                     }
+                    "me.kuku.telegram.context.InlineQuerySubscriber" -> {
+                        val obj = applicationContext.getBean(clazz)
+                        function.call(obj, inlineQuerySubscriber)
+                    }
                 }
             }
         }
         abilitySubscriberList.add(abilitySubscriber)
+        inlineQuerySubscriberList.add(inlineQuerySubscriber)
         val telegramBot = applicationContext.getBean(TelegramBot::class.java)
         telegramBot.setUpdatesListener {
             for (update in it) {
@@ -104,6 +111,9 @@ class TelegramBean(
                             telegramExceptionHandler.invokeHandler(TelegramContext(telegramBot, update)) {
                                 telegramSubscribe.invoke(telegramBot, update)
                             }
+                        }
+                        for (single in inlineQuerySubscriberList) {
+                            single.invoke(telegramBot, update)
                         }
                         abilitySubscriberList.repeatCheck(telegramBot, update)
                     }
