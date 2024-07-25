@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.withContext
 import me.kuku.telegram.config.TelegramConfig
+import me.kuku.telegram.config.telegramBot
 import me.kuku.telegram.config.telegramExceptionHandler
 import me.kuku.telegram.entity.BotConfigService
 
@@ -83,14 +84,14 @@ class AbilitySubscriber {
             if (!status) return
             val privacy = it.privacy
             val fromId = message.from().id()
-            if (privacy == Privacy.CREATOR && config.creatorId != fromId) return
+            if (privacy == Privacy.CREATOR && TelegramConfig.creatorId != fromId) return
             if (privacy == Privacy.ADMIN) {
                 var confirm = false
-                val botConfigEntity = botConfigService.findByToken(config.token)
+                val botConfigEntity = BotConfigService.findByToken(TelegramConfig.token)
                 if (botConfigEntity != null) {
                     confirm = botConfigEntity.admins.contains(fromId)
                 }
-                if (!confirm) confirm = config.creatorId == fromId
+                if (!confirm) confirm = TelegramConfig.creatorId == fromId
                 if (!confirm) return
             }
             val input = it.input
@@ -114,14 +115,6 @@ class AbilitySubscriber {
 
 }
 
-private val config by lazy {
-    SpringUtils.getBean<TelegramConfig>()
-}
-
-private val botConfigService by lazy {
-    SpringUtils.getBean<BotConfigService>()
-}
-
 enum class Locality {
     GROUP, USER, ALL
 }
@@ -131,7 +124,6 @@ enum class Privacy {
 }
 
 private val botUsername: String by lazy {
-    val telegramBot = SpringUtils.getBean<TelegramBot>()
     val response = telegramBot.execute(GetMe())
     response.user().username()
 }

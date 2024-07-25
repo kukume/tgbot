@@ -13,9 +13,9 @@ import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.callSuspend
-import kotlin.reflect.full.declaredMemberExtensionFunctions
 import kotlin.reflect.full.extensionReceiverParameter
 import kotlin.reflect.jvm.jvmName
+import kotlin.reflect.jvm.kotlinFunction
 
 object TelegramConfiguration {
 
@@ -35,7 +35,7 @@ object TelegramConfiguration {
             val index = module.lastIndexOf('.')
             val clazz = module.substring(0, index)
             val name = module.substring(index + 1)
-            Class.forName(clazz).kotlin.declaredMemberExtensionFunctions.find { it.name == name }?.let {
+            Class.forName(clazz).declaredMethods.find { it.name == name }?.kotlinFunction?.let {
                 functions.add(it)
             }
         }
@@ -44,22 +44,22 @@ object TelegramConfiguration {
             val kClass = type?.classifier as? KClass<*>
             when (kClass?.jvmName) {
                 "me.kuku.telegram.context.AbilitySubscriber" -> {
-                    function.call(null, abilitySubscriber)
+                    function.call(abilitySubscriber)
                 }
                 "me.kuku.telegram.context.TelegramSubscribe" -> {
                     val telegramSubscribe = TelegramSubscribe()
-                    function.call(null, telegramSubscribe)
+                    function.call(telegramSubscribe)
                     telegramSubscribeList.add(telegramSubscribe)
                 }
                 "com.pengrad.telegrambot.model.Update" -> {
                     updateFunction.add(UpdateFunction(function))
                 }
                 "me.kuku.telegram.context.TelegramExceptionHandler" -> {
-                    function.call(null, telegramExceptionHandler)
+                    function.call(telegramExceptionHandler)
                 }
                 "me.kuku.telegram.context.MixSubscribe" -> {
                     val mixSubscribe = MixSubscribe()
-                    function.call(null, mixSubscribe)
+                    function.call(mixSubscribe)
                     val mixSubscribeClazz = mixSubscribe::class.java
                     val abilities = mixSubscribeClazz.getDeclaredField("abilities")
                         .also { it.isAccessible = true }.get(mixSubscribe) as List<AbilitySubscriber>
@@ -69,7 +69,7 @@ object TelegramConfiguration {
                     telegramSubscribeList.addAll(telegrams)
                 }
                 "me.kuku.telegram.context.InlineQuerySubscriber" -> {
-                    function.call(null, inlineQuerySubscriber)
+                    function.call(inlineQuerySubscriber)
                 }
             }
         }
@@ -142,6 +142,17 @@ object TelegramConfig {
 
 
     init {
+        val telegramConfig = yamlConfig.config("ktor.telegram")
+        token = telegramConfig.property("token").getString()
+        creatorId = telegramConfig.property("creatorId").getString().toLong()
+        proxyHost = telegramConfig.property("proxyHost").getString()
+        proxyPort = telegramConfig.property("proxyPort").getString().toInt()
+        proxyType = Proxy.Type.valueOf(telegramConfig.property("proxyType").getString().uppercase())
+        url = telegramConfig.property("url").getString()
+        localPath = telegramConfig.property("localPath").getString()
+        api = telegramConfig.property("api").getString()
+        modules = telegramConfig.property("modules").getList()
+
         val runtime = Runtime.getRuntime()
         val process = try {
             runtime.exec(arrayOf("/usr/bin/env"))
@@ -170,17 +181,6 @@ object TelegramConfig {
                     }
                 }
             }
-        } else {
-            val telegramConfig = yamlConfig.config("ktor.telegram")
-            token = telegramConfig.property("token").getString()
-            creatorId = telegramConfig.property("creatorId").getString().toLong()
-            proxyHost = telegramConfig.property("proxyHost").getString()
-            proxyPort = telegramConfig.property("proxyPort").getString().toInt()
-            proxyType = Proxy.Type.valueOf(telegramConfig.property("proxyType").getString())
-            url = telegramConfig.property("url").getString()
-            localPath = telegramConfig.property("localPath").getString()
-            api = telegramConfig.property("api").getString()
-            modules = telegramConfig.property("modules").getList()
         }
     }
 }
@@ -191,7 +191,7 @@ private const val apiErrorMsg: String = "访问api受限，请联系bot拥有者
 val api: String
     get() {
         if (tempApi == null) {
-            val configApi = SpringUtils.getBean<TelegramConfig>().api
+            val configApi = TelegramConfig.api
             tempApi = configApi.ifEmpty { "https://api.jpa.cc" }
         }
         try {

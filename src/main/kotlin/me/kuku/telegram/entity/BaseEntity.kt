@@ -54,12 +54,8 @@ enum class Status {
     }
 }
 
-private val switchRepository by lazy {
-    SpringUtils.getBean<SwitchRepository>()
-}
-
 suspend fun Long.tgName(): String? {
-    val findList = switchRepository.findByTgIdAndStatus(this, Status.ON)
+    val findList = SwitchService.findByTgIdAndStatus(this, Status.ON)
     return  if (findList.isEmpty()) null
     else findList.first().name
 }

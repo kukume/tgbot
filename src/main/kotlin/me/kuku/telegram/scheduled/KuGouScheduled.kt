@@ -1,32 +1,22 @@
 package me.kuku.telegram.scheduled
 
 import kotlinx.coroutines.delay
+import me.kuku.telegram.config.Cron
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.KuGouLogic
-import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.stereotype.Component
 
-@Component
-class KuGouScheduled(
-    private val kuGouService: KuGouService,
-    private val kuGouLogic: KuGouLogic,
-    private val logService: LogService
-) {
-
-    @Scheduled(cron = "0 41 3 * * ?")
-    suspend fun sign() {
-        val list = kuGouService.findBySign(Status.ON)
-        for (kuGouEntity in list) {
-            logService.log(kuGouEntity, LogType.KuGou) {
-                kuGouLogic.musicianSign(kuGouEntity)
-                kuGouLogic.listenMusic(kuGouEntity)
-                repeat(8) {
-                    delay(1000 * 25)
-                    kuGouLogic.watchAd(kuGouEntity)
-                }
+@Cron("03:41:00")
+suspend fun kuGouSign() {
+    val list = KuGouService.findBySign(Status.ON)
+    for (kuGouEntity in list) {
+        LogService.log(kuGouEntity, LogType.KuGou) {
+            KuGouLogic.musicianSign(kuGouEntity)
+            KuGouLogic.listenMusic(kuGouEntity)
+            repeat(8) {
+                delay(1000 * 25)
+                KuGouLogic.watchAd(kuGouEntity)
             }
-            delay(3000)
         }
+        delay(3000)
     }
-
 }

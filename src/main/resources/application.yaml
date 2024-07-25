@@ -4,9 +4,10 @@ ktor:
   application:
     modules:
       - me.kuku.telegram.extension.PushExtensionKt.push
+      - me.kuku.telegram.config.KtorConfigKt.config
   mongo:
     uri: 'mongodb://172.17.0.1:27017'
-    database: 'share'
+    database: 'tg'
   telegram:
     modules:
       - me.kuku.telegram.extension.CommentExtensionKt.comment
@@ -75,11 +76,87 @@ ktor:
       - me.kuku.telegram.extension.LoginExtensionKt.iqyLogin
       - me.kuku.telegram.extension.LoginExtensionKt.eCloudLogin
       - me.kuku.telegram.extension.LoginExtensionKt.linuxDoLogin
-    token:
+      - me.kuku.telegram.extension.OtherPushExtensionKt.otherPush
+      - me.kuku.telegram.extension.OtherPushExtensionKt.otherPushCallback
+      - me.kuku.telegram.extension.ManagerExtensionKt.manager
+      - me.kuku.telegram.extension.ManagerExtensionKt.baiduManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.biliBiliManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.douYuManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.huYaManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.hostLocManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.kuGouManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.miHoYoManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.netEaseManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.stepManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.weiboManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.twitterManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.pixivManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.smZdmManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.aliDriveManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.leiShenManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.nodeSeekManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.glaDosManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.iqyManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.eCloudManager
+      - me.kuku.telegram.extension.ManagerExtensionKt.linuxDoManager
+      - me.kuku.telegram.extension.SettingExtensionKt.setting
+      - me.kuku.telegram.extension.SettingExtensionKt.blackSetting
+      - me.kuku.telegram.extension.SettingExtensionKt.adminSetting
+      - me.kuku.telegram.extension.SettingExtensionKt.url
+      - me.kuku.telegram.extension.SettingExtensionKt.log
+      - me.kuku.telegram.extension.SettingExtensionKt.updateLogSwitch
+    cron:
+      - me.kuku.telegram.scheduled.AliDriveScheduledKt.aliDriveSign
+      - me.kuku.telegram.scheduled.AliDriveScheduledKt.lastDayReceive
+      - me.kuku.telegram.scheduled.AliDriveScheduledKt.aliDriveTask
+      - me.kuku.telegram.scheduled.AliDriveScheduledKt.receiveTodayTask
+      - me.kuku.telegram.scheduled.AliDriveScheduledKt.finishDeviceRoom
+      - me.kuku.telegram.scheduled.AliDriveScheduledKt.receiveDeviceRoom
+      - me.kuku.telegram.scheduled.AliDriveScheduledKt.finishCard
+      - me.kuku.telegram.scheduled.AliDriveScheduledKt.receiveCard
+      - me.kuku.telegram.scheduled.AliDriveScheduledKt.clearRubbish
+      - me.kuku.telegram.scheduled.BaiduScheduledKt.baiduSign
+      - me.kuku.telegram.scheduled.BiliBiliScheduledKt.biliBiliSign
+      - me.kuku.telegram.scheduled.BiliBiliScheduledKt.biliBiliLiveMonitor
+      - me.kuku.telegram.scheduled.BiliBiliScheduledKt.biliBiliUserMonitor
+      - me.kuku.telegram.scheduled.BotConfigScheduledKt.commitPush
+      - me.kuku.telegram.scheduled.ConfigScheduledKt.positiveEnergyPush
+      - me.kuku.telegram.scheduled.ConfigScheduledKt.xianBaoPush
+      - me.kuku.telegram.scheduled.DouYuScheduledKt.douYu
+      - me.kuku.telegram.scheduled.DouYuScheduledKt.titleChange
+      - me.kuku.telegram.scheduled.DouYuScheduledKt.douYuSign
+      - me.kuku.telegram.scheduled.DouYuScheduledKt.douYuPush
+      - me.kuku.telegram.scheduled.DouYuScheduledKt.douYuPush
+      - me.kuku.telegram.scheduled.ECloudScheduledKt.eCloudSign
+      - me.kuku.telegram.scheduled.EpicScheduledKt.pushFreeGame
+      - me.kuku.telegram.scheduled.GlaDosScheduledKt.glaDosSign
+      - me.kuku.telegram.scheduled.HostLocScheduledKt.locPush
+      - me.kuku.telegram.scheduled.HostLocScheduledKt.hostLocSign
+      - me.kuku.telegram.scheduled.HuYaScheduledKt.huYa
+      - me.kuku.telegram.scheduled.IqyScheduledKt.iqySign
+      - me.kuku.telegram.scheduled.KuGouScheduledKt.kuGouSign
+      - me.kuku.telegram.scheduled.LeiShenScheduledKt.leiShenRemind
+      - me.kuku.telegram.scheduled.LinuxDoScheduledKt.linuxDoIndex
+      - me.kuku.telegram.scheduled.LinuxDoScheduledKt.linuxDoPost
+      - me.kuku.telegram.scheduled.MiHoYoScheduledKt.genShinSign
+      - me.kuku.telegram.scheduled.MiHoYoScheduledKt.mysSign
+      - me.kuku.telegram.scheduled.NetEaseScheduledKt.netEaseSign
+      - me.kuku.telegram.scheduled.NetEaseScheduledKt.netEaseMusicianSign
+      - me.kuku.telegram.scheduled.NetEaseScheduledKt.vipSign
+      - me.kuku.telegram.scheduled.NodeSeekScheduledKt.nodeSeekSign
+      - me.kuku.telegram.scheduled.NodeSeekScheduledKt.querySign
+      - me.kuku.telegram.scheduled.PixivScheduledKt.pixivPush
+      - me.kuku.telegram.scheduled.SmZdmScheduledKt.smZdmSign
+      - me.kuku.telegram.scheduled.StepScheduledKt.stepModify
+      - me.kuku.telegram.scheduled.TwitterScheduledKt.twitterPush
+      - me.kuku.telegram.scheduled.V2exScheduledKt.v2exPush
+      - me.kuku.telegram.scheduled.WeiboScheduledKt.weiboSign
+      - me.kuku.telegram.scheduled.WeiboScheduledKt.weiboUserMonitor
+    token: "5760084744:AAE1SJ-VF18vE8IOW_187ntmp7FCvdBISOc"
     creatorId: 0
-    proxyHost:
+    proxyHost: ""
     proxyPort: 0
     proxyType: direct
-    url:
-    localPath:
-    api:
+    url: ""
+    localPath: ""
+    api: ""

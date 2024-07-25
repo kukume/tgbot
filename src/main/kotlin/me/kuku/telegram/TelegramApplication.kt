@@ -3,10 +3,12 @@ package me.kuku.telegram
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import io.ktor.server.cio.*
 import io.ktor.server.config.yaml.*
+import me.kuku.telegram.config.CronConfiguration
 import me.kuku.telegram.config.TelegramConfiguration
 
 fun main(args: Array<String>) {
     TelegramConfiguration.init()
+    CronConfiguration.init()
     EngineMain.main(args)
 }
 

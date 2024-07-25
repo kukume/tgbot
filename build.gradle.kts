@@ -3,6 +3,7 @@
 plugins {
     val kotlinVersion = "2.0.0"
     kotlin("jvm") version kotlinVersion
+    kotlin("plugin.serialization").version(kotlinVersion)
 }
 
 group = "me.kuku"
@@ -25,9 +26,12 @@ dependencies {
     implementation("io.ktor:ktor-serialization-jackson-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-cio-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-config-yaml-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+
+    implementation("ch.qos.logback:logback-classic:1.5.6")
 
     implementation("com.github.pengrad:java-telegram-bot-api:7.7.0")
-    implementation("me.kuku:utils:2.3.12.0")
+    implementation("me.kuku:utils:2.3.12.1")
     implementation("org.jsoup:jsoup:1.17.2")
     val ociVersion = "3.44.1"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
@@ -42,7 +46,7 @@ dependencies {
     implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.1.2")
     implementation("org.mongodb:bson-kotlinx:5.1.2")
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation(kotlin("test"))
 }
 
 java {

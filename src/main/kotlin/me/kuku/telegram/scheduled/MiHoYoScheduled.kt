@@ -1,39 +1,28 @@
 package me.kuku.telegram.scheduled
 
 import kotlinx.coroutines.delay
+import me.kuku.telegram.config.Cron
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.MiHoYoLogic
-import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.stereotype.Component
 
-@Component
-class MiHoYoScheduled(
-    private val miHoYoService: MiHoYoService, private val miHoYoLogic: MiHoYoLogic,
-    private val logService: LogService
-) {
-
-
-    @Scheduled(cron = "0 13 8 * * ?")
-    suspend fun genShinSign() {
-        val list = miHoYoService.findBySign(Status.ON)
-        for (miHoYoEntity in list) {
-            logService.log(miHoYoEntity, LogType.GenShin) {
-                miHoYoLogic.sign(miHoYoEntity, miHoYoEntity.tgId)
-            }
-            delay(3000)
+@Cron("08:13:00")
+suspend fun genShinSign() {
+    val list = MiHoYoService.findBySign(Status.ON)
+    for (miHoYoEntity in list) {
+        LogService.log(miHoYoEntity, LogType.GenShin) {
+            MiHoYoLogic.sign(miHoYoEntity, miHoYoEntity.tgId)
         }
+        delay(3000)
     }
+}
 
-    @Scheduled(cron = "0 23 8 * * ?")
-    suspend fun mysSign() {
-        val list = miHoYoService.findByMysSign(Status.ON)
-        for (miHoYoEntity in list) {
-            logService.log(miHoYoEntity, LogType.Mys) {
-                miHoYoLogic.mysSign(miHoYoEntity)
-            }
-            delay(3000)
+@Cron("08:23:00")
+suspend fun mysSign() {
+    val list = MiHoYoService.findByMysSign(Status.ON)
+    for (miHoYoEntity in list) {
+        LogService.log(miHoYoEntity, LogType.Mys) {
+            MiHoYoLogic.mysSign(miHoYoEntity)
         }
+        delay(3000)
     }
-
-
 }

@@ -2,10 +2,10 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Filters.eq
-import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendMessage
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
+import me.kuku.telegram.config.telegramBot
 import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.mongoDatabase
 import org.bson.codecs.pojo.annotations.BsonId
@@ -24,7 +24,6 @@ class LogEntity: BaseEntity() {
     var exceptionStack: String = ""
 
     suspend fun sendFailMessage(message: String? = null) {
-        val telegramBot = SpringUtils.getBean<TelegramBot>()
         val sendMessage = SendMessage(tgId, "#自动签到失败提醒\n${type.value}执行失败，${message ?: "未知异常原因，请重新执行指令以查看原因"}")
         telegramBot.asyncExecute(sendMessage)
     }
