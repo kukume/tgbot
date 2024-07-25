@@ -4,10 +4,8 @@ import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.HuYaEntity
 import me.kuku.utils.*
-import org.springframework.stereotype.Service
 
-@Service
-class HuYaLogic {
+object HuYaLogic {
 
     suspend fun getQrcode(): HuYaQrcode {
         val requestId = MyUtils.randomNum(8)

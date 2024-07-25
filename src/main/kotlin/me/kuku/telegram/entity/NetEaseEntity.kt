@@ -1,16 +1,16 @@
 package me.kuku.telegram.entity
 
+import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("net_ease")
+val netEaseCollection = mongoDatabase.getCollection<NetEaseEntity>("net_ease")
+
 class NetEaseEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var musicU: String = ""
     var csrf: String = ""
     var sign: Status = Status.OFF
@@ -24,38 +24,20 @@ class NetEaseEntity: BaseEntity() {
     fun androidCookie() = "os=android; ${cookie()}"
 }
 
-interface NetEaseRepository: CoroutineCrudRepository<NetEaseEntity, String> {
+object NetEaseService {
 
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): NetEaseEntity?
+    suspend fun findByTgId(tgId: Long): NetEaseEntity? = TODO()
 
-    suspend fun findBySign(sign: Status): List<NetEaseEntity>
+    suspend fun findBySign(sign: Status) = netEaseCollection.find(eq("sign", sign)).toList()
 
-    suspend fun findByMusicianSign(musicianSign: Status): List<NetEaseEntity>
+    suspend fun findByMusicianSign(musicianSign: Status) = netEaseCollection.find(eq("musicianSign", musicianSign)).toList()
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+    suspend fun save(netEaseEntity: NetEaseEntity) = netEaseCollection.save(netEaseEntity)
 
-    suspend fun findByVipSign(status: Status): List<NetEaseEntity>
+    suspend fun findAll() = netEaseCollection.find().toList()
 
-}
+    suspend fun deleteByTgId(tgId: Long) = Unit
 
-@Service
-class NetEaseService(
-    private val netEaseRepository: NetEaseRepository
-) {
-
-    suspend fun findByTgId(tgId: Long) = netEaseRepository.findEnableEntityByTgId(tgId) as? NetEaseEntity
-
-    suspend fun findBySign(sign: Status): List<NetEaseEntity> = netEaseRepository.findBySign(sign)
-
-    suspend fun findByMusicianSign(musicianSign: Status): List<NetEaseEntity> = netEaseRepository.findByMusicianSign(musicianSign)
-
-    suspend fun save(netEaseEntity: NetEaseEntity): NetEaseEntity = netEaseRepository.save(netEaseEntity)
-
-    suspend fun findAll(netEaseEntity: NetEaseEntity): List<NetEaseEntity> = netEaseRepository.findAll().toList()
-
-    @Transactional
-    suspend fun deleteByTgId(tgId: Long) = netEaseRepository.deleteEnableEntityByTgId(tgId)
-
-    suspend fun findByVipSign(status: Status) = netEaseRepository.findByVipSign(status)
+    suspend fun findByVipSign(status: Status) = netEaseCollection.find(eq("vipSign", status)).toList()
 
 }

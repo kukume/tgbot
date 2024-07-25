@@ -2,17 +2,11 @@ package me.kuku.telegram.config
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.UpdatesListener
-import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.runBlocking
 import me.kuku.telegram.context.*
-import me.kuku.telegram.utils.SpringUtils
+import me.kuku.telegram.yamlConfig
 import me.kuku.utils.OkHttpUtils
 import okhttp3.OkHttpClient
-import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.context.ApplicationListener
-import org.springframework.context.annotation.Bean
-import org.springframework.context.event.ContextRefreshedEvent
-import org.springframework.stereotype.Component
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.util.concurrent.TimeUnit
@@ -23,83 +17,72 @@ import kotlin.reflect.full.declaredMemberExtensionFunctions
 import kotlin.reflect.full.extensionReceiverParameter
 import kotlin.reflect.jvm.jvmName
 
-@Suppress("UNCHECKED_CAST")
-@Component
-class TelegramBean(
-    private val telegramConfig: TelegramConfig
-): ApplicationListener<ContextRefreshedEvent> {
+object TelegramConfiguration {
 
     private val telegramSubscribeList = mutableListOf<TelegramSubscribe>()
     private val abilitySubscriberList = mutableListOf<AbilitySubscriber>()
     private val inlineQuerySubscriberList = mutableListOf<InlineQuerySubscriber>()
     private val updateFunction = mutableListOf<UpdateFunction>()
-    private data class UpdateFunction(val function: KFunction<*>, val any: Any)
+    private data class UpdateFunction(val function: KFunction<*>)
 
-    override fun onApplicationEvent(event: ContextRefreshedEvent) {
-        val applicationContext = event.applicationContext
-        val names = applicationContext.beanDefinitionNames
-        val clazzList = mutableListOf<Class<*>>()
-        for (name in names) {
-            applicationContext.getType(name)?.let {
-                clazzList.add(it)
-            }
-        }
+    fun init() {
         val abilitySubscriber = AbilitySubscriber()
         val inlineQuerySubscriber = InlineQuerySubscriber()
-        for (clazz in clazzList) {
-            val functions = kotlin.runCatching {
-                clazz.kotlin.declaredMemberExtensionFunctions
-            }.getOrNull() ?: continue
-            for (function in functions) {
-                val type = function.extensionReceiverParameter?.type
-                val kClass = type?.classifier as? KClass<*>
-                when (kClass?.jvmName) {
-                    "me.kuku.telegram.context.AbilitySubscriber" -> {
-                        val obj = applicationContext.getBean(clazz)
-                        function.call(obj, abilitySubscriber)
-                    }
-                    "me.kuku.telegram.context.TelegramSubscribe" -> {
-                        val telegramSubscribe = TelegramSubscribe()
-                        val obj = applicationContext.getBean(clazz)
-                        function.call(obj, telegramSubscribe)
-                        telegramSubscribeList.add(telegramSubscribe)
-                    }
-                    "com.pengrad.telegrambot.model.Update" -> {
-                        updateFunction.add(UpdateFunction(function, applicationContext.getBean(clazz)))
-                    }
-                    "me.kuku.telegram.context.TelegramExceptionHandler" -> {
-                        val obj = applicationContext.getBean(clazz)
-                        function.call(obj, telegramExceptionHandler)
-                    }
-                    "me.kuku.telegram.context.MixSubscribe" -> {
-                        val mixSubscribe = MixSubscribe()
-                        val obj = applicationContext.getBean(clazz)
-                        function.call(obj, mixSubscribe)
-                        val mixSubscribeClazz = mixSubscribe::class.java
-                        val abilities = mixSubscribeClazz.getDeclaredField("abilities")
-                            .also { it.isAccessible = true }.get(mixSubscribe) as List<AbilitySubscriber>
-                        val telegrams = mixSubscribeClazz.getDeclaredField("telegrams")
-                            .also { it.isAccessible = true }.get(mixSubscribe) as List<TelegramSubscribe>
-                        abilitySubscriberList.addAll(abilities)
-                        telegramSubscribeList.addAll(telegrams)
-                    }
-                    "me.kuku.telegram.context.InlineQuerySubscriber" -> {
-                        val obj = applicationContext.getBean(clazz)
-                        function.call(obj, inlineQuerySubscriber)
-                    }
+
+        val modules = TelegramConfig.modules
+        val functions = mutableListOf<KFunction<*>>()
+        for (module in modules) {
+            val index = module.lastIndexOf('.')
+            val clazz = module.substring(0, index)
+            val name = module.substring(index + 1)
+            Class.forName(clazz).kotlin.declaredMemberExtensionFunctions.find { it.name == name }?.let {
+                functions.add(it)
+            }
+        }
+        for (function in functions) {
+            val type = function.extensionReceiverParameter?.type
+            val kClass = type?.classifier as? KClass<*>
+            when (kClass?.jvmName) {
+                "me.kuku.telegram.context.AbilitySubscriber" -> {
+                    function.call(null, abilitySubscriber)
+                }
+                "me.kuku.telegram.context.TelegramSubscribe" -> {
+                    val telegramSubscribe = TelegramSubscribe()
+                    function.call(null, telegramSubscribe)
+                    telegramSubscribeList.add(telegramSubscribe)
+                }
+                "com.pengrad.telegrambot.model.Update" -> {
+                    updateFunction.add(UpdateFunction(function))
+                }
+                "me.kuku.telegram.context.TelegramExceptionHandler" -> {
+                    function.call(null, telegramExceptionHandler)
+                }
+                "me.kuku.telegram.context.MixSubscribe" -> {
+                    val mixSubscribe = MixSubscribe()
+                    function.call(null, mixSubscribe)
+                    val mixSubscribeClazz = mixSubscribe::class.java
+                    val abilities = mixSubscribeClazz.getDeclaredField("abilities")
+                        .also { it.isAccessible = true }.get(mixSubscribe) as List<AbilitySubscriber>
+                    val telegrams = mixSubscribeClazz.getDeclaredField("telegrams")
+                        .also { it.isAccessible = true }.get(mixSubscribe) as List<TelegramSubscribe>
+                    abilitySubscriberList.addAll(abilities)
+                    telegramSubscribeList.addAll(telegrams)
+                }
+                "me.kuku.telegram.context.InlineQuerySubscriber" -> {
+                    function.call(null, inlineQuerySubscriber)
                 }
             }
         }
+
         abilitySubscriberList.add(abilitySubscriber)
         inlineQuerySubscriberList.add(inlineQuerySubscriber)
-        val telegramBot = applicationContext.getBean(TelegramBot::class.java)
         telegramBot.setUpdatesListener {
             for (update in it) {
                 Thread.startVirtualThread {
                     runBlocking {
                         for (function in updateFunction) {
                             telegramExceptionHandler.invokeHandler(TelegramContext(telegramBot, update)) {
-                                function.function.callSuspend(function.any, update)
+                                function.function.callSuspend(update)
                             }
                         }
                         for (single in abilitySubscriberList) {
@@ -122,31 +105,30 @@ class TelegramBean(
             UpdatesListener.CONFIRMED_UPDATES_ALL
         }
     }
-
-    @Bean
-    fun telegramBot(): TelegramBot {
-        val builder = OkHttpClient.Builder()
-            .connectTimeout(75, TimeUnit.SECONDS)
-            .writeTimeout(75, TimeUnit.SECONDS)
-            .readTimeout(75, TimeUnit.SECONDS)
-        if (telegramConfig.proxyType != Proxy.Type.DIRECT) {
-            builder.proxy(
-                Proxy(Proxy.Type.HTTP, InetSocketAddress(telegramConfig.proxyHost, telegramConfig.proxyPort))
-            )
-        }
-        val botBuilder =  TelegramBot.Builder(telegramConfig.token)
-            .okHttpClient(builder.build())
-        if (telegramConfig.url.isNotEmpty()) {
-            botBuilder.apiUrl("${telegramConfig.url}/bot")
-        }
-        return botBuilder.build()
-    }
 }
+
+val telegramBot: TelegramBot = run {
+    val builder = OkHttpClient.Builder()
+        .connectTimeout(75, TimeUnit.SECONDS)
+        .writeTimeout(75, TimeUnit.SECONDS)
+        .readTimeout(75, TimeUnit.SECONDS)
+    if (TelegramConfig.proxyType != Proxy.Type.DIRECT) {
+        builder.proxy(
+            Proxy(Proxy.Type.HTTP, InetSocketAddress(TelegramConfig.proxyHost, TelegramConfig.proxyPort))
+        )
+    }
+    val botBuilder =  TelegramBot.Builder(TelegramConfig.token)
+        .okHttpClient(builder.build())
+    if (TelegramConfig.url.isNotEmpty()) {
+        botBuilder.apiUrl("${TelegramConfig.url}/bot")
+    }
+    botBuilder.build()
+}
+
+
 val telegramExceptionHandler = TelegramExceptionHandler()
 
-@Component
-@ConfigurationProperties(prefix = "kuku.telegram")
-class TelegramConfig {
+object TelegramConfig {
     var token: String = ""
     var creatorId: Long = 0
     var proxyHost: String = ""
@@ -156,34 +138,49 @@ class TelegramConfig {
     var localPath: String = ""
     var api: String = ""
 
-    @PostConstruct
-    fun dockerInit() {
+    var modules: List<String> = listOf()
+
+
+    init {
         val runtime = Runtime.getRuntime()
         val process = try {
             runtime.exec(arrayOf("/usr/bin/env"))
         } catch (e: Exception) {
-            return
+            null
         }
-        val text = process.inputStream.use {
-            it.readAllBytes().toString(charset("utf-8"))
-        }
-        val line = text.split("\n")
-        for (env in line) {
-            val arr = env.split("=")
-            if (arr.size == 2) {
-                val key = arr[0].trim()
-                val value = arr[1].trim()
-                when (key.uppercase()) {
-                    "KUKU_TELEGRAM_TOKEN" -> token = value
-                    "KUKU_TELEGRAM_CREATOR_ID" -> creatorId = value.toLong()
-                    "KUKU_TELEGRAM_PROXY_HOST" -> proxyHost = value
-                    "KUKU_TELEGRAM_PROXY_PORT" -> proxyPort = value.toInt()
-                    "KUKU_TELEGRAM_PROXY_TYPE" -> proxyType = Proxy.Type.valueOf(value.uppercase())
-                    "KUKU_TELEGRAM_URL" -> url = value
-                    "KUKU_LOCAL_PATH" -> localPath = value
-                    "KUKU_API" -> api = value
+        if (process != null) {
+            val text = process.inputStream.use {
+                it.readAllBytes().toString(charset("utf-8"))
+            }
+            val line = text.split("\n")
+            for (env in line) {
+                val arr = env.split("=")
+                if (arr.size == 2) {
+                    val key = arr[0].trim()
+                    val value = arr[1].trim()
+                    when (key.uppercase()) {
+                        "KUKU_TELEGRAM_TOKEN" -> token = value
+                        "KUKU_TELEGRAM_CREATOR_ID" -> creatorId = value.toLong()
+                        "KUKU_TELEGRAM_PROXY_HOST" -> proxyHost = value
+                        "KUKU_TELEGRAM_PROXY_PORT" -> proxyPort = value.toInt()
+                        "KUKU_TELEGRAM_PROXY_TYPE" -> proxyType = Proxy.Type.valueOf(value.uppercase())
+                        "KUKU_TELEGRAM_URL" -> url = value
+                        "KUKU_LOCAL_PATH" -> localPath = value
+                        "KUKU_API" -> api = value
+                    }
                 }
             }
+        } else {
+            val telegramConfig = yamlConfig.config("ktor.telegram")
+            token = telegramConfig.property("token").getString()
+            creatorId = telegramConfig.property("creatorId").getString().toLong()
+            proxyHost = telegramConfig.property("proxyHost").getString()
+            proxyPort = telegramConfig.property("proxyPort").getString().toInt()
+            proxyType = Proxy.Type.valueOf(telegramConfig.property("proxyType").getString())
+            url = telegramConfig.property("url").getString()
+            localPath = telegramConfig.property("localPath").getString()
+            api = telegramConfig.property("api").getString()
+            modules = telegramConfig.property("modules").getList()
         }
     }
 }

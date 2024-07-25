@@ -1,38 +1,30 @@
 package me.kuku.telegram.entity
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
+import com.mongodb.client.model.Filters.eq
+import kotlinx.coroutines.flow.toList
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("e_cloud")
+val eCloudCollection = mongoDatabase.getCollection<ECloudEntity>("e_cloud")
+
 class ECloudEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var cookie: String = ""
     var eCookie: String = ""
     var sign: Status = Status.OFF
 }
 
-interface ECloudRepository: CoroutineCrudRepository<ECloudEntity, String> {
-    suspend fun findBySign(sign: Status): List<ECloudEntity>
 
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): ECloudEntity?
+object ECloudService {
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
-}
+    suspend fun findBySign(sign: Status) = eCloudCollection.find(eq("sign", sign)).toList()
 
-@Service
-class ECloudService(
-    private val eCloudRepository: ECloudRepository
-) {
+    suspend fun save(entity: ECloudEntity) = eCloudCollection.save(entity)
 
-    suspend fun findBySign(sign: Status) = eCloudRepository.findBySign(sign)
+    suspend fun findByTgId(tgId: Long): ECloudEntity? = TODO()
 
-    suspend fun save(entity: ECloudEntity) = eCloudRepository.save(entity)
-
-    suspend fun findByTgId(tgId: Long) = eCloudRepository.findEnableEntityByTgId(tgId) as? ECloudEntity
-
-    suspend fun deleteByTgId(tgId: Long) = eCloudRepository.deleteEnableEntityByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
 
 }

@@ -1,17 +1,22 @@
 package me.kuku.telegram.entity
 
+import com.mongodb.client.model.Filters
+import com.mongodb.client.model.Filters.eq
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendMessage
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import me.kuku.telegram.context.asyncExecute
-import me.kuku.telegram.utils.SpringUtils
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 import java.time.LocalDateTime
 
-@Document("log")
+val logCollection = mongoDatabase.getCollection<LogEntity>("log")
+
 class LogEntity: BaseEntity() {
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var type: LogType = LogType.None
     var text: String = "成功"
     var show: String = ""
@@ -57,34 +62,27 @@ enum class LogType(val value: String) {
     ECloud("天翼云盘")
 }
 
-interface LogRepository: CoroutineCrudRepository<LogEntity, String> {
-    suspend fun findByTgId(tgId: Long): List<LogEntity>
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): List<LogEntity>
-    suspend fun findByType(logType: LogType): List<LogEntity>
-    suspend fun findByCreateTimeBetween(before: LocalDateTime, after: LocalDateTime): List<LogEntity>
+object LogService {
 
-    suspend fun findByCreateTimeBetweenAndTgId(before: LocalDateTime, after: LocalDateTime, tgId: Long): List<LogEntity>
+    suspend fun findByTgId(tgId: Long) = logCollection.find(eq("tgId", tgId)).toList()
 
-    suspend fun findByCreateTimeBetweenAndTgIdAndTgName(before: LocalDateTime, after: LocalDateTime, tgId: Long, tgName: String?): List<LogEntity>
-}
+    suspend fun findByType(logType: LogType) = logCollection.find(eq("type", logType)).toList()
 
-@Service
-class LogService(
-    private val logRepository: LogRepository
-) {
+    suspend fun save(logEntity: LogEntity) = logCollection.save(logEntity)
 
-    suspend fun findByTgId(tgId: Long): List<LogEntity> = logRepository.findByTgId(tgId)
-
-    suspend fun findByType(logType: LogType): List<LogEntity> = logRepository.findByType(logType)
-
-    suspend fun save(logEntity: LogEntity): LogEntity = logRepository.save(logEntity)
-
-    suspend fun findByCreateTimeBetween(before: LocalDateTime, after: LocalDateTime): List<LogEntity> = logRepository.findByCreateTimeBetween(before, after)
+    suspend fun findByCreateTimeBetween(before: LocalDateTime, after: LocalDateTime) =
+        logCollection.find(Filters.and(Filters.gte("createTime", before), Filters.lte("createTime", after)))
+            .toList()
 
     suspend fun findByCreateTimeBetweenAndTgId(before: LocalDateTime, after: LocalDateTime, tgId: Long): List<LogEntity> =
-        logRepository.findByCreateTimeBetweenAndTgIdAndTgName(before, after, tgId, tgId.tgName())
+        logCollection.find(Filters.and(
+            Filters.gte("createTime", before),
+            Filters.lte("createTime", after),
+            eq("tgId", tgId),
+            eq("tgName", tgId.tgName()),
+        )).toList()
 
-    suspend fun findById(id: String) = logRepository.findById(id)
+    suspend fun findById(id: String) = logCollection.find(eq(id)).firstOrNull()
 
     suspend fun log(entity: BaseEntity, type: LogType, block: suspend LogEntity.() -> Unit) {
         val logEntity = LogEntity().also {

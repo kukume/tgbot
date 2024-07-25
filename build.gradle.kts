@@ -3,14 +3,12 @@
 plugins {
     val kotlinVersion = "2.0.0"
     kotlin("jvm") version kotlinVersion
-    kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "3.3.1"
-    id("io.spring.dependency-management") version "1.1.5"
-    application
 }
 
 group = "me.kuku"
 version = "1.0-SNAPSHOT"
+
+val ktorVersion = "2.3.12"
 
 repositories {
 //    mavenLocal()
@@ -19,13 +17,17 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
-    implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
-    implementation("org.springframework.boot:spring-boot-starter-mail")
+    implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-thymeleaf:$ktorVersion")
+    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+    implementation("io.ktor:ktor-server-call-logging-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-jackson-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-cio-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-config-yaml-jvm:$ktorVersion")
+
     implementation("com.github.pengrad:java-telegram-bot-api:7.7.0")
     implementation("me.kuku:utils:2.3.12.0")
-    implementation("me.kuku:ktor-spring-boot-starter:2.3.12.0")
     implementation("org.jsoup:jsoup:1.17.2")
     val ociVersion = "3.44.1"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
@@ -33,10 +35,13 @@ dependencies {
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion") {
         exclude("commons-logging", "commons-logging")
     }
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     implementation("com.google.zxing:javase:3.5.3")
     implementation("net.consensys.cava:cava-bytes:0.5.0")
     implementation("net.consensys.cava:cava-crypto:0.5.0")
+
+    implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.1.2")
+    implementation("org.mongodb:bson-kotlinx:5.1.2")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
@@ -60,8 +65,4 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
-}
-
-application {
-    mainClass = "me.kuku.telegram.TelegramApplicationKt"
 }

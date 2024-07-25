@@ -16,7 +16,6 @@ import net.consensys.cava.crypto.SECP256K1
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
-import org.springframework.stereotype.Service
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -25,10 +24,7 @@ import java.time.LocalDate
 import java.util.*
 import javax.imageio.ImageIO
 
-@Service
-class AliDriveLogic(
-    private val aliDriveService: AliDriveService
-) {
+object AliDriveLogic {
 
     init {
         if (Security.getProvider("BC") == null) {
@@ -103,9 +99,9 @@ class AliDriveLogic(
             val token = "${jsonNode["token_type"].asText()} ${jsonNode["access_token"].asText()}"
             cache[aliDriveEntity.tgId] = AliDriveAccessToken(token, System.currentTimeMillis() + jsonNode["expires_in"].asLong() * 1000)
             val newRefreshToken = jsonNode["refresh_token"].asText()
-            val newEntity = aliDriveService.findById(aliDriveEntity.id!!)!!
+            val newEntity = AliDriveService.findById(aliDriveEntity.id!!)!!
             newEntity.refreshToken = newRefreshToken
-            aliDriveService.save(newEntity)
+            AliDriveService.save(newEntity)
             token
         } else accessToken.accessToken
     }
@@ -173,7 +169,7 @@ class AliDriveLogic(
             val userGet = userGet(entity)
             if (entity.deviceId.isEmpty()) {
                 entity.deviceId = UUID.randomUUID().toString()
-                aliDriveService.save(entity)
+                AliDriveService.save(entity)
             }
             val encryptKey = encryptKey()
             val encrypt =
@@ -315,7 +311,7 @@ class AliDriveLogic(
         }.body<JsonNode>()
         val aliDriveUploadComplete =  complete.convertValue<AliDriveUploadComplete>()
         aliDriveEntity.uploads.add(AliDriveEntity.Upload(driveId, aliDriveUploadComplete.fileId))
-        aliDriveService.save(aliDriveEntity)
+        AliDriveService.save(aliDriveEntity)
         return aliDriveUploadComplete
     }
 
@@ -401,7 +397,7 @@ class AliDriveLogic(
         }.body<JsonNode>()
         val aliDriveUploadComplete =  complete.convertValue<AliDriveUploadComplete>()
         aliDriveEntity.uploads.add(AliDriveEntity.Upload(driveId, aliDriveUploadComplete.fileId))
-        aliDriveService.save(aliDriveEntity)
+        AliDriveService.save(aliDriveEntity)
         return aliDriveUploadComplete
     }
 
@@ -788,7 +784,7 @@ class AliDriveLogic(
                 }
                 val id = createShareAlbum(aliDriveEntity, "kuku的共享相册任务")
                 val shareAlbumInvite = shareAlbumInvite(aliDriveEntity, id)
-                val filterEntity = aliDriveService.findAll().filter { it.id != aliDriveEntity.id }.randomOrNull()
+                val filterEntity = AliDriveService.findAll().filter { it.id != aliDriveEntity.id }.randomOrNull()
                     ?: error("数据库中未拥有其他阿里云盘账号，无法邀请成员加入共享相簿")
                 joinShareAlbum(filterEntity, shareAlbumInvite.code())
                 repeat(12) {
@@ -874,7 +870,7 @@ class AliDriveLogic(
         var backupDeviceId = aliDriveEntity.backupDeviceId
         if (backupDeviceId.isEmpty()) backupDeviceId = UUID.randomUUID().toString()
         aliDriveEntity.backupDeviceId = backupDeviceId
-        aliDriveService.save(aliDriveEntity)
+        AliDriveService.save(aliDriveEntity)
         val newAliDriveDevice = aliDriveDevice ?: run {
             val device = AliDriveDevice()
             device.deviceId = backupDeviceId
@@ -905,7 +901,7 @@ class AliDriveLogic(
         var backupDesktopDeviceId = aliDriveEntity.backupDesktopDeviceId
         if (backupDesktopDeviceId.isEmpty()) backupDesktopDeviceId = UUID.randomUUID().toString()
         aliDriveEntity.backupDesktopDeviceId = backupDesktopDeviceId
-        aliDriveService.save(aliDriveEntity)
+        AliDriveService.save(aliDriveEntity)
         val aliDriveDevice = backupDesktopDevice(aliDriveEntity)
         val jsonNode = client.post("https://api.aliyundrive.com/users/v1/users/update_device_extras") {
             setJsonBody("""
@@ -918,7 +914,7 @@ class AliDriveLogic(
     }
 
     private suspend fun deviceList(aliDriveEntity: AliDriveEntity): List<AliDriveDevice> {
-        val newEntity = aliDriveService.findById(aliDriveEntity.id!!)!!
+        val newEntity = AliDriveService.findById(aliDriveEntity.id!!)!!
         val jsonNode = client.post("https://api.alipan.com/adrive/v2/backup/device_applet_list_summary") {
             setJsonBody("{}")
             newEntity.appendAuth()

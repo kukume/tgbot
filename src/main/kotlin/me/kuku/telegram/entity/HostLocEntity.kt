@@ -1,47 +1,31 @@
 package me.kuku.telegram.entity
 
+import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("host_loc")
+val hostLocCollection = mongoDatabase.getCollection<HostLocEntity>("host_loc")
+
 class HostLocEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var cookie: String = ""
     var push: Status = Status.OFF
     var sign: Status = Status.OFF
 }
 
-interface HostLocRepository: CoroutineCrudRepository<HostLocEntity, String> {
+object HostLocService {
+    suspend fun findByTgId(tgId: Long): HostLocEntity? = TODO()
 
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): HostLocEntity?
+    suspend fun findByPush(push: Status) = hostLocCollection.find(eq("push", push)).toList()
 
-    suspend fun findByPush(push: Status): List<HostLocEntity>
+    suspend fun findBySign(sign: Status) = hostLocCollection.find(eq("sign", sign)).toList()
 
-    suspend fun findBySign(sign: Status): List<HostLocEntity>
+    suspend fun save(hostLocEntity: HostLocEntity) = hostLocCollection.save(hostLocEntity)
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+    suspend fun findAll() = hostLocCollection.find().toList()
 
-}
-
-@Service
-class HostLocService(
-    private val hostLocRepository: HostLocRepository
-) {
-    suspend fun findByTgId(tgId: Long) = hostLocRepository.findEnableEntityByTgId(tgId) as? HostLocEntity
-
-    suspend fun findByPush(push: Status): List<HostLocEntity> = hostLocRepository.findByPush(push)
-
-    suspend fun findBySign(sign: Status): List<HostLocEntity> = hostLocRepository.findBySign(sign)
-
-    suspend fun save(hostLocEntity: HostLocEntity): HostLocEntity = hostLocRepository.save(hostLocEntity)
-
-    suspend fun findAll(): List<HostLocEntity> = hostLocRepository.findAll().toList()
-
-    @Transactional
-    suspend fun deleteByTgId(tgId: Long) = hostLocRepository.deleteEnableEntityByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
 }

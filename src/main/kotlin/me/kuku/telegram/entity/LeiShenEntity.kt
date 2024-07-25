@@ -1,15 +1,16 @@
 package me.kuku.telegram.entity
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import com.mongodb.client.model.Filters.eq
+import kotlinx.coroutines.flow.toList
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("lei_shen")
+val leiShenCollection = mongoDatabase.getCollection<LeiShenEntity>("lei_shen")
+
 class LeiShenEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var username: String = ""
     var password: String = ""
     var accountToken: String = ""
@@ -18,27 +19,15 @@ class LeiShenEntity: BaseEntity() {
     var expiryTime: Long = 0
 }
 
-interface LeiShenRepository: CoroutineCrudRepository<LeiShenEntity, String> {
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): LeiShenEntity?
+object LeiShenService {
 
-    suspend fun findByStatus(status: Status): List<LeiShenEntity>
+    suspend fun findByTgId(tgId: Long): LeiShenEntity? = TODO()
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
-}
+    suspend fun findByStatus(status: Status) = leiShenCollection.find(eq("status", status)).toList()
 
-@Service
-class LeiShenService(
-    private val leiShenRepository: LeiShenRepository
-) {
+    suspend fun deleteByTgId(tgId: Long) = Unit
 
-    suspend fun findByTgId(tgId: Long) = leiShenRepository.findEnableEntityByTgId(tgId) as? LeiShenEntity
-
-    suspend fun findByStatus(status: Status) = leiShenRepository.findByStatus(status)
-
-    @Transactional
-    suspend fun deleteByTgId(tgId: Long) = leiShenRepository.deleteEnableEntityByTgId(tgId)
-
-    suspend fun save(entity: LeiShenEntity) = leiShenRepository.save(entity)
+    suspend fun save(entity: LeiShenEntity) = leiShenCollection.save(entity)
 
 }
 

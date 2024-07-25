@@ -9,12 +9,8 @@ import io.ktor.util.*
 import me.kuku.telegram.entity.ECloudEntity
 import me.kuku.telegram.entity.ECloudService
 import me.kuku.utils.*
-import org.springframework.stereotype.Service
 
-@Service
-class ECloudLogic(
-    private val eCloudService: ECloudService
-) {
+object ECloudLogic {
 
     suspend fun login(username: String, password: String): ECloudEntity {
         val (cookie, lt, reqId, refererUrl) = client.get("https://cloud.189.cn/api/portal/loginUrl.action?redirectURL=https%3A%2F%2Fcloud.189.cn%2Fweb%2Fredirect.html")
@@ -114,7 +110,7 @@ class ECloudLogic(
             val response3 = client.get(location2)
             val cookie = response3.cookie()
             entity.cookie = cookie
-            eCloudService.save(entity)
+            ECloudService.save(entity)
         }
     }
 

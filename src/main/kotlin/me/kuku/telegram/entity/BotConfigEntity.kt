@@ -1,23 +1,22 @@
 package me.kuku.telegram.entity
 
+import com.mongodb.client.model.Filters
+import kotlinx.coroutines.flow.firstOrNull
 import me.kuku.telegram.config.TelegramConfig
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.index.Indexed
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("bot_config")
+val botConfigCollection = mongoDatabase.getCollection<BotConfigEntity>("bot_config")
+
 class BotConfigEntity {
-    @Id
-    var id: String? = null
-    @Indexed(unique = true)
+    @BsonId
+    var id: ObjectId? = null
     var token: String = ""
     var blacklist: MutableList<Long> = mutableListOf()
     var admins: MutableList<Long> = mutableListOf()
     var pushUrl: String = ""
     // 公用
-    var rrOcrKey: String = ""
     var twoCaptchaKey: String = ""
 
     var updatePush: Status = Status.OFF
@@ -25,25 +24,14 @@ class BotConfigEntity {
     fun twoCaptchaKey() = twoCaptchaKey.ifEmpty { null }
 }
 
+object BotConfigService {
 
-interface BotConfigRepository: CoroutineCrudRepository<BotConfigEntity, String> {
+    suspend fun findByToken(token: String) = botConfigCollection.find(Filters.eq(BotConfigEntity::token.name, token)).firstOrNull()
 
-    suspend fun findByToken(token: String): BotConfigEntity?
-
-}
-
-@Service
-class BotConfigService(
-    private val botConfigRepository: BotConfigRepository,
-    private val telegramConfig: TelegramConfig
-) {
-
-    suspend fun findByToken(token: String) = botConfigRepository.findByToken(token)
-
-    suspend fun save(entity: BotConfigEntity) = botConfigRepository.save(entity)
+    suspend fun save(entity: BotConfigEntity) = botConfigCollection.save(entity)
 
     suspend fun init(): BotConfigEntity {
-        val token = telegramConfig.token
+        val token = TelegramConfig.token
         return findByToken(token) ?: kotlin.run {
             val botConfigEntity = BotConfigEntity()
             botConfigEntity.token = token

@@ -1,46 +1,32 @@
 package me.kuku.telegram.entity
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import com.mongodb.client.model.Filters.eq
+import kotlinx.coroutines.flow.toList
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("weibo")
+val weiboCollection = mongoDatabase.getCollection<WeiboEntity>("weibo")
+
 class WeiboEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var cookie: String = ""
     var push: Status = Status.OFF
     var sign: Status = Status.OFF
 }
 
-interface WeiboRepository: CoroutineCrudRepository<WeiboEntity, String> {
 
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): WeiboEntity?
+object WeiboService {
 
-    suspend fun findByPush(push: Status): List<WeiboEntity>
+    suspend fun findByTgId(tgId: Long): WeiboEntity? = TODO()
 
-    suspend fun findBySign(sign: Status): List<WeiboEntity>
+    suspend fun findByPush(push: Status) = weiboCollection.find(eq("push", push)).toList()
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+    suspend fun findBySign(sign: Status) = weiboCollection.find(eq("sign", sign)).toList()
 
-}
+    suspend fun save(weiboEntity: WeiboEntity): WeiboEntity = weiboCollection.save(weiboEntity)
 
-@Service
-class WeiboService(
-    private val weiboRepository: WeiboRepository
-) {
-
-    suspend fun findByTgId(tgId: Long) = weiboRepository.findEnableEntityByTgId(tgId) as? WeiboEntity
-
-    suspend fun findByPush(push: Status): List<WeiboEntity> = weiboRepository.findByPush(push)
-
-    suspend fun findBySign(sign: Status): List<WeiboEntity> = weiboRepository.findBySign(sign)
-
-    suspend fun save(weiboEntity: WeiboEntity): WeiboEntity = weiboRepository.save(weiboEntity)
-
-    @Transactional
-    suspend fun deleteByTgId(tgId: Long) = weiboRepository.deleteEnableEntityByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long) = Unit
 
 }

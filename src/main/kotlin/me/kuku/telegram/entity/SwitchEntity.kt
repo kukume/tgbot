@@ -1,54 +1,43 @@
 package me.kuku.telegram.entity
 
-import me.kuku.telegram.utils.SpringUtils
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
-import kotlin.reflect.full.callSuspend
-import kotlin.reflect.full.declaredFunctions
-import kotlin.reflect.full.functions
+import com.mongodb.client.model.Filters.and
+import com.mongodb.client.model.Filters.eq
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("switch")
+val switchCollection = mongoDatabase.getCollection<SwitchEntity>("switch")
+
 class SwitchEntity {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var name: String = ""
     var tgId: Long = 0
     var status: Status = Status.OFF
 }
 
+object SwitchService {
 
-interface SwitchRepository: CoroutineCrudRepository<SwitchEntity, String> {
-    suspend fun findByTgId(tgId: Long): List<SwitchEntity>
+    suspend fun findByTgId(tgId: Long) = switchCollection.find(eq("tgId", tgId)).toList()
 
-    suspend fun findByTgIdAndName(tgId: Long, name: String): List<SwitchEntity>
+    suspend fun findByTgIdAndName(tgId: Long, name: String) =
+        switchCollection.find(and(eq("tgId", tgId), eq("name", name))).toList()
 
-    suspend fun findByTgIdAndStatus(tgId: Long, status: Status): List<SwitchEntity>
+    suspend fun save(switchEntity: SwitchEntity) = switchCollection.save(switchEntity)
 
-}
+    suspend fun delete(switchEntity: SwitchEntity) = switchCollection.deleteOne(eq(switchEntity.id))
 
-@Service
-class SwitchService(
-    private val switchRepository: SwitchRepository
-) {
+    suspend fun deleteById(id: ObjectId) = switchCollection.deleteOne(eq(id))
 
-    suspend fun findByTgId(tgId: Long) = switchRepository.findByTgId(tgId)
+    suspend fun findById(id: ObjectId) = switchCollection.find(eq(id)).firstOrNull()
 
-    suspend fun findByTgIdAndName(tgId: Long, name: String) = switchRepository.findByTgIdAndName(tgId, name)
-
-    suspend fun save(switchEntity: SwitchEntity) = switchRepository.save(switchEntity)
-
-    suspend fun delete(switchEntity: SwitchEntity) = switchRepository.delete(switchEntity)
-
-    suspend fun deleteById(id: String) = switchRepository.deleteById(id)
-
-    suspend fun findById(id: String) = switchRepository.findById(id)
-
-    suspend fun findByTgIdAndStatus(tgId: Long, status: Status) = switchRepository.findByTgIdAndStatus(tgId, status)
+    suspend fun findByTgIdAndStatus(tgId: Long, status: Status) =
+        switchCollection.find(and(eq("tgId", tgId), eq("status", status))).toList()
 
     suspend fun editName(tgId: Long, oldName: String, name: String) {
-        for (clazz in clazzList) {
+        /*for (clazz in clazzList) {
             val function = clazz.declaredFunctions.find { it.name == "findByTgIdAndTgName" } ?: continue
             val instance = SpringUtils.getBean(clazz)
             val any = function.callSuspend(instance, tgId, oldName)
@@ -67,24 +56,15 @@ class SwitchService(
                     saveFunction.callSuspend(instance, any)
                 }
             }
-        }
+        }*/
     }
 
     suspend fun deleteName(tgId: Long, name: String) {
-        for (clazz in clazzList) {
+        /*for (clazz in clazzList) {
             val function = clazz.declaredFunctions.find { it.name == "deleteByTgIdAndTgName" } ?: continue
             val instance = SpringUtils.getBean(clazz)
             function.callSuspend(instance, tgId, name)
-        }
+        }*/
     }
 
 }
-
-private val clazzList = mutableListOf(
-    AliDriveRepository::class, BaiduRepository::class, BiliBiliRepository::class,
-    DouYuRepository::class, ECloudRepository::class,
-    GlaDosRepository::class, HostLocRepository::class, HuYaRepository::class,
-    IqyRepository::class, KuGouRepository::class, LeiShenRepository::class,
-    LogRepository::class, MiHoYoRepository::class, NetEaseRepository::class,
-    NodeSeekRepository::class, PixivRepository::class, SmZdmRepository::class, StepRepository::class,
-    TwitterRepository::class, WeiboRepository::class)

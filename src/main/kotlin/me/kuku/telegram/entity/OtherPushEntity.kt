@@ -1,14 +1,16 @@
 package me.kuku.telegram.entity
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
+import com.mongodb.client.model.Filters.eq
+import kotlinx.coroutines.flow.firstOrNull
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("other_push")
+val otherPushCollection = mongoDatabase.getCollection<OtherPushEntity>("other_push")
+
 class OtherPushEntity {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var tgId: Long = 0
     var pushTypes: MutableSet<OtherPushType> = mutableSetOf()
     var complex: Complex = Complex()
@@ -22,24 +24,15 @@ class OtherPushEntity {
     }
 }
 
-interface OtherPushRepository: CoroutineCrudRepository<OtherPushEntity, String> {
+object OtherPushService {
 
-    suspend fun findByTgId(tgId: Long): OtherPushEntity?
-
-}
-
-@Service
-class OtherPushService(
-    private val otherPushRepository: OtherPushRepository
-) {
-
-    suspend fun save(entity: OtherPushEntity) = otherPushRepository.save(entity)
+    suspend fun save(entity: OtherPushEntity) = otherPushCollection.save(entity)
 
     suspend fun findByTgId(tgId: Long): OtherPushEntity {
-        return otherPushRepository.findByTgId(tgId) ?: kotlin.run {
+        return otherPushCollection.find(eq("tgId", tgId)).firstOrNull() ?: kotlin.run {
             val addEntity = OtherPushEntity()
             addEntity.tgId = tgId
-            otherPushRepository.save(addEntity)
+            otherPushCollection.save(addEntity)
         }
     }
 

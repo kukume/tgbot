@@ -1,16 +1,15 @@
 package me.kuku.telegram.entity
 
+import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
 import me.kuku.telegram.logic.MiHoYoFix
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
 
-@Document("mi_ho_yo")
+val miHoYoCollection = mongoDatabase.getCollection<MiHoYoEntity>("mi_ho_yo")
+
 class MiHoYoEntity: BaseEntity() {
-    @Id
+    @BsonId
     var id: String? = null
     var fix: MiHoYoFix = MiHoYoFix()
     var aid: String = ""
@@ -28,33 +27,18 @@ class MiHoYoEntity: BaseEntity() {
     }
 }
 
-interface MiHoYoRepository: CoroutineCrudRepository<MiHoYoEntity, String> {
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): MiHoYoEntity?
+object MiHoYoService {
 
-    suspend fun findBySign(sign: Status): List<MiHoYoEntity>
+    suspend fun findByTgId(tgId: Long): MiHoYoEntity? = TODO()
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+    suspend fun findBySign(sign: Status) = miHoYoCollection.find(eq("sign", sign)).toList()
 
-    suspend fun findByMysSign(sign: Status): List<MiHoYoEntity>
+    suspend fun findByMysSign(sign: Status) = miHoYoCollection.find(eq("mysSign", sign)).toList()
 
-}
+    suspend fun save(miHoYoEntity: MiHoYoEntity) = miHoYoCollection.save(miHoYoEntity)
 
-@Service
-class MiHoYoService(
-    private val miHoYoRepository: MiHoYoRepository
-) {
+    suspend fun findAll() = miHoYoCollection.find().toList()
 
-    suspend fun findByTgId(tgId: Long) = miHoYoRepository.findEnableEntityByTgId(tgId) as? MiHoYoEntity
-
-    suspend fun findBySign(sign: Status): List<MiHoYoEntity> = miHoYoRepository.findBySign(sign)
-
-    suspend fun findByMysSign(sign: Status): List<MiHoYoEntity> = miHoYoRepository.findByMysSign(sign)
-
-    suspend fun save(miHoYoEntity: MiHoYoEntity): MiHoYoEntity = miHoYoRepository.save(miHoYoEntity)
-
-    suspend fun findAll(): List<MiHoYoEntity> = miHoYoRepository.findAll().toList()
-
-    @Transactional
-    suspend fun deleteByTgId(tgId: Long) = miHoYoRepository.deleteEnableEntityByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long) = Unit
 
 }

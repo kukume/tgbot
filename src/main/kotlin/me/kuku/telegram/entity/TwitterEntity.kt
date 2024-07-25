@@ -1,13 +1,14 @@
 package me.kuku.telegram.entity
 
+import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
 
-@Document("twitter")
+val twitterCollection = mongoDatabase.getCollection<TwitterEntity>("twitter")
+
 class TwitterEntity: BaseEntity() {
+    @BsonId
     var id: String? = null
     var tId: String = ""
     var tRestId: String = ""
@@ -16,30 +17,16 @@ class TwitterEntity: BaseEntity() {
     var push: Status = Status.OFF
 }
 
-interface TwitterRepository: CoroutineCrudRepository<TwitterEntity, String> {
+object TwitterService {
 
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): TwitterEntity?
+    suspend fun findByTgId(tgId: Long): TwitterEntity? = TODO()
 
-    suspend fun findByPush(push: Status): List<TwitterEntity>
+    suspend fun findAll() = twitterCollection.find().toList()
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+    suspend fun save(entity: TwitterEntity) = twitterCollection.save(entity)
 
-}
+    suspend fun findByPush(push: Status) = twitterCollection.find(eq("push", push)).toList()
 
-@Service
-class TwitterService(
-    private val twitterRepository: TwitterRepository
-) {
-
-    suspend fun findByTgId(tgId: Long) = twitterRepository.findEnableEntityByTgId(tgId) as? TwitterEntity
-
-    suspend fun findAll(): List<TwitterEntity> = twitterRepository.findAll().toList()
-
-    suspend fun save(entity: TwitterEntity): TwitterEntity = twitterRepository.save(entity)
-
-    suspend fun findByPush(push: Status): List<TwitterEntity> = twitterRepository.findByPush(push)
-
-    @Transactional
-    suspend fun deleteByTgId(tgId: Long) = twitterRepository.deleteEnableEntityByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long) = Unit
 
 }

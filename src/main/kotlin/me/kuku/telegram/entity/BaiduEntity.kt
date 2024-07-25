@@ -1,17 +1,17 @@
 package me.kuku.telegram.entity
 
+import com.mongodb.client.model.Filters
 import kotlinx.coroutines.flow.toList
+import me.kuku.telegram.mongoDatabase
 import me.kuku.utils.OkUtils
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("baidu")
+val baiduCollection = mongoDatabase.getCollection<BaiduEntity>("baidu")
+
 class BaiduEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var cookie: String = ""
     var tieBaSToken: String = ""
     var sign: Status = Status.OFF
@@ -25,25 +25,15 @@ class BaiduEntity: BaseEntity() {
     }
 }
 
-interface BaiduRepository: CoroutineCrudRepository<BaiduEntity, String> {
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): BaiduEntity?
-    suspend fun findBySign(sign: Status): List<BaiduEntity>
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
-}
+object BaiduService {
 
-@Service
-class BaiduService(
-    private val baiduRepository: BaiduRepository
-) {
+    suspend fun findByTgId(tgId: Long): BaiduEntity? = TODO()
 
-    suspend fun findByTgId(tgId: Long) = baiduRepository.findEnableEntityByTgId(tgId) as? BaiduEntity
+    suspend fun save(baiduEntity: BaiduEntity) = baiduCollection.save(baiduEntity)
 
-    suspend fun save(baiduEntity: BaiduEntity) = baiduRepository.save(baiduEntity)
+    suspend fun findBySign(sign: Status): List<BaiduEntity> = baiduCollection.find(Filters.eq(BaiduEntity::sign.name, sign)).toList()
 
-    suspend fun findBySign(sign: Status): List<BaiduEntity> = baiduRepository.findBySign(sign)
+    suspend fun findAll(): List<BaiduEntity> = baiduCollection.find().toList()
 
-    suspend fun findAll(): List<BaiduEntity> = baiduRepository.findAll().toList()
-
-    @Transactional
-    suspend fun deleteByTgId(tgId: Long) = baiduRepository.deleteEnableEntityByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
 }

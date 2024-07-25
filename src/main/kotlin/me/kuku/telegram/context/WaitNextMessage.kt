@@ -1,13 +1,12 @@
 package me.kuku.telegram.context
 
-import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.Message
 import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.request.DeleteMessage
 import com.pengrad.telegrambot.request.EditMessageText
 import kotlinx.coroutines.*
-import org.springframework.stereotype.Service
+import me.kuku.telegram.config.telegramBot
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
@@ -37,43 +36,35 @@ fun Update.nextMessage(maxTime: Long = 30000): Message {
     return updateWaitNextMessageCommon(message().chat().id().toString(), maxTime)
 }
 
-@Service
-class ContextSession(
-    private val telegramBot: TelegramBot
-) {
+fun Update.waitMessage() {
+    val message = message() ?: return
+    updateContextSessionCacheMap.remove(message.chat().id().toString())?.resume(message)
+}
 
-    fun Update.waitMessage() {
-        val message = message() ?: return
-        updateContextSessionCacheMap.remove(message.chat().id().toString())?.resume(message)
-    }
-
-    suspend fun Update.ss() {
-        if (message() == null) return
-        val tgId = message().from().id().toString()
-        val value = contextSessionCacheMap[tgId] ?: return
-        if (value.filter.invoke(message())) {
-            contextSessionCacheMap.remove(tgId)?.let {
-                value.continuation.resume(message()).also {
-                    val deleteMessage = DeleteMessage(message().chat().id().toString(), message().messageId())
-                    telegramBot.asyncExecute(deleteMessage)
-                }
+suspend fun Update.ss() {
+    if (message() == null) return
+    val tgId = message().from().id().toString()
+    val value = contextSessionCacheMap[tgId] ?: return
+    if (value.filter.invoke(message())) {
+        contextSessionCacheMap.remove(tgId)?.let {
+            value.continuation.resume(message()).also {
+                val deleteMessage = DeleteMessage(message().chat().id().toString(), message().messageId())
+                telegramBot.asyncExecute(deleteMessage)
             }
-        } else {
-            val deleteMessage = DeleteMessage(message().chat().id().toString(), message().messageId())
-            telegramBot.asyncExecute(deleteMessage)
-            val lastMessage = value.lastMessage
-            val editMessageText = EditMessageText(lastMessage.chatId, lastMessage.messageId, value.errMessage)
-                .replyMarkup(lastMessage.replyMarkup)
-            telegramBot.asyncExecute(editMessageText)
         }
+    } else {
+        val deleteMessage = DeleteMessage(message().chat().id().toString(), message().messageId())
+        telegramBot.asyncExecute(deleteMessage)
+        val lastMessage = value.lastMessage
+        val editMessageText = EditMessageText(lastMessage.chatId, lastMessage.messageId, value.errMessage)
+            .replyMarkup(lastMessage.replyMarkup)
+        telegramBot.asyncExecute(editMessageText)
     }
+}
 
-    fun Update.clear() {
-        callbackQuery()?.data() ?: return
-        contextSessionCacheMap.remove(callbackQuery().from().id().toString())?.continuation?.cancel()
-    }
-
-
+fun Update.clear() {
+    callbackQuery()?.data() ?: return
+    contextSessionCacheMap.remove(callbackQuery().from().id().toString())?.continuation?.cancel()
 }
 
 private data class LastMessage(val text: String, val chatId: Long, val replyMarkup: InlineKeyboardMarkup, val messageId: Int)

@@ -1,31 +1,20 @@
 package me.kuku.telegram.entity
 
 import com.fasterxml.jackson.annotation.JsonFormat
-import kotlinx.coroutines.reactive.awaitFirst
+import com.mongodb.client.model.Filters
+import com.mongodb.client.model.ReplaceOptions
+import com.mongodb.kotlin.client.coroutine.MongoCollection
 import me.kuku.telegram.context.AbilityContext
 import me.kuku.telegram.context.TelegramContext
-import me.kuku.telegram.utils.SpringUtils
-import org.springframework.aop.framework.AopProxyUtils
-import org.springframework.data.annotation.CreatedDate
-import org.springframework.data.annotation.LastModifiedDate
-import org.springframework.data.mongodb.core.index.Indexed
-import org.springframework.data.repository.NoRepositoryBean
-import org.springframework.data.repository.Repository
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import reactor.core.publisher.Flux
 import java.time.LocalDateTime
-import kotlin.reflect.full.callSuspend
-import kotlin.reflect.full.declaredFunctions
-import kotlin.reflect.full.functions
+import kotlin.reflect.KProperty1
+import kotlin.reflect.full.memberProperties
 
 open class BaseEntity {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @CreatedDate
     var createTime: LocalDateTime = LocalDateTime.now()
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @LastModifiedDate
     var updateTime: LocalDateTime = LocalDateTime.now()
-    @Indexed(name = "tgId")
     open var tgId: Long = 0
     var tgName: String? = null
 
@@ -75,31 +64,29 @@ suspend fun Long.tgName(): String? {
     else findList.first().name
 }
 
-suspend fun Repository<out BaseEntity, *>.findEnableEntityByTgId(tgId: Long): BaseEntity? {
-    val clazz = AopProxyUtils.proxiedUserInterfaces(this)[0].kotlin
-    val name = tgId.tgName()
-    val function = clazz.functions.find { it.name == "findByTgIdAndTgName" }
-        ?: error("当前身份是${name ?: "主身份"}，但是该功能没有提供多账号查询函数")
-    val result = function.callSuspend(this, tgId, name)
-    return if (result is Flux<*>) {
-        result.collectList().awaitFirst().firstOrNull() as? BaseEntity
-    } else {
-        result as? BaseEntity
-    }
+suspend fun <T: Any> MongoCollection<T>.save(entity: T): T {
+    val find = entity::class.memberProperties.find { it.name == "id" } as? KProperty1<T, *> ?: error("")
+    this.replaceOne(Filters.eq("_id", find.get(entity)), entity, ReplaceOptions().upsert(true))
+    return entity
 }
 
-suspend fun Repository<out BaseEntity, *>.deleteEnableEntityByTgId(tgId: Long) {
-    val clazz = AopProxyUtils.proxiedUserInterfaces(this)[0].kotlin
-    val name = tgId.tgName()
-    val function = clazz.functions.find { it.name == "deleteByTgIdAndTgName" }
-        ?: error("当前身份是${name ?: "主身份"}，但是该功能没有提供多账号查询函数")
-    function.callSuspend(this, tgId, name)
-}
-
-@NoRepositoryBean
-interface CoroutineCrudMultipleRepository<T, ID>: CoroutineCrudRepository<T, ID> {
-
-    fun findByTgIdAndTgName(tgId: Long, tgName: String?): T?
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
-
-}
+//suspend fun Repository<out BaseEntity, *>.findEnableEntityByTgId(tgId: Long): BaseEntity? {
+//    val clazz = AopProxyUtils.proxiedUserInterfaces(this)[0].kotlin
+//    val name = tgId.tgName()
+//    val function = clazz.functions.find { it.name == "findByTgIdAndTgName" }
+//        ?: error("当前身份是${name ?: "主身份"}，但是该功能没有提供多账号查询函数")
+//    val result = function.callSuspend(this, tgId, name)
+//    return if (result is Flux<*>) {
+//        result.collectList().awaitFirst().firstOrNull() as? BaseEntity
+//    } else {
+//        result as? BaseEntity
+//    }
+//}
+//
+//suspend fun Repository<out BaseEntity, *>.deleteEnableEntityByTgId(tgId: Long) {
+//    val clazz = AopProxyUtils.proxiedUserInterfaces(this)[0].kotlin
+//    val name = tgId.tgName()
+//    val function = clazz.functions.find { it.name == "deleteByTgIdAndTgName" }
+//        ?: error("当前身份是${name ?: "主身份"}，但是该功能没有提供多账号查询函数")
+//    function.callSuspend(this, tgId, name)
+//}

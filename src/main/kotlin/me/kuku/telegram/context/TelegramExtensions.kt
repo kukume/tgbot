@@ -11,7 +11,6 @@ import com.pengrad.telegrambot.request.SendPhoto
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import me.kuku.telegram.config.TelegramConfig
-import me.kuku.telegram.utils.SpringUtils
 import me.kuku.utils.client
 
 fun inlineKeyboardButton(text: String, callbackData: String): InlineKeyboardButton = InlineKeyboardButton(text).callbackData(callbackData)
@@ -52,9 +51,8 @@ suspend fun TelegramBot.sendTextMessage(tgId: Long, text: String, messageThreadI
 
 suspend fun File.byteArray(): ByteArray {
     val filePath = this.filePath()
-    val telegramConfig = SpringUtils.getBean<TelegramConfig>()
-    return if (telegramConfig.url.isNotEmpty()) {
-        var localPath = telegramConfig.localPath
+    return if (TelegramConfig.url.isNotEmpty()) {
+        var localPath = TelegramConfig.localPath
         if (localPath.isEmpty()) error("获取文件失败，localPath未设置")
         val newPath = if (localPath == "/") filePath.substring(1) else filePath.substring(26)
         if (localPath.last() != '/') localPath = "$localPath/"
@@ -62,7 +60,7 @@ suspend fun File.byteArray(): ByteArray {
         if (!file.exists()) error("获取文件失败，localPath设置有误")
         file.readBytes()
     } else {
-        val url = "https://api.telegram.org/file/bot${telegramConfig.token}/$filePath"
+        val url = "https://api.telegram.org/file/bot${TelegramConfig.token}/$filePath"
         client.get(url).body()
     }
 }

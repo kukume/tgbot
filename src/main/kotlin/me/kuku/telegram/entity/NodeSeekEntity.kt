@@ -1,15 +1,15 @@
 package me.kuku.telegram.entity
 
 import kotlinx.coroutines.flow.toList
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("node_seek")
+val nodeSeekCollection = mongoDatabase.getCollection<NodeSeekEntity>("node_seek")
+
 class NodeSeekEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var cookie: String = ""
     var sign: Sign = Sign.None
 
@@ -19,25 +19,14 @@ class NodeSeekEntity: BaseEntity() {
 
 }
 
-interface NodeSeekRepository: CoroutineCrudRepository<NodeSeekEntity, String> {
+object NodeSeekService {
 
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): NodeSeekEntity?
+    suspend fun save(entity: NodeSeekEntity) = nodeSeekCollection.save(entity)
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+    suspend fun findByTgId(tgId: Long): NodeSeekEntity? = TODO()
 
-}
+    suspend fun deleteByTgId(tgId: Long) = Unit
 
-@Service
-class NodeSeekService(
-    private val nodeSeekRepository: NodeSeekRepository
-) {
-
-    suspend fun save(entity: NodeSeekEntity) = nodeSeekRepository.save(entity)
-
-    suspend fun findByTgId(tgId: Long) = nodeSeekRepository.findEnableEntityByTgId(tgId) as? NodeSeekEntity
-
-    suspend fun deleteByTgId(tgId: Long) = nodeSeekRepository.deleteEnableEntityByTgId(tgId)
-
-    suspend fun findAll() = nodeSeekRepository.findAll().toList()
+    suspend fun findAll() = nodeSeekCollection.find().toList()
 
 }

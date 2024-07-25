@@ -1,15 +1,17 @@
 package me.kuku.telegram.entity
 
+import com.mongodb.client.model.Filters
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("ali_driver")
+val aliDriveCollection = mongoDatabase.getCollection<AliDriveEntity>("ali_drive")
+
 class AliDriveEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var refreshToken: String = ""
     var deviceId: String = ""
     var backupDeviceId: String = ""
@@ -25,47 +27,27 @@ class AliDriveEntity: BaseEntity() {
     data class Upload(val driveId: Int, val fileId: String)
 }
 
-interface AliDriveRepository: CoroutineCrudRepository<AliDriveEntity, String> {
+object AliDriveService {
 
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): AliDriveEntity?
+    suspend fun findByTgId(tgId: Long): AliDriveEntity = TODO()
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+    suspend fun findBySign(sign: Status) = aliDriveCollection.find(Filters.eq(AliDriveEntity::sign.name, sign)).toList()
 
-    suspend fun findBySign(sign: Status): List<AliDriveEntity>
+    suspend fun save(aliDriveEntity: AliDriveEntity) = aliDriveCollection.save(aliDriveEntity)
 
-    suspend fun findByTask(task: Status): List<AliDriveEntity>
+    suspend fun delete(aliDriveEntity: AliDriveEntity) = aliDriveCollection.deleteOne(Filters.eq(aliDriveEntity::id.name, aliDriveEntity.id))
 
-    suspend fun findByReceiveTask(task: Status): List<AliDriveEntity>
+    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
 
-    suspend fun findByDeviceRoom(deviceRoom: Status): List<AliDriveEntity>
+    suspend fun findByTask(task: Status) = aliDriveCollection.find(Filters.eq(AliDriveEntity::task.name, task)).toList()
 
-    suspend fun findByCard(card: Status): List<AliDriveEntity>
-}
+    suspend fun findByReceiveTask(task: Status) = aliDriveCollection.find(Filters.eq(AliDriveEntity::receiveTask.name, task)).toList()
 
-@Service
-class AliDriveService(
-    private val aliDriveRepository: AliDriveRepository
-) {
+    suspend fun findAll() = aliDriveCollection.find().toList()
 
-    suspend fun findByTgId(tgId: Long) = aliDriveRepository.findEnableEntityByTgId(tgId) as? AliDriveEntity
+    suspend fun findById(id: ObjectId) = aliDriveCollection.find(Filters.eq("_id", id)).firstOrNull()
 
-    suspend fun findBySign(sign: Status) = aliDriveRepository.findBySign(sign)
+    suspend fun findByDeviceRoom(deviceRoom: Status) = aliDriveCollection.find(Filters.eq(AliDriveEntity::deviceRoom.name, deviceRoom)).toList()
 
-    suspend fun save(aliDriveEntity: AliDriveEntity): AliDriveEntity = aliDriveRepository.save(aliDriveEntity)
-
-    suspend fun delete(aliDriveEntity: AliDriveEntity) = aliDriveRepository.delete(aliDriveEntity)
-
-    suspend fun deleteByTgId(tgId: Long) = aliDriveRepository.deleteEnableEntityByTgId(tgId)
-
-    suspend fun findByTask(task: Status) = aliDriveRepository.findByTask(task)
-
-    suspend fun findByReceiveTask(task: Status) = aliDriveRepository.findByReceiveTask(task)
-
-    suspend fun findAll() = aliDriveRepository.findAll().toList()
-
-    suspend fun findById(id: String) = aliDriveRepository.findById(id)
-
-    suspend fun findByDeviceRoom(deviceRoom: Status) = aliDriveRepository.findByDeviceRoom(deviceRoom)
-
-    suspend fun findByCard(card: Status) = aliDriveRepository.findByCard(card)
+    suspend fun findByCard(card: Status) = aliDriveCollection.find(Filters.eq(AliDriveEntity::card.name, card)).toList()
 }

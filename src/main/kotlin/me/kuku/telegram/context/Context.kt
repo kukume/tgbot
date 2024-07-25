@@ -10,9 +10,9 @@ import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.model.request.*
 import com.pengrad.telegrambot.request.*
 import com.pengrad.telegrambot.response.SendResponse
+import me.kuku.telegram.config.telegramBot
 import me.kuku.telegram.utils.CacheManager
 import me.kuku.utils.JobManager
-import org.springframework.stereotype.Component
 import java.io.Serializable
 import java.time.Duration
 import java.util.*
@@ -210,36 +210,29 @@ fun errorAnswerCallbackQuery(message: String, showAlert: Boolean = false): Nothi
 
 fun errorMessageExpired(message: String = "该条消息已过期，请重新发送指令以进行操作"): Nothing = throw MessageExpiredException(message)
 
-@Component
-class MonitorReturn(
-    private val telegramBot: TelegramBot
-) {
-
-    suspend fun Update.re() {
-        val mes = message()?.messageId()?: callbackQuery()?.maybeInaccessibleMessage()?.messageId() ?: return
-        val data = callbackQuery()?.data() ?: return
-        val tgId = callbackQuery().from().id()
-        val key = "$tgId$mes$data"
-        if (data.startsWith("return_")) {
-            val returnKey = "$tgId$mes"
-            val list = callbackHistory[returnKey]
-            val first = list?.first()
-            if (first?.data == data) {
-                val message = first.message!!
-                val editMessageText = EditMessageText(tgId, mes, first.text)
-                    .replyMarkup(message.replyMarkup())
-                telegramBot.asyncExecute(editMessageText)
-            } else {
-                val editMessageText = EditMessageText(tgId, mes, "该条消息已过期，请重新发送指令以进行操作")
-                telegramBot.asyncExecute(editMessageText)
-            }
-            callbackHistory.remove(returnKey)
-            callbackHistoryKey.remove(returnKey)
+suspend fun Update.handleReturnButton() {
+    val mes = message()?.messageId()?: callbackQuery()?.maybeInaccessibleMessage()?.messageId() ?: return
+    val data = callbackQuery()?.data() ?: return
+    val tgId = callbackQuery().from().id()
+    val key = "$tgId$mes$data"
+    if (data.startsWith("return_")) {
+        val returnKey = "$tgId$mes"
+        val list = callbackHistory[returnKey]
+        val first = list?.first()
+        if (first?.data == data) {
+            val message = first.message!!
+            val editMessageText = EditMessageText(tgId, mes, first.text)
+                .replyMarkup(message.replyMarkup())
+            telegramBot.asyncExecute(editMessageText)
+        } else {
+            val editMessageText = EditMessageText(tgId, mes, "该条消息已过期，请重新发送指令以进行操作")
+            telegramBot.asyncExecute(editMessageText)
         }
-        val after = callbackAfter.get(key) as? ReturnMessageAfter
-        after?.invoke(TelegramContext(telegramBot, this@Update))
+        callbackHistory.remove(returnKey)
+        callbackHistoryKey.remove(returnKey)
     }
-
+    val after = callbackAfter.get(key) as? ReturnMessageAfter
+    after?.invoke(TelegramContext(telegramBot, this@Update))
 }
 
 class InlineQueryContext(override val bot: TelegramBot, val update: Update): Context() {

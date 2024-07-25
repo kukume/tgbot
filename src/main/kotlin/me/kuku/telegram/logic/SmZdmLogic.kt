@@ -6,12 +6,8 @@ import io.ktor.http.*
 import me.kuku.pojo.CommonResult
 import me.kuku.telegram.entity.SmZdmEntity
 import me.kuku.utils.*
-import org.springframework.stereotype.Service
 
-@Service
-class SmZdmLogic(
-    private val twoCaptchaLogic: TwoCaptchaLogic
-) {
+object SmZdmLogic {
 
     suspend fun login1(phone: String, tgId: Long? = null) {
         val geeJsonNode = client.get("https://zhiyou.smzdm.com/user/getgeetest/captcha_init_v3?scene=login&rand=${MyUtils.randomNum(2)}") {
@@ -157,7 +153,7 @@ class SmZdmLogic(
     }
 
     private suspend fun geeTest(gt: String, challenge: String, referer: String = "https://www.smzdm.com/", tgId: Long? = null): GeeTestResult {
-        val result = twoCaptchaLogic.geeTest(gt, challenge, referer, tgId = tgId)
+        val result = TwoCaptchaLogic.geeTest(gt, challenge, referer, tgId = tgId)
         return GeeTestResult(result.challenge, result.validate)
 
     }

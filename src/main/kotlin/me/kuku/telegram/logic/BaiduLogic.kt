@@ -10,13 +10,9 @@ import me.kuku.telegram.entity.BaiduEntity
 import me.kuku.telegram.entity.BaiduService
 import me.kuku.utils.*
 import org.jsoup.Jsoup
-import org.springframework.stereotype.Service
 import java.util.*
 
-@Service
-class BaiduLogic (
-    private val baiduService: BaiduService
-) {
+object BaiduLogic  {
 
     suspend fun getQrcode(): BaiduQrcode {
         val uuid = UUID.randomUUID().toString()
@@ -124,7 +120,7 @@ class BaiduLogic (
     private suspend fun saveSToken(baiduEntity: BaiduEntity, url: String): String {
         val sToken = getSToken(baiduEntity, url)
         baiduEntity.tieBaSToken = sToken
-        baiduService.save(baiduEntity)
+        BaiduService.save(baiduEntity)
         return sToken
     }
 

@@ -1,32 +1,25 @@
 package me.kuku.telegram.entity
 
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import com.mongodb.client.model.Filters.eq
+import kotlinx.coroutines.flow.toList
+import me.kuku.telegram.mongoDatabase
 
-@Document("linux_do")
+val linuxDoCollection = mongoDatabase.getCollection<LinuxDoEntity>("linux_do")
+
 class LinuxDoEntity: BaseEntity() {
     var id: String? = null
     var cookie: String = ""
     var sign: Status = Status.OFF
 }
 
-interface LinuxDoRepository: CoroutineCrudMultipleRepository<LinuxDoEntity, String> {
-    suspend fun findBySign(sign: Status): List<LinuxDoEntity>
-}
+object LinuxDoService {
 
-@Service
-class LinuxDoService(
-    private val linuxDoRepository: LinuxDoRepository
-) {
+    suspend fun findByTgId(tgId: Long): LinuxDoEntity? = TODO()
 
-    suspend fun findByTgId(tgId: Long) = linuxDoRepository.findEnableEntityByTgId(tgId) as? LinuxDoEntity
+    suspend fun save(linuxDoEntity: LinuxDoEntity) = linuxDoCollection.save(linuxDoEntity)
 
-    suspend fun save(linuxDoEntity: LinuxDoEntity) = linuxDoRepository.save(linuxDoEntity)
+    suspend fun deleteByTgId(tgId: Long) = Unit
 
-    @Transactional
-    suspend fun deleteByTgId(tgId: Long) = linuxDoRepository.deleteEnableEntityByTgId(tgId)
-
-    suspend fun findBySign(sign: Status) = linuxDoRepository.findBySign(sign)
+    suspend fun findBySign(sign: Status) = linuxDoCollection.find(eq("sign", sign)).toList()
 
 }

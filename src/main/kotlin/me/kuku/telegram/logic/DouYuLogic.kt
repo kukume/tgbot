@@ -13,13 +13,9 @@ import me.kuku.pojo.UA
 import me.kuku.telegram.entity.DouYuEntity
 import me.kuku.telegram.entity.DouYuService
 import me.kuku.utils.*
-import org.springframework.stereotype.Service
 import java.nio.charset.Charset
 
-@Service
-class DouYuLogic(
-    private val douYuService: DouYuService
-) {
+object DouYuLogic {
 
     private val referer = "https://passport.douyu.com/index/login?passport_reg_callback=PASSPORT_REG_SUCCESS_CALLBACK&passport_login_callback=PASSPORT_LOGIN_SUCCESS_CALLBACK&passport_close_callback=PASSPORT_CLOSE_CALLBACK&passport_dp_callback=PASSPORT_DP_CALLBACK&type=login&client_id=1&state=https%3A%2F%2Fwww.douyu.com%2F"
 
@@ -94,7 +90,7 @@ class DouYuLogic(
             }
         }
         douYuEntity.cookie = cookie
-        douYuService.save(douYuEntity)
+        DouYuService.save(douYuEntity)
     }
 
     suspend fun room(douYuEntity: DouYuEntity): CommonResult<List<DouYuRoom>> {

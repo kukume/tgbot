@@ -10,13 +10,11 @@ import me.kuku.telegram.utils.ffmpeg
 import me.kuku.utils.*
 import okhttp3.MultipartBody
 import org.jsoup.Jsoup
-import org.springframework.stereotype.Service
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.charset.Charset
 
-@Service
-class ToolLogic {
+object ToolLogic {
 
     suspend fun baiKe(text: String): String {
 

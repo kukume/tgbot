@@ -5,11 +5,9 @@ import me.kuku.utils.toUrlEncode
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
-import org.springframework.stereotype.Service
 
 @Suppress("DuplicatedCode")
-@Service
-class YgoLogic {
+object YgoLogic {
 
     suspend fun search(name: String): List<Card> {
         val str = OkHttpKtUtils.getStr("https://ygocdb.com/?search=${name.toUrlEncode()}")

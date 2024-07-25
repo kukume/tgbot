@@ -1,0 +1,85 @@
+ktor:
+  deployment:
+    port: 8080
+  application:
+    modules:
+      - me.kuku.telegram.extension.PushExtensionKt.push
+  mongo:
+    uri: 'mongodb://172.17.0.1:27017'
+    database: 'share'
+  telegram:
+    modules:
+      - me.kuku.telegram.extension.CommentExtensionKt.comment
+      - me.kuku.telegram.context.ContextKt.handleReturnButton
+      - me.kuku.telegram.context.WaitNextMessageKt.waitMessage
+      - me.kuku.telegram.context.WaitNextMessageKt.ss
+      - me.kuku.telegram.context.WaitNextMessageKt.clear
+      - me.kuku.telegram.extension.ConfigExtensionKt.config
+      - me.kuku.telegram.extension.ConfigExtensionKt.positiveEnergyConfig
+      - me.kuku.telegram.extension.DeleteExtensionKt.delete
+      - me.kuku.telegram.extension.DeleteExtensionKt.deleteOperate
+      - me.kuku.telegram.extension.ErrorHandlerKt.ss
+      - me.kuku.telegram.extension.ErrorHandlerKt.re
+      - me.kuku.telegram.extension.IndexExtensionKt.start
+      - me.kuku.telegram.extension.LogExtensionKt.logShow
+      - me.kuku.telegram.extension.LogExtensionKt.logSwitch
+      - me.kuku.telegram.extension.OciExtensionKt.ociAbility
+      - me.kuku.telegram.extension.OciExtensionKt.oci
+      - me.kuku.telegram.extension.OciExtensionKt.operate
+      - me.kuku.telegram.extension.OciExtensionKt.operateInstance
+      - me.kuku.telegram.extension.OtherExtensionKt.other
+      - me.kuku.telegram.extension.OtherExtensionKt.other
+      - me.kuku.telegram.extension.PushExtensionKt.push
+      - me.kuku.telegram.extension.PushExtensionKt.pushCallback
+      - me.kuku.telegram.extension.SwitchExtensionKt.switch
+      - me.kuku.telegram.extension.SwitchExtensionKt.switchCallback
+      - me.kuku.telegram.extension.ToolExtensionKt.queryYgoCard
+      - me.kuku.telegram.extension.ToolExtensionKt.tool
+      - me.kuku.telegram.extension.ToolExtensionKt.loLiCon
+      - me.kuku.telegram.extension.ToolExtensionKt.dyna
+      - me.kuku.telegram.extension.UpdateExtensionKt.update
+      - me.kuku.telegram.extension.ExecExtensionKt.exec
+      - me.kuku.telegram.extension.ExecExtensionKt.baiduExec
+      - me.kuku.telegram.extension.ExecExtensionKt.biliBiliExec
+      - me.kuku.telegram.extension.ExecExtensionKt.hostLocExec
+      - me.kuku.telegram.extension.ExecExtensionKt.kuGouExec
+      - me.kuku.telegram.extension.ExecExtensionKt.miHoYoExec
+      - me.kuku.telegram.extension.ExecExtensionKt.netEaseExec
+      - me.kuku.telegram.extension.ExecExtensionKt.stepExec
+      - me.kuku.telegram.extension.ExecExtensionKt.weiboExec
+      - me.kuku.telegram.extension.ExecExtensionKt.douYuExec
+      - me.kuku.telegram.extension.ExecExtensionKt.smZdm
+      - me.kuku.telegram.extension.ExecExtensionKt.aliDrive
+      - me.kuku.telegram.extension.ExecExtensionKt.nodeSeekExec
+      - me.kuku.telegram.extension.ExecExtensionKt.glaDosExec
+      - me.kuku.telegram.extension.ExecExtensionKt.iqyExec
+      - me.kuku.telegram.extension.ExecExtensionKt.eCloudExec
+      - me.kuku.telegram.extension.LoginExtensionKt.login
+      - me.kuku.telegram.extension.LoginExtensionKt.baiduLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.biliBiliLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.douYu
+      - me.kuku.telegram.extension.LoginExtensionKt.hostLocLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.huYaLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.kuGouLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.miHoYoLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.netEase
+      - me.kuku.telegram.extension.LoginExtensionKt.xiaomiStepLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.weiboLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.twitterLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.pixivLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.smZdmLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.aliDriveLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.leiShenLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.nodeSeekLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.gloDosSign
+      - me.kuku.telegram.extension.LoginExtensionKt.iqyLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.eCloudLogin
+      - me.kuku.telegram.extension.LoginExtensionKt.linuxDoLogin
+    token:
+    creatorId: 0
+    proxyHost:
+    proxyPort: 0
+    proxyType: direct
+    url:
+    localPath:
+    api:

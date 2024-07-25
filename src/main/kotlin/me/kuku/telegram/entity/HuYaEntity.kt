@@ -1,42 +1,28 @@
 package me.kuku.telegram.entity
 
+import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import me.kuku.telegram.mongoDatabase
+import org.bson.types.ObjectId
 
-@Document("hu_ya")
+val huYaCollection = mongoDatabase.getCollection<HuYaEntity>("hu_ya")
+
 class HuYaEntity: BaseEntity() {
-    var id: String? = null
+    var id: ObjectId? = null
     var cookie: String = ""
     var live: Status = Status.OFF
 }
 
-interface HuYaRepository: CoroutineCrudRepository<HuYaEntity, String> {
+object HuYaService {
 
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): HuYaEntity?
+    suspend fun findByTgId(tgId: Long): HuYaEntity? = TODO()
 
-    suspend fun findByLive(live: Status): List<HuYaEntity>
+    suspend fun findByLive(live: Status) = huYaCollection.find(eq("live", live)).toList()
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+    suspend fun save(huYaEntity: HuYaEntity) = huYaCollection.save(huYaEntity)
 
-}
+    suspend fun findAll() = huYaCollection.find().toList()
 
-@Service
-class HuYaService(
-    private val huYaRepository: HuYaRepository
-) {
-
-    suspend fun findByTgId(tgId: Long) = huYaRepository.findEnableEntityByTgId(tgId) as? HuYaEntity
-
-    suspend fun findByLive(live: Status): List<HuYaEntity> = huYaRepository.findByLive(live)
-
-    suspend fun save(huYaEntity: HuYaEntity): HuYaEntity = huYaRepository.save(huYaEntity)
-
-    suspend fun findAll(): List<HuYaEntity> = huYaRepository.findAll().toList()
-
-    @Transactional
-    suspend fun deleteByTgId(tgId: Long) = huYaRepository.deleteEnableEntityByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
 
 }

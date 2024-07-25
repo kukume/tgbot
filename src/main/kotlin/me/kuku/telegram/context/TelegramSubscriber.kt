@@ -12,7 +12,6 @@ import kotlinx.coroutines.withContext
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.config.telegramExceptionHandler
 import me.kuku.telegram.entity.BotConfigService
-import me.kuku.telegram.utils.SpringUtils
 
 class AbilitySubscriber {
 

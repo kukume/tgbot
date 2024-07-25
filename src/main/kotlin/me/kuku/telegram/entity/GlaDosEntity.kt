@@ -1,39 +1,28 @@
 package me.kuku.telegram.entity
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
+import com.mongodb.client.model.Filters.eq
+import kotlinx.coroutines.flow.toList
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("glo_dos")
+val glaDosCollection = mongoDatabase.getCollection<GlaDosEntity>("glo_dos")
+
 class GlaDosEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+    @BsonId
+    var id: ObjectId? = null
     var cookie: String = ""
     var sign: Status = Status.OFF
 }
 
-interface GlaDosRepository: CoroutineCrudRepository<GlaDosEntity, String> {
+object GlaDosService {
 
-    suspend fun findBySign(sign: Status): List<GlaDosEntity>
+    suspend fun save(glaDosEntity: GlaDosEntity) = glaDosCollection.save(glaDosEntity)
 
-    suspend fun findByTgIdAndTgName(tgId: Long, tgName: String?): GlaDosEntity?
+    suspend fun findBySign(sign: Status) = glaDosCollection.find(eq("sign", sign)).toList()
 
-    suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
+    suspend fun findByTgId(tgId: Long): GlaDosEntity? = TODO()
 
-}
-
-@Service
-class GlaDosService(
-    private val glaDosRepository: GlaDosRepository
-) {
-
-    suspend fun save(glaDosEntity: GlaDosEntity) = glaDosRepository.save(glaDosEntity)
-
-    suspend fun findBySign(sign: Status) = glaDosRepository.findBySign(sign)
-
-    suspend fun findByTgId(tgId: Long) = glaDosRepository.findEnableEntityByTgId(tgId) as? GlaDosEntity
-
-    suspend fun deleteByTgId(tgId: Long) = glaDosRepository.deleteEnableEntityByTgId(tgId)
+    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
 
 }

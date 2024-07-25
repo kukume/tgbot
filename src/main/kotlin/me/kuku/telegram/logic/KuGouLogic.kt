@@ -9,7 +9,6 @@ import me.kuku.pojo.UA
 import me.kuku.telegram.config.api
 import me.kuku.telegram.entity.KuGouEntity
 import me.kuku.utils.*
-import org.springframework.stereotype.Service
 import java.util.*
 
 data class KuGouQrcode (
@@ -18,8 +17,7 @@ data class KuGouQrcode (
     var mid: String
 )
 
-@Service
-class KuGouLogic {
+object KuGouLogic {
 
     private fun e(): String {
         return Integer.toHexString(((65536 * (1 + Math.random())).toInt()))

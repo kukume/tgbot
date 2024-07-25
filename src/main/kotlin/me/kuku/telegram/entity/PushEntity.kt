@@ -1,37 +1,27 @@
 package me.kuku.telegram.entity
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.mongodb.core.index.Indexed
-import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import org.springframework.stereotype.Service
+import com.mongodb.client.model.Filters.eq
+import kotlinx.coroutines.flow.firstOrNull
+import me.kuku.telegram.mongoDatabase
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
 
-@Document("push")
+val pushCollection = mongoDatabase.getCollection<PushEntity>("push")
+
 class PushEntity {
-    @Id
-    var id: String? = null
-    @Indexed(unique = true)
+    @BsonId
+    var id: ObjectId? = null
     var tgId: Long = 0
-    @Indexed(unique = true)
     var key: String = ""
 }
 
-interface PushRepository: CoroutineCrudRepository<PushEntity, String> {
-    suspend fun findByTgId(tgId: Long): PushEntity?
+object PushService {
 
-    suspend fun findByKey(key: String): PushEntity?
-}
+    suspend fun save(entity: PushEntity) = pushCollection.save(entity)
 
-@Service
-class PushService(
-    private val pushRepository: PushRepository
-) {
+    suspend fun findByTgId(tgId: Long) = pushCollection.find(eq("tgId", tgId)).firstOrNull()
 
-    suspend fun save(entity: PushEntity) = pushRepository.save(entity)
-
-    suspend fun findByTgId(tgId: Long) = pushRepository.findByTgId(tgId)
-
-    suspend fun findByKey(key: String) = pushRepository.findByKey(key)
+    suspend fun findByKey(key: String) = pushCollection.find(eq("key", key)).firstOrNull()
 
 
 }

@@ -11,22 +11,16 @@ import me.kuku.telegram.entity.BotConfigService
 import me.kuku.telegram.entity.ConfigService
 import me.kuku.utils.client
 import me.kuku.utils.convertValue
-import org.springframework.stereotype.Service
 
-@Service
-class TwoCaptchaLogic(
-    private val botConfigService: BotConfigService,
-    private val telegramConfig: TelegramConfig,
-    private val configService: ConfigService
-) {
+object TwoCaptchaLogic {
 
     private suspend inline fun <reified T> captcha(tgId: Long? = null, map: Map<String, String>): T {
         val newKey = run {
             tgId?.let {
-                val configEntity = configService.findByTgId(tgId)
+                val configEntity = ConfigService.findByTgId(tgId)
                 configEntity?.twoCaptchaKey()
             }
-        } ?: botConfigService.findByToken(telegramConfig.token)?.twoCaptchaKey() ?: error("未设置2captcha的key")
+        } ?: BotConfigService.findByToken(TelegramConfig.token)?.twoCaptchaKey() ?: error("未设置2captcha的key")
         val text = client.get("http://2captcha.com/in.php") {
             url {
                 parameters.append("key", newKey)
