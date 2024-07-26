@@ -85,7 +85,7 @@ object LogService {
             eq("tgName", tgId.tgName()),
         )).toList()
 
-    suspend fun findById(id: String) = logCollection.find(eq(id)).firstOrNull()
+    suspend fun findById(id: ObjectId) = logCollection.find(eq(id)).firstOrNull()
 
     suspend fun log(entity: BaseEntity, type: LogType, block: suspend LogEntity.() -> Unit) {
         val logEntity = LogEntity().also {

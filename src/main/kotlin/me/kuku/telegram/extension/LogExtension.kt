@@ -7,6 +7,7 @@ import me.kuku.telegram.context.TelegramSubscribe
 import me.kuku.telegram.context.inlineKeyboardButton
 import me.kuku.telegram.entity.LogService
 import me.kuku.utils.DateTimeFormatterUtils
+import org.bson.types.ObjectId
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -50,7 +51,7 @@ fun TelegramSubscribe.logSwitch() {
     }
     callbackStartsWith("logSuccess-") {
         val id = query.data().substring(11)
-        val logEntity = LogService.findById(id)!!
+        val logEntity = LogService.findById(ObjectId(id))!!
         answerCallbackQuery(logEntity.show, showAlert = true)
     }
     callback("logNone") {
@@ -58,7 +59,7 @@ fun TelegramSubscribe.logSwitch() {
     }
     callbackStartsWith("logErrReason-") {
         val id = query.data().substring(13)
-        val logEntity = LogService.findById(id)!!
+        val logEntity = LogService.findById(ObjectId(id))!!
         val reason = logEntity.errReason
         val errReason = reason.ifEmpty { "没有记录异常原因，请手动执行重新获取" }
         sendMessage("#${logEntity.type.value}签到失败异常信息\n$errReason\n${logEntity.exceptionStack}")

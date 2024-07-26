@@ -15,8 +15,12 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import me.kuku.telegram.context.AbilityContext
 import me.kuku.telegram.context.TelegramContext
-import me.kuku.utils.DateTimeFormatterUtils
+import org.bson.BsonDateTime
+import org.bson.codecs.kotlinx.BsonDecoder
+import org.bson.codecs.kotlinx.BsonEncoder
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 
@@ -93,17 +97,16 @@ suspend fun MongoCollection<out BaseEntity>.deleteEnableEntityByTgId(tgId: Long)
 
 object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
 
-    private const val FORMATTER = "yyyy-MM-dd HH:mm:ss"
-
     override val descriptor: SerialDescriptor
         get() = PrimitiveSerialDescriptor("LocalDateTime", PrimitiveKind.STRING)
 
     override fun deserialize(decoder: Decoder): LocalDateTime {
-        return DateTimeFormatterUtils.parseToLocalDateTime(decoder.decodeString(), FORMATTER)
+        decoder as? BsonDecoder ?: error("LocalDateTime is not supported by ${decoder::class}")
+        return LocalDateTime.ofInstant(Instant.ofEpochMilli(decoder.decodeBsonValue().asDateTime().value), ZoneId.systemDefault())
     }
 
     override fun serialize(encoder: Encoder, value: LocalDateTime) {
-        val result = DateTimeFormatterUtils.format(value, FORMATTER)
-        encoder.encodeString(result)
+        encoder as? BsonEncoder ?: error("LocalDateTime is not supported by ${encoder::class}")
+        encoder.encodeBsonValue(BsonDateTime(value.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()))
     }
 }

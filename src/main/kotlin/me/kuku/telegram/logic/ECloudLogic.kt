@@ -6,6 +6,7 @@ import io.ktor.client.request.*
 import io.ktor.client.request.headers
 import io.ktor.client.statement.*
 import io.ktor.util.*
+import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.ECloudEntity
 import me.kuku.telegram.entity.ECloudService
 import me.kuku.utils.*
@@ -91,7 +92,7 @@ object ECloudLogic {
     }
 
     private fun JsonNode.check() {
-        if (this.has("errorCode")) error(this["errorMsg"].asText())
+        if (this.has("errorCode") && this["errorCode"].asText() != "User_Not_Chance") error(this["errorMsg"].asText())
     }
 
     private suspend fun updateCookie(entity: ECloudEntity) {
@@ -126,10 +127,12 @@ object ECloudLogic {
             headers { appendAll(sv) }
         }.bodyAsText().toJsonNode()
         jsonNode1.check()
+        delay(5000)
         val jsonNode2 = client.get("https://m.cloud.189.cn/v2/drawPrizeMarketDetails.action?taskId=TASK_SIGNIN_PHOTOS&activityId=ACT_SIGNIN") {
             headers { appendAll(sv) }
         }.bodyAsText().toJsonNode()
         jsonNode2.check()
+        delay(5000)
         val jsonNode3 = client.get("https://m.cloud.189.cn/v2/drawPrizeMarketDetails.action?taskId=TASK_2022_FLDFS_KJ&activityId=ACT_SIGNIN") {
             headers { appendAll(sv) }
         }.bodyAsText().toJsonNode()
