@@ -4,19 +4,22 @@ import com.mongodb.client.model.Filters.and
 import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 import java.io.Serializable
 
 val ociCollection = mongoDatabase.getCollection<OciEntity>("oci")
 
 @Suppress("ConstPropertyName")
+@kotlinx.serialization.Serializable
 class OciEntity: Serializable {
     companion object {
         private const val serialVersionUID = 1L
     }
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var tgId: Long = 0
     var tenantId: String = ""

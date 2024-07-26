@@ -5,17 +5,21 @@ import com.mongodb.client.model.Filters.eq
 import com.pengrad.telegrambot.request.SendMessage
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.config.telegramBot
 import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 import java.time.LocalDateTime
 
 val logCollection = mongoDatabase.getCollection<LogEntity>("log")
 
+@Serializable
 class LogEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var type: LogType = LogType.None
     var text: String = "成功"

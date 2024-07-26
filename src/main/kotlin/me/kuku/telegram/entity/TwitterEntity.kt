@@ -2,13 +2,17 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 
 val twitterCollection = mongoDatabase.getCollection<TwitterEntity>("twitter")
 
+@Serializable
 class TwitterEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: String? = null
     var tId: String = ""
     var tRestId: String = ""
@@ -19,7 +23,7 @@ class TwitterEntity: BaseEntity() {
 
 object TwitterService {
 
-    suspend fun findByTgId(tgId: Long): TwitterEntity? = TODO()
+    suspend fun findByTgId(tgId: Long) = twitterCollection.findEnableEntityByTgId(tgId)
 
     suspend fun findAll() = twitterCollection.find().toList()
 
@@ -27,6 +31,6 @@ object TwitterService {
 
     suspend fun findByPush(push: Status) = twitterCollection.find(eq("push", push)).toList()
 
-    suspend fun deleteByTgId(tgId: Long) = Unit
+    suspend fun deleteByTgId(tgId: Long) = twitterCollection.deleteEnableEntityByTgId(tgId)
 
 }

@@ -1,14 +1,18 @@
 package me.kuku.telegram.entity
 
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 val nodeSeekCollection = mongoDatabase.getCollection<NodeSeekEntity>("node_seek")
 
+@Serializable
 class NodeSeekEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var cookie: String = ""
     var sign: Sign = Sign.None
@@ -23,9 +27,9 @@ object NodeSeekService {
 
     suspend fun save(entity: NodeSeekEntity) = nodeSeekCollection.save(entity)
 
-    suspend fun findByTgId(tgId: Long): NodeSeekEntity? = TODO()
+    suspend fun findByTgId(tgId: Long) = nodeSeekCollection.findEnableEntityByTgId(tgId)
 
-    suspend fun deleteByTgId(tgId: Long) = Unit
+    suspend fun deleteByTgId(tgId: Long) = nodeSeekCollection.deleteEnableEntityByTgId(tgId)
 
     suspend fun findAll() = nodeSeekCollection.find().toList()
 

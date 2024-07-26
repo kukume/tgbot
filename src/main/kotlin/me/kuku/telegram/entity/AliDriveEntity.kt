@@ -3,14 +3,18 @@ package me.kuku.telegram.entity
 import com.mongodb.client.model.Filters
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 val aliDriveCollection = mongoDatabase.getCollection<AliDriveEntity>("ali_drive")
 
+@Serializable
 class AliDriveEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var refreshToken: String = ""
     var deviceId: String = ""
@@ -24,12 +28,14 @@ class AliDriveEntity: BaseEntity() {
     var card: Status = Status.OFF
 
     var uploads: MutableList<Upload> = mutableListOf()
+
+    @Serializable
     data class Upload(val driveId: Int, val fileId: String)
 }
 
 object AliDriveService {
 
-    suspend fun findByTgId(tgId: Long): AliDriveEntity = TODO()
+    suspend fun findByTgId(tgId: Long) = aliDriveCollection.findEnableEntityByTgId(tgId)
 
     suspend fun findBySign(sign: Status) = aliDriveCollection.find(Filters.eq(AliDriveEntity::sign.name, sign)).toList()
 
@@ -37,7 +43,7 @@ object AliDriveService {
 
     suspend fun delete(aliDriveEntity: AliDriveEntity) = aliDriveCollection.deleteOne(Filters.eq(aliDriveEntity::id.name, aliDriveEntity.id))
 
-    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
+    suspend fun deleteByTgId(tgId: Long) = aliDriveCollection.deleteEnableEntityByTgId(tgId)
 
     suspend fun findByTask(task: Status) = aliDriveCollection.find(Filters.eq(AliDriveEntity::task.name, task)).toList()
 

@@ -2,14 +2,18 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 val configCollection = mongoDatabase.getCollection<ConfigEntity>("config")
 
+@Serializable
 class ConfigEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     // 正能量推送
     var positiveEnergy: Status = Status.OFF

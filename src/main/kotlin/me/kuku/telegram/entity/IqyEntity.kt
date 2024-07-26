@@ -2,14 +2,18 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 val iqyCollection = mongoDatabase.getCollection<IqyEntity>("iqy")
 
+@Serializable
 class IqyEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var platform: String = ""
     var deviceId: String = ""
@@ -23,12 +27,12 @@ class IqyEntity: BaseEntity() {
 
 object IqyService {
 
-    suspend fun findByTgId(tgId: Long): IqyEntity = TODO()
+    suspend fun findByTgId(tgId: Long) = iqyCollection.findEnableEntityByTgId(tgId)
 
     suspend fun save(entity: IqyEntity) = iqyCollection.save(entity)
 
     suspend fun findBySign(status: Status) = iqyCollection.find(eq("sign", status)).toList()
 
-    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
+    suspend fun deleteByTgId(tgId: Long) = iqyCollection.deleteEnableEntityByTgId(tgId)
 
 }

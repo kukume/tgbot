@@ -2,14 +2,18 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 val biliBiliCollection = mongoDatabase.getCollection<BiliBiliEntity>("bili_bili")
 
+@Serializable
 class BiliBiliEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var cookie: String = ""
     var userid: String = ""
@@ -22,7 +26,7 @@ class BiliBiliEntity: BaseEntity() {
 
 object BiliBiliService {
 
-    suspend fun findByTgId(tgId: Long): BiliBiliEntity = TODO()
+    suspend fun findByTgId(tgId: Long) = biliBiliCollection.findEnableEntityByTgId(tgId)
 
     suspend fun findByPush(push: Status) = biliBiliCollection.find(Filters.eq(BiliBiliEntity::push.name, push)).toList()
 
@@ -34,6 +38,6 @@ object BiliBiliService {
 
     suspend fun findAll(): List<BiliBiliEntity> = biliBiliCollection.find().toList()
 
-    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
+    suspend fun deleteByTgId(tgId: Long) = biliBiliCollection.deleteEnableEntityByTgId(tgId)
 
 }

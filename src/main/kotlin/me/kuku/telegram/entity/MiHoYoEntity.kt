@@ -2,14 +2,18 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.logic.MiHoYoFix
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 
 val miHoYoCollection = mongoDatabase.getCollection<MiHoYoEntity>("mi_ho_yo")
 
+@Serializable
 class MiHoYoEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: String? = null
     var fix: MiHoYoFix = MiHoYoFix()
     var aid: String = ""
@@ -29,7 +33,7 @@ class MiHoYoEntity: BaseEntity() {
 
 object MiHoYoService {
 
-    suspend fun findByTgId(tgId: Long): MiHoYoEntity? = TODO()
+    suspend fun findByTgId(tgId: Long) = miHoYoCollection.findEnableEntityByTgId(tgId)
 
     suspend fun findBySign(sign: Status) = miHoYoCollection.find(eq("sign", sign)).toList()
 
@@ -39,6 +43,6 @@ object MiHoYoService {
 
     suspend fun findAll() = miHoYoCollection.find().toList()
 
-    suspend fun deleteByTgId(tgId: Long) = Unit
+    suspend fun deleteByTgId(tgId: Long) = miHoYoCollection.deleteEnableEntityByTgId(tgId)
 
 }

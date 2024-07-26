@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.entity.MiHoYoEntity
@@ -502,6 +503,7 @@ object MiHoYoLogic {
 
 }
 
+@Serializable
 class MiHoYoFix {
     var referer: String = "https://user.miyoushe.com/"
     @JsonProperty("X-Rpc-Device_fp")

@@ -2,14 +2,18 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 val hostLocCollection = mongoDatabase.getCollection<HostLocEntity>("host_loc")
 
+@Serializable
 class HostLocEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var cookie: String = ""
     var push: Status = Status.OFF
@@ -17,7 +21,7 @@ class HostLocEntity: BaseEntity() {
 }
 
 object HostLocService {
-    suspend fun findByTgId(tgId: Long): HostLocEntity? = TODO()
+    suspend fun findByTgId(tgId: Long) = hostLocCollection.findEnableEntityByTgId(tgId)
 
     suspend fun findByPush(push: Status) = hostLocCollection.find(eq("push", push)).toList()
 
@@ -27,5 +31,5 @@ object HostLocService {
 
     suspend fun findAll() = hostLocCollection.find().toList()
 
-    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
+    suspend fun deleteByTgId(tgId: Long) = hostLocCollection.deleteEnableEntityByTgId(tgId)
 }

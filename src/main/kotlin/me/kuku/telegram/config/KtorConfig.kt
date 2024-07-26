@@ -18,12 +18,12 @@ fun Application.config() {
         exception<MissingRequestParameterException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,
-                ""
+                mapOf("code" to 400, "message" to (cause.message ?: "param not found"))
             )
         }
 
         exception<Throwable> { call, cause ->
-            call.respond(HttpStatusCode.InternalServerError, "")
+            call.respond(HttpStatusCode.InternalServerError, mapOf("code" to 500, "message" to cause.toString()))
             throw cause
         }
     }

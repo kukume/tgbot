@@ -1,6 +1,6 @@
 ## TelegramBot
 
-[SpringBoot](https://spring.io/projects/spring-boot) + [Spring-Data-Mongodb-Reactive](https://spring.io/projects/spring-data-mongodb) + [Java-Telegram-Bot-Api](https://github.com/pengrad/java-telegram-bot-api)
+[MongoDB Kotlin Driver](https://www.mongodb.com/zh-cn/docs/drivers/kotlin/coroutine/current/) + [Java-Telegram-Bot-Api](https://github.com/pengrad/java-telegram-bot-api)
 
 Demo：https://t.me/kukume_bot （可能不稳定）
 
@@ -38,30 +38,32 @@ https://pan.kuku.me/tgbot
 
 ## Config
 
-### application.yml
+### environment
 
-```yaml
-kuku:
-  telegram:
-    # @BotFather获取到的token
-    token:
-    # 机器人管理员的id
-    creatorId: 0
-    # 代理地址
-    proxyHost:
-    # 代理端口
-    proxyPort: 0
-    # 代理类型，可选 DIRECT（不设置代理）、HTTP、SOCKS
-    proxyType: DIRECT
-    # 自建的api服务器的地址（包含http://或者https://），如果不填，动态推送将不能推送50M以上的视频
-    url:
-    # 填写自建telegram的api服务器的配置目录，该机器人程序和自建api必须在一台服务器上
-    # 如果是https://www.kuku.me/archives/41/的搭建api，且docker-compose.yml在/root/telegram-bot-api目录下
-    # 该参数为 /root/telegram-bot-api/data
-    # 如果不是使用docker，该参数为 /
-    localPath:
-    # 填写自建api，用于无头浏览器执行的签到，见custom api项
-    api:
+```shell
+# mongodb 的 uri
+export MONGO_URI=
+# mongodb 的 数据库名称
+export MONGO_DATABASE=
+# @BotFather获取到的token
+export TELEGRAM_TOKEN=
+# 机器人管理员的id
+export TELEGRAM_CREATOR_ID=0
+# 代理地址
+export TELEGRAM_PROXY_HOST=
+# 代理端口
+export TELEGRAM_PROXY_PORT=
+# 代理类型，可选 DIRECT（不设置代理）、HTTP、SOCKS
+export TELEGRAM_PROXY_TYPE=direct
+# 自建的api服务器的地址（包含http://或者https://），如果不填，动态推送将不能推送50M以上的视频
+export TELEGRAM_URL=
+# 填写自建telegram的api服务器的配置目录，该机器人程序和自建api必须在一台服务器上
+# 如果是https://www.kuku.me/archives/41/的搭建api，且docker-compose.yml在/root/telegram-bot-api目录下
+# 该参数为 /root/telegram-bot-api/data
+# 如果不是使用docker，该参数为 /
+export TELEGRAM_LOCAL_PATH=
+# 自建的api，用于无头浏览器执行签到或者加密参数
+export TELEGRAM_API=
 ```
 
 ### docker-compose.yml

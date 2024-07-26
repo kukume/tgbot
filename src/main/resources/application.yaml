@@ -1,13 +1,13 @@
 ktor:
   deployment:
-    port: 8080
+    port: "$PORT:8080"
   application:
     modules:
       - me.kuku.telegram.extension.PushExtensionKt.push
       - me.kuku.telegram.config.KtorConfigKt.config
   mongo:
-    uri: 'mongodb://172.17.0.1:27017'
-    database: 'tg'
+    uri: "$MONGO_URI:mongodb://172.17.0.1:27017"
+    database: "$MONGO_DATABASE:tg"
   telegram:
     modules:
       - me.kuku.telegram.extension.CommentExtensionKt.comment
@@ -152,11 +152,11 @@ ktor:
       - me.kuku.telegram.scheduled.V2exScheduledKt.v2exPush
       - me.kuku.telegram.scheduled.WeiboScheduledKt.weiboSign
       - me.kuku.telegram.scheduled.WeiboScheduledKt.weiboUserMonitor
-    token: "5760084744:AAE1SJ-VF18vE8IOW_187ntmp7FCvdBISOc"
-    creatorId: 0
-    proxyHost: ""
-    proxyPort: 0
-    proxyType: direct
-    url: ""
-    localPath: ""
-    api: ""
+    token: "$TELEGRAM_TOKEN:"
+    creatorId: "$TELEGRAM_CREATOR_ID:0"
+    proxyHost: "$TELEGRAM_PROXY_HOST:"
+    proxyPort: "$TELEGRAM_PROXY_PORT:0"
+    proxyType: "$TELEGRAM_PROXY_TYPE:direct"
+    url: "$TELEGRAM_URL:"
+    localPath: "$TELEGRAM_LOCAL_PATH:"
+    api: "$TELEGRAM_API:"

@@ -21,7 +21,7 @@ class HuYaEntity: BaseEntity() {
 
 object HuYaService {
 
-    suspend fun findByTgId(tgId: Long): HuYaEntity? = TODO()
+    suspend fun findByTgId(tgId: Long) = huYaCollection.findEnableEntityByTgId(tgId)
 
     suspend fun findByLive(live: Status) = huYaCollection.find(eq("live", live)).toList()
 
@@ -29,6 +29,6 @@ object HuYaService {
 
     suspend fun findAll() = huYaCollection.find().toList()
 
-    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
+    suspend fun deleteByTgId(tgId: Long) = huYaCollection.deleteEnableEntityByTgId(tgId)
 
 }

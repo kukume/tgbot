@@ -2,13 +2,16 @@
 
 plugins {
     val kotlinVersion = "2.0.0"
+    val ktorVersion = "2.3.12"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization").version(kotlinVersion)
+    id("io.ktor.plugin") version ktorVersion
 }
 
 group = "me.kuku"
 version = "1.0-SNAPSHOT"
 
+val javaVersion = 21
 val ktorVersion = "2.3.12"
 
 repositories {
@@ -33,7 +36,7 @@ dependencies {
     implementation("com.github.pengrad:java-telegram-bot-api:7.7.0")
     implementation("me.kuku:utils:2.3.12.1")
     implementation("org.jsoup:jsoup:1.17.2")
-    val ociVersion = "3.44.1"
+    val ociVersion = "3.44.4"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion") {
@@ -50,7 +53,7 @@ dependencies {
 }
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(javaVersion))
 }
 
 tasks.compileKotlin {
@@ -64,9 +67,19 @@ tasks.compileJava {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(javaVersion)
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+application {
+    mainClass.set("me.kuku.telegram.TelegramApplicationKt")
+}
+
+ktor {
+    fatJar {
+        archiveFileName.set("tgbot.jar")
+    }
 }

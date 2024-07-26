@@ -1,19 +1,32 @@
 package me.kuku.telegram.entity
 
 import com.fasterxml.jackson.annotation.JsonFormat
-import com.mongodb.client.model.Filters
+import com.mongodb.client.model.Filters.and
+import com.mongodb.client.model.Filters.eq
 import com.mongodb.client.model.ReplaceOptions
 import com.mongodb.kotlin.client.coroutine.MongoCollection
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import me.kuku.telegram.context.AbilityContext
 import me.kuku.telegram.context.TelegramContext
+import me.kuku.utils.DateTimeFormatterUtils
 import java.time.LocalDateTime
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 
+@Serializable
 open class BaseEntity {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Serializable(with = LocalDateTimeSerializer::class)
     var createTime: LocalDateTime = LocalDateTime.now()
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Serializable(with = LocalDateTimeSerializer::class)
     var updateTime: LocalDateTime = LocalDateTime.now()
     open var tgId: Long = 0
     var tgName: String? = null
@@ -62,27 +75,35 @@ suspend fun Long.tgName(): String? {
 
 suspend fun <T: Any> MongoCollection<T>.save(entity: T): T {
     val find = entity::class.memberProperties.find { it.name == "id" } as? KProperty1<T, *> ?: error("")
-    this.replaceOne(Filters.eq("_id", find.get(entity)), entity, ReplaceOptions().upsert(true))
+    val id = find.get(entity)
+    if (id == null) this.insertOne(entity)
+    else this.replaceOne(eq(find.get(entity)), entity, ReplaceOptions().upsert(true))
     return entity
 }
 
-//suspend fun Repository<out BaseEntity, *>.findEnableEntityByTgId(tgId: Long): BaseEntity? {
-//    val clazz = AopProxyUtils.proxiedUserInterfaces(this)[0].kotlin
-//    val name = tgId.tgName()
-//    val function = clazz.functions.find { it.name == "findByTgIdAndTgName" }
-//        ?: error("当前身份是${name ?: "主身份"}，但是该功能没有提供多账号查询函数")
-//    val result = function.callSuspend(this, tgId, name)
-//    return if (result is Flux<*>) {
-//        result.collectList().awaitFirst().firstOrNull() as? BaseEntity
-//    } else {
-//        result as? BaseEntity
-//    }
-//}
-//
-//suspend fun Repository<out BaseEntity, *>.deleteEnableEntityByTgId(tgId: Long) {
-//    val clazz = AopProxyUtils.proxiedUserInterfaces(this)[0].kotlin
-//    val name = tgId.tgName()
-//    val function = clazz.functions.find { it.name == "deleteByTgIdAndTgName" }
-//        ?: error("当前身份是${name ?: "主身份"}，但是该功能没有提供多账号查询函数")
-//    function.callSuspend(this, tgId, name)
-//}
+suspend fun <T: BaseEntity> MongoCollection<T>.findEnableEntityByTgId(tgId: Long): T? {
+    val name = tgId.tgName()
+    return this.find(and(eq("tgId", tgId), eq("tgName", name))).firstOrNull()
+}
+
+suspend fun MongoCollection<out BaseEntity>.deleteEnableEntityByTgId(tgId: Long) {
+    val name = tgId.tgName()
+    this.deleteOne(and(eq("tgId", tgId), eq("tgName", name)))
+}
+
+object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
+
+    private const val FORMATTER = "yyyy-MM-dd HH:mm:ss"
+
+    override val descriptor: SerialDescriptor
+        get() = PrimitiveSerialDescriptor("LocalDateTime", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): LocalDateTime {
+        return DateTimeFormatterUtils.parseToLocalDateTime(decoder.decodeString(), FORMATTER)
+    }
+
+    override fun serialize(encoder: Encoder, value: LocalDateTime) {
+        val result = DateTimeFormatterUtils.format(value, FORMATTER)
+        encoder.encodeString(result)
+    }
+}

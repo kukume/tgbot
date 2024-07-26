@@ -2,15 +2,19 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 val botConfigCollection = mongoDatabase.getCollection<BotConfigEntity>("bot_config")
 
+@Serializable
 class BotConfigEntity {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var token: String = ""
     var blacklist: MutableList<Long> = mutableListOf()

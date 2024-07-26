@@ -7,5 +7,6 @@ application.pid
 plugins/
 **/application-dev.yml
 logs/
-config/
+/config/
 cache/
+.kotlin/

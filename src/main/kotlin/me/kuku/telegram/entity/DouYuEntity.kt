@@ -2,14 +2,18 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 val douYuCollection = mongoDatabase.getCollection<DouYuEntity>("dou_yu")
 
+@Serializable
 class DouYuEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var cookie: String = ""
     var appCookie: String = ""
@@ -24,11 +28,11 @@ object DouYuService {
 
     suspend fun save(douYuEntity: DouYuEntity) = douYuCollection.save(douYuEntity)
 
-    suspend fun findByTgId(tgId: Long): DouYuEntity = TODO()
+    suspend fun findByTgId(tgId: Long) = douYuCollection.findEnableEntityByTgId(tgId)
 
     suspend fun findAll() = douYuCollection.find().toList()
 
-    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
+    suspend fun deleteByTgId(tgId: Long) = douYuCollection.deleteEnableEntityByTgId(tgId)
 
     suspend fun findByFishGroup(fishGroup: Status) = douYuCollection.find(eq(DouYuEntity::fishGroup.name, fishGroup)).toList()
 

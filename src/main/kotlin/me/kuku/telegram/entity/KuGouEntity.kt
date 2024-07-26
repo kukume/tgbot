@@ -2,14 +2,18 @@ package me.kuku.telegram.entity
 
 import com.mongodb.client.model.Filters.eq
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
-import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 val kuGouCollection = mongoDatabase.getCollection<KuGouEntity>("ku_gou")
 
+@Serializable
 class KuGouEntity: BaseEntity() {
-    @BsonId
+    @Contextual
+    @SerialName("_id")
     var id: ObjectId? = null
     var token: String = ""
     var userid: Long = 0
@@ -20,7 +24,7 @@ class KuGouEntity: BaseEntity() {
 
 object KuGouService {
 
-    suspend fun findByTgId(tgId: Long): KuGouEntity? = TODO()
+    suspend fun findByTgId(tgId: Long) = kuGouCollection.findEnableEntityByTgId(tgId)
 
     suspend fun findBySign(sign: Status) = kuGouCollection.find(eq("sign", sign)).toList()
 
@@ -28,5 +32,5 @@ object KuGouService {
 
     suspend fun findAll() = kuGouCollection.find().toList()
 
-    suspend fun deleteByTgId(tgId: Long): Unit = TODO()
+    suspend fun deleteByTgId(tgId: Long) = kuGouCollection.deleteEnableEntityByTgId(tgId)
 }
