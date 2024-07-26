@@ -7,6 +7,7 @@ import me.kuku.telegram.context.*
 import me.kuku.telegram.yamlConfig
 import me.kuku.utils.OkHttpUtils
 import okhttp3.OkHttpClient
+import java.io.File
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.util.concurrent.TimeUnit
@@ -29,7 +30,14 @@ object TelegramConfiguration {
         val abilitySubscriber = AbilitySubscriber()
         val inlineQuerySubscriber = InlineQuerySubscriber()
 
-        val modules = TelegramConfig.modules
+        val modules = TelegramConfig.modules.toMutableList()
+        File("telegram.modules").takeIf { it.exists() }?.let {
+            it.readLines().forEach { line ->
+                if (line.isNotEmpty()) {
+                    modules.add(line)
+                }
+            }
+        }
         val functions = mutableListOf<KFunction<*>>()
         for (module in modules) {
             val index = module.lastIndexOf('.')
