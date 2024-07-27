@@ -32,7 +32,7 @@ object CronConfiguration {
                     cronExecution.function.callSuspend()
                 }
             } else {
-                JobManager.atTime(cronStr) {
+                JobManager.atTime(cronStr, always = true) {
                     cronExecution.function.callSuspend()
                 }
             }

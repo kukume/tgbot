@@ -13,6 +13,7 @@ import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.mongoDatabase
 import org.bson.types.ObjectId
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 val logCollection = mongoDatabase.getCollection<LogEntity>("log")
 
@@ -79,8 +80,8 @@ object LogService {
 
     suspend fun findByCreateTimeBetweenAndTgId(before: LocalDateTime, after: LocalDateTime, tgId: Long): List<LogEntity> =
         logCollection.find(Filters.and(
-            Filters.gte("createTime", before),
-            Filters.lte("createTime", after),
+            Filters.gte("createTime", before.atZone(ZoneId.systemDefault()).toInstant()),
+            Filters.lte("createTime", after.atZone(ZoneId.systemDefault()).toInstant()),
             eq("tgId", tgId),
             eq("tgName", tgId.tgName()),
         )).toList()
