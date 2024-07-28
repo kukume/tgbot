@@ -6,6 +6,7 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
+import org.bson.types.ObjectId
 
 val pixivCollection = mongoDatabase.getCollection<PixivEntity>("pixiv")
 
@@ -13,7 +14,7 @@ val pixivCollection = mongoDatabase.getCollection<PixivEntity>("pixiv")
 class PixivEntity: BaseEntity() {
     @Contextual
     @SerialName("_id")
-    var id: String? = null
+    var id: ObjectId? = null
     var cookie: String = ""
     var push: Status = Status.OFF
 }

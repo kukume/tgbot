@@ -202,7 +202,7 @@ fun TelegramSubscribe.miHoYoManager() {
         )
         editMessageText("""
                 米哈游签到管理
-                注意：签到大概率需要在/config配置rrcor的key
+                注意：签到大概率需要在/config配置2captcha的key
             """.trimIndent(), inlineKeyboardMarkup, top = true)
     }
 }

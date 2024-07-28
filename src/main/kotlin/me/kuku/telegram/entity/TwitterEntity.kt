@@ -6,6 +6,7 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
+import org.bson.types.ObjectId
 
 val twitterCollection = mongoDatabase.getCollection<TwitterEntity>("twitter")
 
@@ -13,7 +14,7 @@ val twitterCollection = mongoDatabase.getCollection<TwitterEntity>("twitter")
 class TwitterEntity: BaseEntity() {
     @Contextual
     @SerialName("_id")
-    var id: String? = null
+    var id: ObjectId? = null
     var tId: String = ""
     var tRestId: String = ""
     var cookie: String = ""

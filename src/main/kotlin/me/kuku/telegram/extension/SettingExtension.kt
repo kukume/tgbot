@@ -1,5 +1,6 @@
 package me.kuku.telegram.extension
 
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.SendDocument
@@ -145,10 +146,26 @@ fun TelegramSubscribe.url() {
 
 fun TelegramSubscribe.log() {
     callback("settingsSendLog") {
-        val file = File("tmp" + File.separator + "spring.log")
-        val sendDocument = SendDocument(tgId, file)
-        bot.asyncExecute(sendDocument)
-        editMessageText("发送日志文件成功")
+        val folder = File("log")
+        if (folder.exists()) {
+            val listFiles = folder.listFiles()
+            val list = mutableListOf<Array<InlineKeyboardButton>>()
+            listFiles?.also { it.sortByDescending { f -> f.name } }?.forEachIndexed { index, file ->
+                if (index > 9) return@forEachIndexed
+                val inlineKeyboardButton = inlineKeyboardButton(file.name, "settingsSendLog|${file.name}")
+                list.add(arrayOf(inlineKeyboardButton))
+            }
+            editMessageText("请选择需要发送的日志文件", InlineKeyboardMarkup(*list.toTypedArray()))
+        } else editMessageText("没有已生成的日志")
+    }
+    callbackStartsWith("settingsSendLog|") {
+        val fileName = query.data().split("|")[1]
+        val file = File("log" + File.separator + fileName)
+        if (file.exists()) {
+            val sendDocument = SendDocument(tgId, file)
+            bot.asyncExecute(sendDocument)
+            editMessageText("发送日志文件成功")
+        } else editMessageText("日志文件不存在")
     }
     callback("settingsClearLog") {
         val file = File("tmp" + File.separator + "spring.log")

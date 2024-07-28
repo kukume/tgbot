@@ -7,6 +7,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import me.kuku.telegram.logic.MiHoYoFix
 import me.kuku.telegram.mongoDatabase
+import org.bson.types.ObjectId
 
 val miHoYoCollection = mongoDatabase.getCollection<MiHoYoEntity>("mi_ho_yo")
 
@@ -14,7 +15,7 @@ val miHoYoCollection = mongoDatabase.getCollection<MiHoYoEntity>("mi_ho_yo")
 class MiHoYoEntity: BaseEntity() {
     @Contextual
     @SerialName("_id")
-    var id: String? = null
+    var id: ObjectId? = null
     var fix: MiHoYoFix = MiHoYoFix()
     var aid: String = ""
     var mid: String = ""
@@ -26,8 +27,8 @@ class MiHoYoEntity: BaseEntity() {
     var mysSign: Status = Status.OFF
 
     fun hubCookie(): String {
-        if (sToken.isEmpty()) error("未设置sToken，请使用账号密码重新登录")
-        return "stuid=$aid; stoken=$sToken; "
+        if (token.isEmpty()) error("未设置token，请使用app账号密码重新登录")
+        return "stuid=$aid; stoken=$token; mid=$mid; "
     }
 }
 

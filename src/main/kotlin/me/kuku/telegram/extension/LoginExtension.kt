@@ -613,7 +613,7 @@ fun TelegramSubscribe.smZdmLogin() {
             arrayOf(appQrcodeButton),
             arrayOf(cookieButton)
         )
-        editMessageText("请选择什么值得买登录方式\n注意：因为什么值得买部分有极验验证码，所以你可能需要在/config中设配置rrocr密钥", markup)
+        editMessageText("请选择什么值得买登录方式\n注意：因为什么值得买部分有极验验证码，所以你可能需要在/config中设配置2captcha密钥", markup)
     }
     callback("smZdmLoginByPhoneCode") {
         editMessageText("请发送什么值得买的手机号码")

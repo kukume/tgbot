@@ -6,6 +6,7 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
+import org.bson.types.ObjectId
 
 val linuxDoCollection = mongoDatabase.getCollection<LinuxDoEntity>("linux_do")
 
@@ -13,7 +14,7 @@ val linuxDoCollection = mongoDatabase.getCollection<LinuxDoEntity>("linux_do")
 class LinuxDoEntity: BaseEntity() {
     @Contextual
     @SerialName("_id")
-    var id: String? = null
+    var id: ObjectId? = null
     var cookie: String = ""
     var sign: Status = Status.OFF
 }

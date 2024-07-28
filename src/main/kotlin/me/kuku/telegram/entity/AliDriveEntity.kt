@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 import me.kuku.telegram.mongoDatabase
 import org.bson.types.ObjectId
 
-val aliDriveCollection = mongoDatabase.getCollection<AliDriveEntity>("ali_drive")
+val aliDriveCollection = mongoDatabase.getCollection<AliDriveEntity>("ali_driver")
 
 @Serializable
 class AliDriveEntity: BaseEntity() {
