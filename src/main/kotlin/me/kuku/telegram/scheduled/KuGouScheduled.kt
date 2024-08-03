@@ -10,7 +10,7 @@ suspend fun kuGouSign() {
     val list = KuGouService.findBySign(Status.ON)
     for (kuGouEntity in list) {
         LogService.log(kuGouEntity, LogType.KuGou) {
-            KuGouLogic.musicianSign(kuGouEntity)
+//            KuGouLogic.musicianSign(kuGouEntity)
             KuGouLogic.listenMusic(kuGouEntity)
             repeat(8) {
                 delay(1000 * 25)

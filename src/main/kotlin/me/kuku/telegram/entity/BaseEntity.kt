@@ -78,7 +78,7 @@ suspend fun Long.tgName(): String? {
 }
 
 suspend fun <T: Any> MongoCollection<T>.save(entity: T): T {
-    val find = entity::class.memberProperties.find { it.name == "id" } as? KProperty1<T, *> ?: error("")
+    val find = entity::class.memberProperties.find { it.name == "id" } as? KProperty1<T, *> ?: error("not found id in ${entity::class.simpleName}")
     val id = find.get(entity)
     if (id == null) this.insertOne(entity)
     else this.replaceOne(eq(find.get(entity)), entity, ReplaceOptions().upsert(true))
