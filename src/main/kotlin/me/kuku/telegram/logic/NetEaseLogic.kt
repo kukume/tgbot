@@ -478,8 +478,8 @@ object NetEaseLogic {
         removeDy(netEaseEntity, commentId)
         delay(5000)
         finishStageMission(netEaseEntity, "发布动态")
-        finishCycleMission(netEaseEntity, "在动态分享歌曲")
-        finishCycleMission(netEaseEntity, "在自己动态下发布评论")
+//        finishCycleMission(netEaseEntity, "在动态分享歌曲")
+//        finishCycleMission(netEaseEntity, "在自己动态下发布评论")
     }
 
 }

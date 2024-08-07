@@ -1,10 +1,10 @@
 #!/bin/bash
 
-jar_name=tgbot-1.0-SNAPSHOT.jar
-jar_new_name=tgbot-1.0-SNAPSHOT-new.jar
+jar_name=tgbot.jar
+jar_new_name=tgbot-new.jar
 rm -f update.pid
 
-java -Dspring.profiles.active=prod -Duser.timezone=Asia/Shanghai -jar $jar_name &
+java -Duser.timezone=Asia/Shanghai -jar $jar_name &
 
 function kill_java {
         pid=$(cat application.pid)
@@ -23,7 +23,7 @@ while true; do
                 sleep 3
                 rm $jar_name
                 mv tmp/$jar_new_name $jar_name
-                java -Dspring.profiles.active=prod -Duser.timezone=Asia/Shanghai -jar $jar_name &
+                java -Duser.timezone=Asia/Shanghai -jar $jar_name &
         else
                 sleep 5
         fi
