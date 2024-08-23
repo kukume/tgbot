@@ -105,6 +105,8 @@ ktor:
       - me.kuku.telegram.extension.SettingExtensionKt.url
       - me.kuku.telegram.extension.SettingExtensionKt.log
       - me.kuku.telegram.extension.SettingExtensionKt.updateLogSwitch
+      - me.kuku.telegram.extension.NetEaseSmallExtensionKt.netEaseSmall
+      - me.kuku.telegram.context.WaitNextMessageKt.waitMessage
     cron:
       - me.kuku.telegram.scheduled.AliDriveScheduledKt.aliDriveSign
       - me.kuku.telegram.scheduled.AliDriveScheduledKt.lastDayReceive
@@ -152,6 +154,7 @@ ktor:
       - me.kuku.telegram.scheduled.V2exScheduledKt.v2exPush
       - me.kuku.telegram.scheduled.WeiboScheduledKt.weiboSign
       - me.kuku.telegram.scheduled.WeiboScheduledKt.weiboUserMonitor
+      - me.kuku.telegram.scheduled.NetEaseSmallScheduledKt.netEaseSmallListenMusic
     token: "$TELEGRAM_TOKEN:"
     creatorId: "$TELEGRAM_CREATOR_ID:0"
     proxyHost: "$TELEGRAM_PROXY_HOST:"

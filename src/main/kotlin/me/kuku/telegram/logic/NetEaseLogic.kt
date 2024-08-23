@@ -10,6 +10,7 @@ import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.config.api
 import me.kuku.telegram.entity.NetEaseEntity
+import me.kuku.telegram.entity.NetEaseSmallEntity
 import me.kuku.utils.*
 import okhttp3.internal.toHexString
 
@@ -141,6 +142,7 @@ object NetEaseLogic {
         return jsonNode["playlist"]["trackIds"]
     }
 
+    @Suppress("DuplicatedCode")
     suspend fun listenMusic(netEaseEntity: NetEaseEntity) {
         val playList = recommend(netEaseEntity)
         val ids = Jackson.createArrayNode()
@@ -166,6 +168,26 @@ object NetEaseLogic {
         val jsonNode = OkHttpKtUtils.postJson("$domain/weapi/feedback/weblog", prepare(mapOf("logs" to ids.toString())),
             OkUtils.headers(netEaseEntity.cookie(), domain, UA.PC))
         if (jsonNode.getInteger("code") != 200) error(jsonNode.getString("message"))
+    }
+
+    @Suppress("DuplicatedCode")
+    suspend fun listenMusic(netEaseSmallEntity: NetEaseSmallEntity, id: Int) {
+        val ids = Jackson.createArrayNode()
+        val jsonNode = Jackson.createObjectNode()
+        jsonNode.put("download", 0)
+        jsonNode.put("end", "playend")
+        jsonNode.put("id", id)
+        jsonNode.put("sourceId", "")
+        jsonNode.put("time", 240)
+        jsonNode.put("type", "song")
+        jsonNode.put("wifi", "0")
+        val totalJsonNode = Jackson.createObjectNode()
+        totalJsonNode.set<ObjectNode>("json", jsonNode)
+        totalJsonNode.put("action", "play")
+        ids.add(totalJsonNode)
+        val resultJsonNode = OkHttpKtUtils.postJson("$domain/weapi/feedback/weblog", prepare(mapOf("logs" to ids.toString())),
+            OkUtils.headers(netEaseSmallEntity.cookie(), domain, UA.PC))
+        if (resultJsonNode.getInteger("code") != 200) error(resultJsonNode.getString("message"))
     }
 
     private suspend fun musicianStageMission(netEaseEntity: NetEaseEntity): MutableList<Mission> {
@@ -224,7 +246,7 @@ object NetEaseLogic {
         error("没有找到音乐人签到任务")
     }
 
-    private suspend fun myMusic(netEaseEntity: NetEaseEntity): List<NetEaseSong> {
+    suspend fun myMusic(netEaseEntity: NetEaseEntity): List<NetEaseSong> {
         val jsonNode = OkHttpKtUtils.postJson("$domain/weapi/nmusician/production/common/artist/song/item/list/get?csrf_token=${netEaseEntity.csrf}",
             prepare(mapOf("fromBackend" to "0", "limit" to "10", "offset" to "0", "online" to "1")),
             mapOf("user-agent" to UA.PC.value, "cookie" to netEaseEntity.cookie(), "referer" to "https://music.163.com/nmusician/web/albums/work/actor/song/self/pub"))
