@@ -18,7 +18,7 @@ class KuGouScheduled(
         val list = kuGouService.findBySign(Status.ON)
         for (kuGouEntity in list) {
             logService.log(kuGouEntity, LogType.KuGou) {
-                kuGouLogic.musicianSign(kuGouEntity)
+//                kuGouLogic.musicianSign(kuGouEntity)
                 kuGouLogic.listenMusic(kuGouEntity)
                 repeat(8) {
                     delay(1000 * 25)

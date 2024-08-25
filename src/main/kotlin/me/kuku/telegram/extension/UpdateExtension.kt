@@ -44,12 +44,12 @@ class UpdateExtension {
                 mutex.withLock {
                     editMessageText("下载指定jar中")
                     val suffix = query.data().split("|")[1]
-                    val find = listFile("/tgbot/$suffix").find { it.name == "tgbot-1.0-SNAPSHOT.jar" } ?: error("未找到该目录下的文件")
-                    val url = "https://pan.kuku.me/d/tgbot/$suffix/tgbot-1.0-SNAPSHOT.jar?sign=${find.sign}"
+                    val find = listFile("/tgbot/$suffix").find { it.name == "tgbot.jar" } ?: error("未找到该目录下的文件")
+                    val url = "https://pan.kuku.me/d/tgbot/$suffix/tgbot.jar?sign=${find.sign}"
                     val str = client.get(url).bodyAsText()
                     val newUrl = Jsoup.parse(str).getElementsByTag("a").first()?.attr("href") ?: error("未获取到文件链接")
                     val iis = client.get(newUrl).body<InputStream>()
-                    iis.transferTo(FileOutputStream("tmp${java.io.File.separator}tgbot-1.0-SNAPSHOT-new.jar"))
+                    iis.transferTo(FileOutputStream("tmp${java.io.File.separator}tgbot-new.jar"))
                     "kuku".toByteArray().inputStream().transferTo(FileOutputStream("update.pid"))
                     editMessageText("""
                         下载完成，更新中...

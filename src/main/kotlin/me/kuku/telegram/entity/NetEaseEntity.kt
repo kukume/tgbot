@@ -16,6 +16,7 @@ class NetEaseEntity: BaseEntity() {
     var sign: Status = Status.OFF
     var musicianSign: Status = Status.OFF
     var vipSign: Status = Status.OFF
+    var listen: Status = Status.OFF
 
     fun cookie() = "channel=netease; __remember_me=true; MUSIC_U=$musicU; __csrf=$csrf; "
 
@@ -35,6 +36,8 @@ interface NetEaseRepository: CoroutineCrudRepository<NetEaseEntity, String> {
     suspend fun deleteByTgIdAndTgName(tgId: Long, tgName: String?)
 
     suspend fun findByVipSign(status: Status): List<NetEaseEntity>
+
+    suspend fun findByListen(listen: Status): List<NetEaseEntity>
 
 }
 
@@ -57,5 +60,7 @@ class NetEaseService(
     suspend fun deleteByTgId(tgId: Long) = netEaseRepository.deleteEnableEntityByTgId(tgId)
 
     suspend fun findByVipSign(status: Status) = netEaseRepository.findByVipSign(status)
+
+    suspend fun findByListen(listen: Status) = netEaseRepository.findByListen(listen)
 
 }

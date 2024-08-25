@@ -23,8 +23,8 @@ class MiHoYoEntity: BaseEntity() {
     var mysSign: Status = Status.OFF
 
     fun hubCookie(): String {
-        if (sToken.isEmpty()) error("未设置sToken，请使用账号密码重新登录")
-        return "stuid=$aid; stoken=$sToken; "
+        if (token.isEmpty()) error("未设置token，请使用app账号密码重新登录")
+        return "stuid=$aid; stoken=$token; mid=$mid; "
     }
 }
 

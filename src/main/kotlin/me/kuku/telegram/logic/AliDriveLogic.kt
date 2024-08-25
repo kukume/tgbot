@@ -1086,7 +1086,7 @@ class AliDriveLogic(
         val fileList = fileList(aliDriveEntity, backupDriveId, fileId)
         val bodies = fileList.items.map { AliDriveBatch.DeleteFileBody(it.driveId.toString(), it.fileId) }
         batchDeleteFile(aliDriveEntity, bodies)
-        val bytes = this::class.java.classLoader.getResourceAsStream("video" + File.separator + "BV14s4y1Z7ZAoutput.mp4")!!.readAllBytes()
+        val bytes = client.get("https://minio.kuku.me/kuku/BV14s4y1Z7ZAoutput.mp4").body<ByteArray>()
         val uploadComplete = uploadFileToBackupDrive(
             aliDriveEntity, backupDriveId,
             "BV14s4y1Z7ZAoutput.mp4", bytes, fileId

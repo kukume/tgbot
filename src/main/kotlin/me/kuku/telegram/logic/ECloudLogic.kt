@@ -6,6 +6,7 @@ import io.ktor.client.request.*
 import io.ktor.client.request.headers
 import io.ktor.client.statement.*
 import io.ktor.util.*
+import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.ECloudEntity
 import me.kuku.telegram.entity.ECloudService
 import me.kuku.utils.*
@@ -17,13 +18,13 @@ class ECloudLogic(
 ) {
 
     suspend fun login(username: String, password: String): ECloudEntity {
-        val (cookie, lt, reqId, refererUrl) = client.get("https://cloud.189.cn/api/portal/loginUrl.action?redirectURL=https%3A%2F%2Fcloud.189.cn%2Fweb%2Fredirect.html")
+        val (cookie, lt, reqId, refererUrl) = client.get("https://cloud.189.cn/api/portal/loginUrl.action?redirectURL=https%3A%2F%2Fcloud.189.cn%2Fweb%2Fredirect.html&defaultSaveName=3&defaultSaveNameCheck=uncheck&browserId=c7044c4577d2d903bbb74a956c11274d")
             .let {
                 val location = it.headers["location"] ?: error("未能成功跳转")
                 client.get(location).let { response ->
                     val ltUrl = response.headers["location"] ?: error("未能成功跳转")
                     val lt = MyUtils.regex("lt=", "&", ltUrl) ?: error("未能成功获取lt")
-                    val reqId = MyUtils.regex("(?<=reqId=).*", ltUrl) ?: error("未能成功获取reqId")
+                    val reqId = MyUtils.regex("reqId=", "&", ltUrl) ?: error("未能成功获取reqId")
                     listOf(response.cookie(), lt, reqId, ltUrl)
                 }
             }
@@ -38,14 +39,16 @@ class ECloudLogic(
                 append("version", "2.0")
                 append("appKey", "cloud")
             }
-            headers { appendAll(headers) }
+            headers {
+                appendAll(headers)
+            }
         }.bodyAsText().toJsonNode()
         val encryptJsonNode = client.post("https://open.e.189.cn/api/logbox/config/encryptConf.do") {
             setFormDataContent {
                 append("appId", "cloud")
             }
         }.bodyAsText().toJsonNode()
-        val paramId = configJsonNode["data"]["paramId"].asText()
+        val paramId = configJsonNode["data"]?.get("paramId")?.asText() ?: error("not found paramId")
         val encryptData = encryptJsonNode["data"]
         val pre = encryptData["pre"].asText()
         val pubKey = encryptData["pubKey"].asText()
@@ -95,7 +98,7 @@ class ECloudLogic(
     }
 
     private fun JsonNode.check() {
-        if (this.has("errorCode")) error(this["errorMsg"].asText())
+        if (this.has("errorCode") && this["errorCode"].asText() != "User_Not_Chance") error(this["errorMsg"].asText())
     }
 
     private suspend fun updateCookie(entity: ECloudEntity) {
@@ -130,10 +133,12 @@ class ECloudLogic(
             headers { appendAll(sv) }
         }.bodyAsText().toJsonNode()
         jsonNode1.check()
+        delay(5000)
         val jsonNode2 = client.get("https://m.cloud.189.cn/v2/drawPrizeMarketDetails.action?taskId=TASK_SIGNIN_PHOTOS&activityId=ACT_SIGNIN") {
             headers { appendAll(sv) }
         }.bodyAsText().toJsonNode()
         jsonNode2.check()
+        delay(5000)
         val jsonNode3 = client.get("https://m.cloud.189.cn/v2/drawPrizeMarketDetails.action?taskId=TASK_2022_FLDFS_KJ&activityId=ACT_SIGNIN") {
             headers { appendAll(sv) }
         }.bodyAsText().toJsonNode()

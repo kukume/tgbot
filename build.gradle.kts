@@ -1,12 +1,11 @@
 @file:Suppress("VulnerableLibrariesLocal")
 
 plugins {
-    val kotlinVersion = "2.0.0"
+    val kotlinVersion = "2.0.20"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "3.3.1"
-    id("io.spring.dependency-management") version "1.1.5"
-    application
+    id("org.springframework.boot") version "3.3.3"
+    id("io.spring.dependency-management") version "1.1.6"
 }
 
 group = "me.kuku"
@@ -23,11 +22,11 @@ dependencies {
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("com.github.pengrad:java-telegram-bot-api:7.7.0")
-    implementation("me.kuku:utils:2.3.12.0")
+    implementation("com.github.pengrad:java-telegram-bot-api:7.9.0")
+    implementation("me.kuku:utils:2.3.12.1")
     implementation("me.kuku:ktor-spring-boot-starter:2.3.12.0")
     implementation("org.jsoup:jsoup:1.17.2")
-    val ociVersion = "3.44.1"
+    val ociVersion = "3.44.4"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion") {
@@ -62,6 +61,6 @@ tasks.test {
     useJUnitPlatform()
 }
 
-application {
-    mainClass = "me.kuku.telegram.TelegramApplicationKt"
+tasks.bootJar {
+    archiveFileName.set("tgbot.jar")
 }
