@@ -14,7 +14,7 @@ class NetEaseSmallLogic(
         for (netEaseSmallEntity in list) {
             if (netEaseSmallEntity.csrf.isEmpty()) {
                 val loginResult = NetEaseLogic.login(netEaseSmallEntity.username, netEaseSmallEntity.password)
-                delay(1000)
+                delay(2000)
                 if (loginResult.success()) {
                     val newEntity = loginResult.data()
                     netEaseSmallEntity.csrf = newEntity.csrf

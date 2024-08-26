@@ -5,11 +5,13 @@ import me.kuku.telegram.context.Privacy
 import me.kuku.telegram.context.nextMessage
 import me.kuku.telegram.entity.NetEaseSmallEntity
 import me.kuku.telegram.entity.NetEaseSmallService
+import me.kuku.telegram.logic.NetEaseSmallLogic
 import org.springframework.stereotype.Service
 
 @Service
 class NetEaseSmallExtension(
-    private val netEaseSmallService: NetEaseSmallService
+    private val netEaseSmallService: NetEaseSmallService,
+    private val netEaseSmallLogic: NetEaseSmallLogic
 ) {
 
     fun AbilitySubscriber.netEaseSmall() {
@@ -32,6 +34,7 @@ class NetEaseSmallExtension(
                 netEaseSmallService.save(netEaseSmallEntity)
             }
             sendMessage("保存网易云小号成功")
+            netEaseSmallLogic.check()
         }
     }
 
