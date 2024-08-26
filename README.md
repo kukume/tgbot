@@ -10,23 +10,24 @@ JDK21 + Mongodb
 
 ## Commands
 
-| 指令         | 说明                  | 参数     |
-|------------|---------------------|--------|
-| /login     | 登陆账号                | 无      |
-| /exec      | 手动执行签到              | 无      |
-| /manager   | 管理自动签到状态，默认全为关      | 无      |
-| /delete    | 删除登陆的账号             | 无      |
-| /switch    | 切换身份以支持多账号          | 无      |
-| /log       | 自动签到日志              | 无      |
-| /oci       | oracle cloud 管理     | 无      |
-| /config    | 用户的配置和不需要登陆的推送      | 无      |
-| /setting   | 机器人的配置（creatorId可用） | 无      |
-| /push      | 通过http api进行消息推送    | 无      |
-| /ygo       | 游戏王查卡               | 卡片名称   |
-| /update    | 更新程序                | 无      |
-| /updatelog | github提交信息          | 无      |
-| /bv        | 获取bv视频              | bv开头id |
-| /x         | 获取x帖子的详情            | 链接或id  |
+| 指令            | 说明                     | 参数     |
+|---------------|------------------------|--------|
+| /login        | 登陆账号                   | 无      |
+| /exec         | 手动执行签到                 | 无      |
+| /manager      | 管理自动签到状态，默认全为关         | 无      |
+| /delete       | 删除登陆的账号                | 无      |
+| /switch       | 切换身份以支持多账号             | 无      |
+| /log          | 自动签到日志                 | 无      |
+| /oci          | oracle cloud 管理        | 无      |
+| /config       | 用户的配置和不需要登陆的推送         | 无      |
+| /setting      | 机器人的配置（creatorId可用）    | 无      |
+| /push         | 通过http api进行消息推送       | 无      |
+| /ygo          | 游戏王查卡                  | 卡片名称   |
+| /update       | 更新程序                   | 无      |
+| /updatelog    | github提交信息             | 无      |
+| /bv           | 获取bv视频                 | bv开头id |
+| /x            | 获取x帖子的详情               | 链接或id  |
+| /neteasesmall | 添加网易云小号（（creatorId可用）） | 无      |
 
 ## Docker
 

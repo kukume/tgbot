@@ -1,6 +1,7 @@
 package me.kuku.telegram.extension
 
 import me.kuku.telegram.context.AbilitySubscriber
+import me.kuku.telegram.context.Privacy
 import me.kuku.telegram.context.nextMessage
 import me.kuku.telegram.entity.NetEaseSmallEntity
 import me.kuku.telegram.entity.NetEaseSmallService
@@ -12,7 +13,7 @@ class NetEaseSmallExtension(
 ) {
 
     fun AbilitySubscriber.netEaseSmall() {
-        sub(name = "netEaseSmall") {
+        sub(name = "neteasesmall", privacy = Privacy.CREATOR) {
             sendMessage("""
             请发送网易云小号，格式为：用户名----密码，一行一个
         """.trimIndent())
