@@ -7,6 +7,8 @@ import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.kuku.telegram.context.*
@@ -179,6 +181,25 @@ class ToolExtension(
                 } catch (e: Exception) {
                     bot.sendTextMessage(chatId, text, messageThreadId)
                 }
+            }
+        }
+        sub("dy", 1, locality = Locality.ALL) {
+            mutex.withLock {
+                val urlArg = firstArg()
+                val locationResponse = client.get(urlArg) {
+                    userAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
+                }
+                val htmlUrl = locationResponse.headers["Location"] ?: error("获取抖音视频失败")
+                val html = client.get(htmlUrl) {
+                    userAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
+                }.bodyAsText()
+                val id = MyUtils.regex("(?<=video_id=)", "&", html) ?: error("获取抖音视频失败")
+                val response = client.get("https://m.douyin.com/aweme/v1/playwm/?video_id=$id&ratio=720p&line=0")
+                val url = response.headers["Location"] ?: error("获取抖音视频失败")
+                val bytes = client.get(url).body<ByteArray>()
+                val sendVideo = SendVideo(chatId, bytes).fileName("$id.mp4")
+                messageThreadId?.let { sendVideo.messageThreadId(it) }
+                bot.asyncExecute(sendVideo)
             }
         }
     }
