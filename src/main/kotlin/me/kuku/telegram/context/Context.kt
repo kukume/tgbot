@@ -28,7 +28,8 @@ abstract class MessageContext: Context() {
     abstract val message: Message
     abstract val messageThreadId: Int?
 
-    suspend fun sendMessage(text: String, replyKeyboard: Keyboard? = null, parseMode: ParseMode? = null): SendResponse {
+    suspend fun sendMessage(text: String, replyKeyboard: Keyboard? = null, parseMode: ParseMode? = null,
+                            replyToMessageId: Int? = null): SendResponse {
         val sendMessage = SendMessage(chatId, text)
         replyKeyboard?.let {
             sendMessage.replyMarkup(replyKeyboard)
@@ -36,8 +37,13 @@ abstract class MessageContext: Context() {
         parseMode?.let {
             sendMessage.parseMode(parseMode)
         }
-        message.messageThreadId()?.let {
-            sendMessage.messageThreadId(it)
+        if (replyToMessageId == null) {
+            message.messageThreadId()?.let {
+                sendMessage.messageThreadId(it)
+            }
+        }
+        replyToMessageId?.let {
+            sendMessage.replyToMessageId(it)
         }
         return bot.asyncExecute(sendMessage)
     }

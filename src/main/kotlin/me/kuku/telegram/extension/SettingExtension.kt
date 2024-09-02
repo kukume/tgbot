@@ -23,12 +23,14 @@ class SettingExtension(
         val sendLog = inlineKeyboardButton("发送日志", "settingsSendLog")
         val clearLog = inlineKeyboardButton("清空日志", "settingsClearLog")
         val updatePush = inlineKeyboardButton("${init().updatePush}github更新推送", "githubUpdatePushSwitch")
+        val openai = inlineKeyboardButton("设置openai的token", "openaiToken")
         return InlineKeyboardMarkup(
             arrayOf(blackSetting, adminSetting),
             arrayOf(url),
             arrayOf(twoCaptcha),
             arrayOf(sendLog, clearLog),
-            arrayOf(updatePush)
+            arrayOf(updatePush),
+            arrayOf(openai)
         )
     }
 
@@ -146,6 +148,14 @@ class SettingExtension(
             entity.twoCaptchaKey = key
             botConfigService.save(entity)
             editMessageText("设置2captcha的key成功")
+        }
+        callback("openaiToken") {
+            editMessageText("请发送openai的token")
+            val token = nextMessage().text()
+            val entity = init()
+            entity.openaiToken = token
+            botConfigService.save(entity)
+            editMessageText("设置openai的token成功")
         }
     }
 
