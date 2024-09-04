@@ -1,11 +1,19 @@
 package me.kuku.telegram.extension
 
+import com.aallam.openai.api.chat.*
+import com.aallam.openai.api.model.ModelId
+import com.aallam.openai.client.OpenAI
 import com.fasterxml.jackson.databind.JsonNode
 import com.pengrad.telegrambot.model.PhotoSize
 import com.pengrad.telegrambot.model.request.ParseMode
+import com.pengrad.telegrambot.request.EditMessageText
 import com.pengrad.telegrambot.request.GetFile
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.runBlocking
 import me.kuku.telegram.context.AbilitySubscriber
 import me.kuku.telegram.context.Locality
 import me.kuku.telegram.context.asyncExecute
@@ -33,7 +41,7 @@ class OpenaiExtension(
                 text = (replyToMessage.text() ?: "") + message.text()
                 photoSizeList = replyToMessage.photo()
             } else {
-                text = message.text()
+                text = firstArg()
                 photoSizeList = message.photo()
             }
             photoSizeList?.groupBy { it.fileUniqueId().dropLast(1) }?.mapNotNull { (_, group) -> group.maxByOrNull { it.fileSize() } }
@@ -45,44 +53,61 @@ class OpenaiExtension(
             }
             val botConfigEntity = botConfigService.find()
             if (botConfigEntity.openaiToken.ifEmpty { "" }.isEmpty()) error("not setting openai token")
-            val params = Jackson.createObjectNode()
-            params.put("model", "gpt-4o-mini")
-            val messages = Jackson.createArrayNode()
-            val singleMessage = Jackson.createObjectNode()
-            singleMessage.put("role", "user")
-            if (photoList.isEmpty()) {
-                singleMessage.put("content", text)
-            } else {
-                val content = Jackson.createArrayNode()
-                val textContent = Jackson.createObjectNode()
-                textContent.put("type", "text")
-                textContent.put("text", text)
-                content.add(textContent)
-                for (photo in photoList) {
-                    val imageContent = Jackson.createObjectNode()
-                    imageContent.put("type", "image_url")
-                    val imageUrl = Jackson.createObjectNode()
-                    imageUrl.put("url", "data:image/jpeg;base64,$photo")
-                    imageContent.putIfAbsent("image_url", imageUrl)
-                    content.add(imageContent)
+
+            val openai = OpenAI(botConfigEntity.openaiToken)
+
+            val request = ChatCompletionRequest(
+                model = ModelId("gpt-4o-mini"),
+                messages = listOf(
+                    ChatMessage(
+                        role = ChatRole.User,
+                        content = ContentPartBuilder().also {
+                            it.text(text)
+                            for (photo in photoList) {
+                                it.image("data:image/jpeg;base64,$photo")
+                            }
+                        }.build()
+                    )
+                ),
+                streamOptions = streamOptions {
+                    includeUsage = true
                 }
-                singleMessage.putIfAbsent("content", content)
+            )
+
+            runBlocking {
+                val response = sendMessage("Processing\\.\\.\\.", parseMode = ParseMode.MarkdownV2, replyToMessageId = message.messageId())
+                val sendMessageObject = response.message()
+                val sendMessageId = sendMessageObject.messageId()
+                var openaiText = ""
+                var prefix = ">model: gpt\\-4o\\-mini\n"
+                var alreadySendText = ""
+                var i = 5
+                openai.chatCompletions(request).onEach {
+                    it.choices.getOrNull(0)?.delta?.content?.let { content ->
+                        openaiText += content
+                    }
+                    it.usage?.let { usage ->
+                        prefix += ">promptToken: ${usage.promptTokens}\n>completionToken: ${usage.completionTokens}\n"
+                    }
+                    if (i++ % 20 == 0) {
+                        val sendText = "$prefix\n```text\n$openaiText```"
+                        if (alreadySendText != sendText) {
+                            alreadySendText = sendText
+                            val editMessageText = EditMessageText(chatId, sendMessageId, sendText)
+                                .parseMode(ParseMode.MarkdownV2)
+                            bot.asyncExecute(editMessageText)
+                        }
+                    }
+                }.onCompletion {
+                    val sendText = "$prefix\n```text\n$openaiText```"
+                    if (alreadySendText != sendText) {
+                        alreadySendText = sendText
+                        val editMessageText = EditMessageText(chatId, sendMessageId, sendText)
+                            .parseMode(ParseMode.MarkdownV2)
+                        bot.asyncExecute(editMessageText)
+                    }
+                }.launchIn(this).join()
             }
-            messages.add(singleMessage)
-            params.putIfAbsent("messages", messages)
-            val jsonNode = client.post("https://api.openai.com/v1/chat/completions") {
-                setJsonBody(params)
-                headers {
-                    append("Authorization", "Bearer ${botConfigEntity.openaiToken}")
-                }
-            }.body<JsonNode>()
-            val responseText = "```text\n" + jsonNode["choices"][0]["message"]["content"].asText() + "\n```"
-            val usage = jsonNode["usage"]
-            val promptToken = usage["prompt_tokens"].asInt()
-            val completionToken = usage["completion_tokens"].asInt()
-            sendMessage(">model: gpt\\-4o\\-mini\n>promptToken: $promptToken\n>completionToken: $completionToken\n\n$responseText",
-                parseMode = ParseMode.MarkdownV2,
-                replyToMessageId = message.messageId())
         }
 
 

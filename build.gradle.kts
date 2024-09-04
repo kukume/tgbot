@@ -22,11 +22,11 @@ dependencies {
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("com.github.pengrad:java-telegram-bot-api:7.9.0")
+    implementation("com.github.pengrad:java-telegram-bot-api:7.9.1")
     implementation("me.kuku:utils:2.3.12.1")
     implementation("me.kuku:ktor-spring-boot-starter:2.3.12.0")
     implementation("org.jsoup:jsoup:1.17.2")
-    val ociVersion = "3.44.4"
+    val ociVersion = "3.48.0"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-identity:$ociVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociVersion") {
@@ -36,6 +36,7 @@ dependencies {
     implementation("com.google.zxing:javase:3.5.3")
     implementation("net.consensys.cava:cava-bytes:0.5.0")
     implementation("net.consensys.cava:cava-crypto:0.5.0")
+    implementation("com.aallam.openai:openai-client:3.8.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
