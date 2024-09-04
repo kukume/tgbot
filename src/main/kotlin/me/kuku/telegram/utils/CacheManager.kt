@@ -19,26 +19,26 @@ object CacheManager {
 
     val cacheMap: ConcurrentMap<String, Cache<*, *>> = ConcurrentHashMap()
 
-    private val logger = LoggerFactory.getLogger(CacheManager::class.java)
+//    private val logger = LoggerFactory.getLogger(CacheManager::class.java)
 
     init {
         if (!folder.exists()) folder.mkdir()
-        folder.listFiles()?.let { files ->
-            for (file in files) {
-                val cache = FileInputStream(file).use {
-                    ObjectInputStream(it).use { ois ->
-                        try {
-                            ois.readObject() as Cache<*, *>
-                        } catch (e: Exception) {
-                            logger.warn("读取缓存文件${file.path}失败")
-                            file.deleteOnExit()
-                            null
-                        }
-                    }
-                } ?: continue
-                cacheMap[file.nameWithoutExtension] = cache
-            }
-        }
+//        folder.listFiles()?.filter { it.name.endsWith(".ser") }?.let { files ->
+//            for (file in files) {
+//                val cache = FileInputStream(file).use {
+//                    ObjectInputStream(it).use { ois ->
+//                        try {
+//                            ois.readObject() as Cache<*, *>
+//                        } catch (e: Exception) {
+//                            logger.warn("读取缓存文件${file.path}失败")
+//                            file.deleteOnExit()
+//                            null
+//                        }
+//                    }
+//                } ?: continue
+//                cacheMap[file.nameWithoutExtension] = cache
+//            }
+//        }
         Thread.startVirtualThread {
             while (true) {
                 Thread.sleep(1000)
@@ -47,9 +47,9 @@ object CacheManager {
                 }
             }
         }
-        Runtime.getRuntime().addShutdownHook(Thread {
-            write()
-        })
+//        Runtime.getRuntime().addShutdownHook(Thread {
+//            write()
+//        })
     }
 
     inline fun <reified K, V> getCache(key: String): Cache<K, V> {
