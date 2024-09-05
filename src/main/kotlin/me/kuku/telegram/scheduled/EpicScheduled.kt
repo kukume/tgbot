@@ -46,7 +46,7 @@ class EpicScheduled(
                 val html =
                     client.get("https://store.epicgames.com/zh-CN/p/$slug").bodyAsText()
                 val queryJsonNode =
-                    MyUtils.regex("REACT_QUERY_INITIAL_QUERIES__ \\= ", ";", html)?.toJsonNode() ?: continue
+                    MyUtils.regex("window\\.__REACT_QUERY_INITIAL_QUERIES__\\s*=\\s*(\\{.*\\});", html)?.substring(41)?.dropLast(1)?.toJsonNode() ?: continue
                 val queries = queryJsonNode["queries"]
                 val mappings = queries.filter { it["queryKey"]?.get(0)?.asText() == "getCatalogOffer" }
                 for (mapping in mappings) {
