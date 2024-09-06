@@ -3,13 +3,10 @@ package me.kuku.telegram.extension
 import com.aallam.openai.api.chat.*
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
-import com.fasterxml.jackson.databind.JsonNode
 import com.pengrad.telegrambot.model.PhotoSize
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.EditMessageText
 import com.pengrad.telegrambot.request.GetFile
-import io.ktor.client.call.*
-import io.ktor.client.request.*
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
@@ -19,16 +16,18 @@ import me.kuku.telegram.context.Locality
 import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.context.byteArray
 import me.kuku.telegram.entity.BotConfigService
-import me.kuku.utils.Jackson
+import me.kuku.telegram.utils.CacheManager
 import me.kuku.utils.base64Encode
-import me.kuku.utils.client
-import me.kuku.utils.setJsonBody
 import org.springframework.stereotype.Component
+import java.time.Duration
 
 @Component
 class OpenaiExtension(
     private val botConfigService: BotConfigService
 ) {
+
+    private val cache = CacheManager.getCache<String, MutableList<ChatMessage>>("gpt-chat-context", Duration.ofMinutes(2))
+
 
     fun AbilitySubscriber.openai() {
 
@@ -51,24 +50,31 @@ class OpenaiExtension(
                 val base64 = getFileResponse.file().byteArray().base64Encode()
                 photoList.add(base64)
             }
+
+            val key = chatId.toString() + message.from().id()
+
+            val cacheBody = cache[key] ?: mutableListOf()
+
             val botConfigEntity = botConfigService.find()
             if (botConfigEntity.openaiToken.ifEmpty { "" }.isEmpty()) error("not setting openai token")
 
             val openai = OpenAI(botConfigEntity.openaiToken)
 
+            val chatMessage = ChatMessage(
+                role = ChatRole.User,
+                content = ContentPartBuilder().also {
+                    it.text(text)
+                    for (photo in photoList) {
+                        it.image("data:image/jpeg;base64,$photo")
+                    }
+                }.build()
+            )
+
+            cacheBody.add(chatMessage)
+
             val request = ChatCompletionRequest(
                 model = ModelId("gpt-4o-mini"),
-                messages = listOf(
-                    ChatMessage(
-                        role = ChatRole.User,
-                        content = ContentPartBuilder().also {
-                            it.text(text)
-                            for (photo in photoList) {
-                                it.image("data:image/jpeg;base64,$photo")
-                            }
-                        }.build()
-                    )
-                ),
+                messages = cacheBody,
                 streamOptions = streamOptions {
                     includeUsage = true
                 }
@@ -100,6 +106,8 @@ class OpenaiExtension(
                     }
                 }.onCompletion {
                     val sendText = "$prefix\n```text\n$openaiText```"
+                    cacheBody.add(ChatMessage(ChatRole.Assistant, openaiText))
+                    cache[key] = cacheBody
                     if (alreadySendText != sendText) {
                         alreadySendText = sendText
                         val editMessageText = EditMessageText(chatId, sendMessageId, sendText)

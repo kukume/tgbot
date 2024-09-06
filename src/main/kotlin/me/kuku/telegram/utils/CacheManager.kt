@@ -127,6 +127,8 @@ open class Cache<K, V>: Serializable {
         }
     }
 
+    operator fun set(key: K, value: V) = put(key, value)
+
     fun put(key: K, value: V) {
         if (expire != null && expire!! > 0) {
             put(key, value, expire!!)

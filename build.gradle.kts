@@ -19,7 +19,6 @@ repositories {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("com.github.pengrad:java-telegram-bot-api:7.9.1")
