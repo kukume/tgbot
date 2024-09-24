@@ -166,8 +166,7 @@ class PushBody {
     }
 
     enum class Type {
-        TEXT, IMAGE, VIDEO, FILE
-    }
+        TEXT, IMAGE, VIDEO, FILE    }
 
 
 }
