@@ -3,6 +3,7 @@ package me.kuku.telegram.extension
 import com.aallam.openai.api.chat.*
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
+import com.aallam.openai.client.OpenAIHost
 import com.pengrad.telegrambot.model.PhotoSize
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.EditMessageText
@@ -57,8 +58,10 @@ class OpenaiExtension(
 
             val botConfigEntity = botConfigService.find()
             if (botConfigEntity.openaiToken.ifEmpty { "" }.isEmpty()) error("not setting openai token")
+            val openaiHost = if (botConfigEntity.openaiUrl.isEmpty()) OpenAIHost.OpenAI else OpenAIHost(botConfigEntity.openaiUrl)
+            val openaiModel = botConfigEntity.openaiModel.ifEmpty { "gpt-4o-mini" }
 
-            val openai = OpenAI(botConfigEntity.openaiToken)
+            val openai = OpenAI(botConfigEntity.openaiToken, host = openaiHost)
 
             val chatMessage = ChatMessage(
                 role = ChatRole.User,
@@ -73,7 +76,7 @@ class OpenaiExtension(
             cacheBody.add(chatMessage)
 
             val request = ChatCompletionRequest(
-                model = ModelId("gpt-4o-mini"),
+                model = ModelId(openaiModel),
                 messages = cacheBody,
                 streamOptions = streamOptions {
                     includeUsage = true
@@ -85,7 +88,7 @@ class OpenaiExtension(
                 val sendMessageObject = response.message()
                 val sendMessageId = sendMessageObject.messageId()
                 var openaiText = ""
-                var prefix = ">model: gpt\\-4o\\-mini\n"
+                var prefix = ">model: ${openaiModel.replace("-", "\\-")}\n"
                 var alreadySendText = ""
                 var i = 5
                 openai.chatCompletions(request).onEach {

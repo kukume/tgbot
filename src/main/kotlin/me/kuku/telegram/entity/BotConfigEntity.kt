@@ -21,6 +21,8 @@ class BotConfigEntity {
     var updatePush: Status = Status.OFF
 
     var openaiToken: String = ""
+    var openaiUrl: String = ""
+    var openaiModel: String = ""
 
     fun twoCaptchaKey() = twoCaptchaKey.ifEmpty { null }
 }
