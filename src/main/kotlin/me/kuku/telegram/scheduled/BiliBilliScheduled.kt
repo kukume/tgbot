@@ -6,6 +6,7 @@ import com.pengrad.telegrambot.request.SendPhoto
 import com.pengrad.telegrambot.request.SendVideo
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.util.logging.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.context.asyncExecute
@@ -14,6 +15,7 @@ import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.BiliBiliPojo
 import me.kuku.telegram.context.sendPic
 import me.kuku.utils.client
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.io.File
@@ -29,6 +31,7 @@ class BiliBilliScheduled(
 
     private val liveMap = mutableMapOf<Long, MutableMap<Long, Boolean>>()
     private val userMap = mutableMapOf<Long, Long>()
+    private val logger = LoggerFactory.getLogger(BiliBilliScheduled::class.java)
 
 
     @Scheduled(cron = "0 23 3 * * ?")
@@ -52,31 +55,35 @@ class BiliBilliScheduled(
     suspend fun liveMonitor() {
         val list = biliBiliService.findByLive(Status.ON)
         for (biliBiliEntity in list) {
-            delay(3000)
-            val tgId = biliBiliEntity.tgId
-            if (!liveMap.containsKey(tgId)) liveMap[tgId] = mutableMapOf()
-            val map = liveMap[tgId]!!
-            val liveList = BiliBiliLogic.live(biliBiliEntity)
-            for (live in liveList) {
-                val userid = live.id.toLong()
-                val b = live.status
-                val name = live.uname
-                if (map.containsKey(userid)) {
-                    if (map[userid] != b) {
-                        map[userid] = b
-                        val msg = if (b) "直播啦！！" else "下播了！！"
-                        val text = "#哔哩哔哩开播提醒\n#$name $msg\n标题：${live.title}\n链接：${live.url}"
-                        val imageUrl = live.imageUrl
-                        if (imageUrl.isEmpty())
-                            telegramBot.asyncExecute(SendMessage(tgId, text))
-                        else {
-                            client.get(imageUrl).body<ByteArray>().let {
-                                val sendPhoto = SendPhoto(tgId, it).caption(text).fileName("live.jpg")
-                                telegramBot.asyncExecute(sendPhoto)
+            kotlin.runCatching {
+                delay(3000)
+                val tgId = biliBiliEntity.tgId
+                if (!liveMap.containsKey(tgId)) liveMap[tgId] = mutableMapOf()
+                val map = liveMap[tgId]!!
+                val liveList = BiliBiliLogic.live(biliBiliEntity)
+                for (live in liveList) {
+                    val userid = live.id.toLong()
+                    val b = live.status
+                    val name = live.uname
+                    if (map.containsKey(userid)) {
+                        if (map[userid] != b) {
+                            map[userid] = b
+                            val msg = if (b) "直播啦！！" else "下播了！！"
+                            val text = "#哔哩哔哩开播提醒\n#$name $msg\n标题：${live.title}\n链接：${live.url}"
+                            val imageUrl = live.imageUrl
+                            if (imageUrl.isEmpty())
+                                telegramBot.asyncExecute(SendMessage(tgId, text))
+                            else {
+                                client.get(imageUrl).body<ByteArray>().let {
+                                    val sendPhoto = SendPhoto(tgId, it).caption(text).fileName("live.jpg")
+                                    telegramBot.asyncExecute(sendPhoto)
+                                }
                             }
                         }
-                    }
-                } else map[userid] = live.status
+                    } else map[userid] = live.status
+                }
+            }.onFailure {
+                logger.error(it)
             }
         }
     }
@@ -85,45 +92,49 @@ class BiliBilliScheduled(
     suspend fun userMonitor() {
         val biliBiliList = biliBiliService.findByPush(Status.ON)
         for (biliBiliEntity in biliBiliList) {
-            val tgId = biliBiliEntity.tgId
-            delay(3000)
-            val result = BiliBiliLogic.friendDynamic(biliBiliEntity)
-            val list = result.data ?: continue
-            val newList = mutableListOf<BiliBiliPojo>()
-            if (userMap.containsKey(tgId)) {
-                val oldId = userMap[tgId]!!
-                for (biliBiliPojo in list) {
-                    if (biliBiliPojo.id.toLong() <= oldId) break
-                    newList.add(biliBiliPojo)
-                }
-                for (biliBiliPojo in newList) {
-                    val text = "#哔哩哔哩动态推送\n${BiliBiliLogic.convertStr(biliBiliPojo)}"
-                    val bvId = if (biliBiliPojo.bvId.isNotEmpty()) biliBiliPojo.bvId
-                    else if (biliBiliPojo.forwardBvId.isNotEmpty()) biliBiliPojo.forwardBvId
-                    else ""
-                    try {
-                        if (bvId.isNotEmpty() && telegramConfig.url.isNotEmpty()) {
-                            var file: File? = null
-                            try {
-                                delay(3000)
-                                file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
-                                val sendVideo =
-                                    SendVideo(tgId, file).caption(text)
-                                telegramBot.asyncExecute(sendVideo)
-                            } finally {
-                                file?.delete()
-                            }
-                        } else if (biliBiliPojo.picList.isNotEmpty() || biliBiliPojo.forwardPicList.isNotEmpty()) {
-                            val picList = biliBiliPojo.picList
-                            picList.addAll(biliBiliPojo.forwardPicList)
-                            telegramBot.sendPic(tgId, text, picList)
-                        } else telegramBot.asyncExecute(SendMessage(tgId, text))
-                    } catch (e: Exception) {
-                        telegramBot.asyncExecute(SendMessage(tgId, text))
+            kotlin.runCatching {
+                val tgId = biliBiliEntity.tgId
+                delay(3000)
+                val result = BiliBiliLogic.friendDynamic(biliBiliEntity)
+                val list = result.data ?: return@runCatching
+                val newList = mutableListOf<BiliBiliPojo>()
+                if (userMap.containsKey(tgId)) {
+                    val oldId = userMap[tgId]!!
+                    for (biliBiliPojo in list) {
+                        if (biliBiliPojo.id.toLong() <= oldId) break
+                        newList.add(biliBiliPojo)
+                    }
+                    for (biliBiliPojo in newList) {
+                        val text = "#哔哩哔哩动态推送\n${BiliBiliLogic.convertStr(biliBiliPojo)}"
+                        val bvId = if (biliBiliPojo.bvId.isNotEmpty()) biliBiliPojo.bvId
+                        else if (biliBiliPojo.forwardBvId.isNotEmpty()) biliBiliPojo.forwardBvId
+                        else ""
+                        try {
+                            if (bvId.isNotEmpty() && telegramConfig.url.isNotEmpty()) {
+                                var file: File? = null
+                                try {
+                                    delay(3000)
+                                    file = BiliBiliLogic.videoByBvId(biliBiliEntity, biliBiliPojo.bvId)
+                                    val sendVideo =
+                                        SendVideo(tgId, file).caption(text)
+                                    telegramBot.asyncExecute(sendVideo)
+                                } finally {
+                                    file?.delete()
+                                }
+                            } else if (biliBiliPojo.picList.isNotEmpty() || biliBiliPojo.forwardPicList.isNotEmpty()) {
+                                val picList = biliBiliPojo.picList
+                                picList.addAll(biliBiliPojo.forwardPicList)
+                                telegramBot.sendPic(tgId, text, picList)
+                            } else telegramBot.asyncExecute(SendMessage(tgId, text))
+                        } catch (e: Exception) {
+                            telegramBot.asyncExecute(SendMessage(tgId, text))
+                        }
                     }
                 }
+                userMap[tgId] = list[0].id.toLong()
+            }.onFailure {
+                logger.error(it)
             }
-            userMap[tgId] = list[0].id.toLong()
         }
     }
 

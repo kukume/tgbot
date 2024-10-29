@@ -9,10 +9,13 @@ import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
 import me.kuku.pojo.UA
 import me.kuku.telegram.config.api
+import me.kuku.telegram.entity.NetEaseBaseEntity
 import me.kuku.telegram.entity.NetEaseEntity
 import me.kuku.telegram.entity.NetEaseSmallEntity
 import me.kuku.utils.*
 import okhttp3.internal.toHexString
+import java.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 object NetEaseLogic {
 
@@ -37,14 +40,48 @@ object NetEaseLogic {
         }
     }
 
-    private fun prepare(json: String, netEaseEntity: NetEaseEntity? = null): Map<String, String> {
+    context(HttpRequestBuilder)
+    fun NetEaseBaseEntity?.encrypt(map: Map<String, String>) {
+        encrypt(Jackson.toJsonString(map))
+    }
+
+    context(HttpRequestBuilder)
+    fun NetEaseBaseEntity?.encrypt(json: String) {
+        val nonce = "0CoJUm6Qyw8W8jud"
+        val secretKey = "TA3YiYCfY2dDJQgg"
+        val encSecKey =
+            "84ca47bca10bad09a6b04c5c927ef077d9b9f1e37098aa3eac6ea70eb59df0aa28b691b7e75e4f1f9831754919ea784c8f74fbfadf2898b0be17849fd656060162857830e241aba44991601f137624094c114ea8d17bce815b0cd4e5b8e2fbaba978c6d1d14dc3d1faf852bdd28818031ccdaaa13a6018e1024e2aae98844210"
+        val jsonNode = json.toJsonNode()
+        this?.let {
+            (jsonNode as ObjectNode).put("csrf_token", it.csrf)
+        }
+        var param = aesEncode(jsonNode.toString(), nonce)
+        param = aesEncode(param, secretKey)
+        setFormDataContent {
+            append("params", param)
+            append("encSecKey", encSecKey)
+        }
+        io.ktor.http.headers {
+            userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
+            this@encrypt?.pcCookie()?.let {
+                cookieString(it)
+            }
+            referer("https://music.163.com")
+            origin("https://music.163.com")
+        }
+    }
+
+    private fun prepare(json: String, netEaseEntity: NetEaseEntity? = null, netEaseSmallEntity: NetEaseSmallEntity? = null): Map<String, String> {
         val nonce = "0CoJUm6Qyw8W8jud"
         val secretKey = "TA3YiYCfY2dDJQgg"
         val encSecKey =
             "84ca47bca10bad09a6b04c5c927ef077d9b9f1e37098aa3eac6ea70eb59df0aa28b691b7e75e4f1f9831754919ea784c8f74fbfadf2898b0be17849fd656060162857830e241aba44991601f137624094c114ea8d17bce815b0cd4e5b8e2fbaba978c6d1d14dc3d1faf852bdd28818031ccdaaa13a6018e1024e2aae98844210"
         val jsonNode = json.toJsonNode()
         netEaseEntity?.let {
-            (jsonNode as ObjectNode).put("csrf_token", netEaseEntity.csrf)
+            (jsonNode as ObjectNode).put("csrf_token", it.csrf)
+        }
+        netEaseSmallEntity?.let {
+            (jsonNode as ObjectNode).put("csrf_token", it.csrf)
         }
         var param = aesEncode(jsonNode.toString(), nonce)
         param = aesEncode(param, secretKey)
@@ -170,24 +207,81 @@ object NetEaseLogic {
         if (jsonNode.getInteger("code") != 200) error(jsonNode.getString("message"))
     }
 
-    @Suppress("DuplicatedCode")
-    suspend fun listenMusic(netEaseSmallEntity: NetEaseSmallEntity, id: Int) {
-        val ids = Jackson.createArrayNode()
-        val jsonNode = Jackson.createObjectNode()
-        jsonNode.put("download", 0)
-        jsonNode.put("end", "playend")
-        jsonNode.put("id", id)
-        jsonNode.put("sourceId", "")
-        jsonNode.put("time", 240)
-        jsonNode.put("type", "song")
-        jsonNode.put("wifi", "0")
-        val totalJsonNode = Jackson.createObjectNode()
-        totalJsonNode.set<ObjectNode>("json", jsonNode)
-        totalJsonNode.put("action", "play")
-        ids.add(totalJsonNode)
-        val resultJsonNode = OkHttpKtUtils.postJson("$domain/weapi/feedback/weblog", prepare(mapOf("logs" to ids.toString())),
-            OkUtils.headers(netEaseSmallEntity.cookie(), domain, UA.PC))
-        if (resultJsonNode.getInteger("code") != 200) error(resultJsonNode.getString("message"))
+    suspend fun listenMusic0(netEaseSmallEntity: NetEaseSmallEntity, id: Long) {
+
+        // 歌曲详情请求
+        val songDetailResult = client.post("$domain/weapi/v3/song/detail") {
+            netEaseSmallEntity.encrypt("""
+                {"c": "[{\"id\": $id}]", "id": "$id"}
+            """.trimIndent())
+        }.body<JsonNode>()
+        songDetailResult.check()
+
+        // 歌词请求
+        val lyricResult = client.post("$domain/weapi/song/lyric") {
+            netEaseSmallEntity.encrypt("""
+                {"id":$id,"lv":-1,"tv":-1}
+            """.trimIndent())
+        }.body<JsonNode>()
+        lyricResult.check()
+
+        // 歌曲URL请求
+        val songUrlResult = client.post("$domain/weapi/song/enhance/player/url/v1") {
+            netEaseSmallEntity.encrypt(mapOf(
+                "ids" to "[$id]",
+                "level" to "standard",
+                "encodeType" to "aac"
+            ))
+        }.body<JsonNode>()
+        songUrlResult.check()
+        val songUrl = songUrlResult["data"][0]["url"].asText()
+        val logUrl = "$domain/weapi/feedback/weblog"
+
+        client.get(songUrl).body<ByteArray>()
+
+        // 反馈日志请求
+        val log2 = client.post(logUrl) {
+            netEaseSmallEntity.encrypt(mapOf("logs" to """
+                [{"action":"play","json":{"id":"$id","type":"song","source":"search","sourceid":"kuku","mainsite":"1","content":"s=kuku&type=1"}}]
+            """.trimIndent()))
+        }.body<JsonNode>()
+        log2.check()
+
+        val log3 = client.post(logUrl) {
+            netEaseSmallEntity.encrypt(mapOf("logs" to """
+                [{"action":"play","json":{"type":"song","wifi":0,"download":0,"id":$id,"time":297,"end":"ui","source":"search","sourceId":"kuku","mainsite":"1","content":"s=kuku&type=1"}}]
+            """.trimIndent()))
+        }.body<JsonNode>()
+        log3.check()
+
+        val log1 = client.post(logUrl) {
+            netEaseSmallEntity.encrypt(mapOf("logs" to """
+                [{"action":"startplay","json":{"id":$id,"type":"song","content":"s=kuku&type=1","mainsite":"1"}}]
+            """.trimIndent()))
+        }.body<JsonNode>()
+        log1.check()
+
+        val log4 = client.post(logUrl) {
+            netEaseSmallEntity.encrypt(mapOf("logs" to """
+                [{"action":"mobile_monitor","json":{"meta._ver":2,"meta._dataName":"pip_lyric_monitor","action":"render","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36","chromeVersion":128,"resourceId":$id,"resourceType":"song","mainsite":"1"}}]
+            """.trimIndent()))
+        }.body<JsonNode>()
+        log4.check()
+
+        val log5 = client.post(logUrl) {
+            netEaseSmallEntity.encrypt(mapOf("logs" to """
+                [{"action":"sysaction","json":{"dataType":"cdnCompare","cdnType":"NetEase","loadeddataTime":15791,"resourceType":"audiom4a","resourceId":$id,"resourceUrl":"$songUrl","xySupport":true,"error":false,"errorType":"","ua":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36","mainsite":"1"}}]
+            """.trimIndent()))
+        }.body<JsonNode>()
+        log5.check()
+
+    }
+
+    suspend fun listenMusic(netEaseSmallEntity: NetEaseSmallEntity, id: Long) {
+        val jsonNode = client.get("http://192.168.1.177:8000/neteasemusic/listen?music_id=${id}&cookie=${netEaseSmallEntity.cookie().toUrlEncode()}")
+            .body<JsonNode>()
+        val sleep = jsonNode["sleep"].asLong() + 30
+        delay(sleep.seconds)
     }
 
     private suspend fun musicianStageMission(netEaseEntity: NetEaseEntity): MutableList<Mission> {

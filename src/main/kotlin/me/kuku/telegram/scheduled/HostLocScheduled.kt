@@ -2,11 +2,13 @@ package me.kuku.telegram.scheduled
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendMessage
+import io.ktor.util.logging.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.HostLocLogic
 import me.kuku.telegram.logic.HostLocPost
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.net.ConnectException
@@ -19,6 +21,8 @@ class HostLocScheduled(
     private val logService: LogService
 ) {
     private var locId = 0
+
+    private val logger = LoggerFactory.getLogger(HostLocScheduled::class.java)
 
     @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
     suspend fun locPush() {
@@ -47,8 +51,12 @@ class HostLocScheduled(
                     链接：${hostLocPost.url}
                     内容：${HostLocLogic.postContent(hostLocPost.url, hostLocEntity.cookie)}
                 """.trimIndent()
-                val sendMessage = SendMessage(hostLocEntity.tgId, str)
-                telegramBot.asyncExecute(sendMessage)
+                kotlin.runCatching {
+                    val sendMessage = SendMessage(hostLocEntity.tgId, str)
+                    telegramBot.asyncExecute(sendMessage)
+                }.onFailure {
+                    logger.error(it)
+                }
             }
         }
     }

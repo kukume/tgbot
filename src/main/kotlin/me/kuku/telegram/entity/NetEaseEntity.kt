@@ -7,22 +7,27 @@ import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-@Document("net_ease")
-class NetEaseEntity: BaseEntity() {
-    @Id
-    var id: String? = null
+open class NetEaseBaseEntity: BaseEntity() {
     var musicU: String = ""
     var csrf: String = ""
-    var sign: Status = Status.OFF
-    var musicianSign: Status = Status.OFF
-    var vipSign: Status = Status.OFF
-    var listen: Status = Status.OFF
 
     fun cookie() = "channel=netease; __remember_me=true; MUSIC_U=$musicU; __csrf=$csrf; "
 
     fun pcCookie() = "os=pc; ${cookie()}"
 
     fun androidCookie() = "os=android; ${cookie()}"
+}
+
+@Document("net_ease")
+class NetEaseEntity: NetEaseBaseEntity() {
+    @Id
+    var id: String? = null
+    var sign: Status = Status.OFF
+    var musicianSign: Status = Status.OFF
+    var vipSign: Status = Status.OFF
+    var listen: Status = Status.OFF
+
+
 }
 
 interface NetEaseRepository: CoroutineCrudRepository<NetEaseEntity, String> {

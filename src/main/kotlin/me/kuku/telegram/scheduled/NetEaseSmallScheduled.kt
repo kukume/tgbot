@@ -15,14 +15,18 @@ class NetEaseSmallScheduled(
     private val netEaseService: NetEaseService
 ) {
 
-    @Scheduled(fixedDelay = 12, initialDelay = 1, timeUnit = TimeUnit.HOURS)
+//    @Scheduled(fixedDelay = 12, initialDelay = 0, timeUnit = TimeUnit.HOURS)
     suspend fun listenMusic() {
         netEaseSmallLogic.check()
         val list = netEaseService.findByListen(Status.ON)
         for (netEaseEntity in list) {
-            val myMusicList = NetEaseLogic.myMusic(netEaseEntity)
+            val myMusicList = try {
+                NetEaseLogic.myMusic(netEaseEntity)
+            } catch (e: Exception) {
+                continue
+            }
             for (netEaseSong in myMusicList) {
-                netEaseSmallLogic.listenMusic(netEaseSong.songId.toInt())
+                netEaseSmallLogic.listenMusic(netEaseSong.songId)
                 delay(2000)
             }
         }

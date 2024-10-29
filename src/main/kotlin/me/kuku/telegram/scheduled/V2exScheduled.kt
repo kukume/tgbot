@@ -2,11 +2,13 @@ package me.kuku.telegram.scheduled
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendMessage
+import io.ktor.util.logging.*
 import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.ConfigService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.V2exLogic
 import me.kuku.telegram.logic.V2exTopic
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.net.ConnectException
@@ -17,6 +19,8 @@ class V2exScheduled(
     private val configService: ConfigService,
     private val telegramBot: TelegramBot
 ) {
+
+    private val logger = LoggerFactory.getLogger(V2exScheduled::class.java)
 
     private var v2exId = 0
 
@@ -44,8 +48,12 @@ class V2exScheduled(
                     标题：${v2exTopic.title}
                     链接：${v2exTopic.url}
                 """.trimIndent()
-                val sendMessage = SendMessage(configEntity.tgId, str)
-                telegramBot.asyncExecute(sendMessage)
+                kotlin.runCatching {
+                    val sendMessage = SendMessage(configEntity.tgId, str)
+                    telegramBot.asyncExecute(sendMessage)
+                }.onFailure {
+                    logger.error(it)
+                }
             }
         }
     }

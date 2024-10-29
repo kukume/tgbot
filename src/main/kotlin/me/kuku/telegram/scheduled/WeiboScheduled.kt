@@ -4,6 +4,7 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendVideo
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.util.logging.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.*
@@ -12,6 +13,7 @@ import me.kuku.telegram.logic.WeiboPojo
 import me.kuku.telegram.context.sendPic
 import me.kuku.telegram.context.sendTextMessage
 import me.kuku.utils.client
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.util.concurrent.TimeUnit
@@ -22,6 +24,8 @@ class WeiboScheduled(
     private val telegramBot: TelegramBot,
     private val logService: LogService
 ) {
+
+    private val logger = LoggerFactory.getLogger(WeiboScheduled::class.java)
 
     private val userMap = mutableMapOf<Long, Long>()
 
@@ -40,40 +44,44 @@ class WeiboScheduled(
     suspend fun userMonitor() {
         val weiboList = weiboService.findByPush(Status.ON)
         for (weiboEntity in weiboList) {
-            val tgId = weiboEntity.tgId
-            delay(3000)
-            val list = WeiboLogic.followWeibo(weiboEntity)
-            val newList = mutableListOf<WeiboPojo>()
-            if (userMap.containsKey(tgId)) {
-                for (weiboPojo in list) {
-                    if (weiboPojo.id <= userMap[tgId]!!) break
-                    newList.add(weiboPojo)
-                }
-                for (weiboPojo in newList) {
-                    val ownText = if (weiboPojo.longText) WeiboLogic.longText(weiboEntity, weiboPojo.bid) else weiboPojo.text
-                    val forwardText = if (weiboPojo.forwardLongText) WeiboLogic.longText(weiboEntity, weiboPojo.forwardBid) else weiboPojo.forwardText
-                    val text = "#微博动态推送\n${WeiboLogic.convert(weiboPojo, ownText, forwardText)}"
-                    val videoUrl = if (weiboPojo.videoUrl.isNotEmpty()) weiboPojo.videoUrl
-                    else if (weiboPojo.forwardVideoUrl.isNotEmpty()) weiboPojo.forwardVideoUrl
-                    else ""
-                    try {
-                        if (videoUrl.isNotEmpty()) {
-                            client.get(videoUrl).body<ByteArray>().let {
-                                val sendVideo = SendVideo(tgId, it).caption(text)
-                                    .fileName("${weiboPojo.bid}.mp4")
-                                telegramBot.asyncExecute(sendVideo)
-                            }
-                        } else if (weiboPojo.imageUrl.isNotEmpty() || weiboPojo.forwardImageUrl.isNotEmpty()) {
-                            val imageList = weiboPojo.imageUrl
-                            imageList.addAll(weiboPojo.forwardImageUrl)
-                            telegramBot.sendPic(tgId, text, imageList)
-                        } else telegramBot.sendTextMessage(tgId, text)
-                    } catch (e: Exception) {
-                        telegramBot.sendTextMessage(tgId, text)
+            kotlin.runCatching {
+                val tgId = weiboEntity.tgId
+                delay(3000)
+                val list = WeiboLogic.followWeibo(weiboEntity)
+                val newList = mutableListOf<WeiboPojo>()
+                if (userMap.containsKey(tgId)) {
+                    for (weiboPojo in list) {
+                        if (weiboPojo.id <= userMap[tgId]!!) break
+                        newList.add(weiboPojo)
+                    }
+                    for (weiboPojo in newList) {
+                        val ownText = if (weiboPojo.longText) WeiboLogic.longText(weiboEntity, weiboPojo.bid) else weiboPojo.text
+                        val forwardText = if (weiboPojo.forwardLongText) WeiboLogic.longText(weiboEntity, weiboPojo.forwardBid) else weiboPojo.forwardText
+                        val text = "#微博动态推送\n${WeiboLogic.convert(weiboPojo, ownText, forwardText)}"
+                        val videoUrl = if (weiboPojo.videoUrl.isNotEmpty()) weiboPojo.videoUrl
+                        else if (weiboPojo.forwardVideoUrl.isNotEmpty()) weiboPojo.forwardVideoUrl
+                        else ""
+                        try {
+                            if (videoUrl.isNotEmpty()) {
+                                client.get(videoUrl).body<ByteArray>().let {
+                                    val sendVideo = SendVideo(tgId, it).caption(text)
+                                        .fileName("${weiboPojo.bid}.mp4")
+                                    telegramBot.asyncExecute(sendVideo)
+                                }
+                            } else if (weiboPojo.imageUrl.isNotEmpty() || weiboPojo.forwardImageUrl.isNotEmpty()) {
+                                val imageList = weiboPojo.imageUrl
+                                imageList.addAll(weiboPojo.forwardImageUrl)
+                                telegramBot.sendPic(tgId, text, imageList)
+                            } else telegramBot.sendTextMessage(tgId, text)
+                        } catch (e: Exception) {
+                            telegramBot.sendTextMessage(tgId, text)
+                        }
                     }
                 }
+                userMap[tgId] = list[0].id
+            }.onFailure {
+                logger.error(it)
             }
-            userMap[tgId] = list[0].id
         }
     }
 
