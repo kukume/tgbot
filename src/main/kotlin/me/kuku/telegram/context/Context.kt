@@ -88,7 +88,6 @@ private val callbackAfter by lazy {
     CacheManager.getCache<String, Any>("callbackAfter", Duration.ofMinutes(5))
 }
 
-@Suppress("ConstPropertyName")
 private data class History(var message: Message?, var data: String, var text: String? = null): Serializable {
     companion object {
         private const val serialVersionUID = 1L

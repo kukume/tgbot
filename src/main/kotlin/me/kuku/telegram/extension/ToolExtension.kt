@@ -15,7 +15,6 @@ import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.BiliBiliService
 import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.ToolLogic
-import me.kuku.telegram.logic.TwitterLogic
 import me.kuku.telegram.logic.YgoLogic
 import me.kuku.telegram.utils.githubCommit
 import me.kuku.utils.*
@@ -154,35 +153,7 @@ class ToolExtension(
                 file.delete()
             }
         }
-        sub("x", 1, locality = Locality.ALL) {
-            mutex.withLock {
-                val id = try {
-                    firstArg().toLong()
-                } catch (e: NumberFormatException) {
-                    MyUtils.regex("(?<=/status/)[0-9]*", firstArg())?.toLong() ?: error("错误的x链接")
-                }
-                val twitterPojo = TwitterLogic.tweet(id)
-                val text = TwitterLogic.convertStr(twitterPojo)
-                val videoUrl = if (twitterPojo.videoList.isNotEmpty()) twitterPojo.videoList[0]
-                else ""
-                try {
-                    if (videoUrl.isNotEmpty()) {
-                        client.get(videoUrl).body<ByteArray>().let {
-                            val sendVideo = SendVideo(chatId, it).fileName("${twitterPojo.id}.mp4")
-                                .caption(text)
-                            messageThreadId?.let { id -> sendVideo.messageThreadId(id) }
-                            bot.asyncExecute(sendVideo)
-                        }
-                    } else if (twitterPojo.photoList.isNotEmpty() || twitterPojo.forwardPhotoList.isNotEmpty()) {
-                        val imageList = twitterPojo.photoList
-                        imageList.addAll(twitterPojo.forwardPhotoList)
-                        bot.sendPic(chatId, text, imageList, messageThreadId)
-                    } else bot.sendTextMessage(chatId, text, messageThreadId)
-                } catch (e: Exception) {
-                    bot.sendTextMessage(chatId, text, messageThreadId)
-                }
-            }
-        }
+
         sub("dy", 1, locality = Locality.ALL) {
             mutex.withLock {
                 val urlArg = firstArg()

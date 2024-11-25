@@ -6,7 +6,6 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import me.kuku.pojo.CommonResult
-import me.kuku.pojo.UA
 import me.kuku.telegram.entity.MiHoYoEntity
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
@@ -356,7 +355,7 @@ class MiHoYoLogic(
             when (jsonNode.getInteger("retcode")) {
                 0, -5003 -> {
                     val data = jsonNode["data"]
-                    val gt = data["gt"].asText()
+                    val gt = data["gt"]?.asText() ?: ""
                     if (gt.isNotEmpty()) {
                         val challenge = data["challenge"].asText()
                         val rr = twoCaptchaLogic.geeTest(gt, challenge, "https://webstatic.mihoyo.com/", tgId = tgId)

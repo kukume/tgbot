@@ -15,15 +15,11 @@ class ExecExtension(
     private val hostLocService: HostLocService,
     private val kuGouService: KuGouService, private val kuGouLogic: KuGouLogic,
     private val miHoYoService: MiHoYoService, private val miHoYoLogic: MiHoYoLogic,
-    private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
     private val douYuService: DouYuService, private val douYuLogic: DouYuLogic,
     private val smZdmService: SmZdmService, private val smZdmLogic: SmZdmLogic,
-    private val aliDriveService: AliDriveService, private val aliDriveLogic: AliDriveLogic,
     private val nodeSeekService: NodeSeekService,
-    private val glaDosService: GlaDosService,
-    private val iqyService: IqyService,
     private val eCloudService: ECloudService, private val eCloudLogic: ECloudLogic
 ) {
 
@@ -33,24 +29,19 @@ class ExecExtension(
         val hostLocButton = InlineKeyboardButton("HostLoc").callbackData("hostLocExec")
         val kuGouButton = InlineKeyboardButton("酷狗").callbackData("kuGouExec")
         val miHoYoButton = InlineKeyboardButton("米哈游").callbackData("miHoYoExec")
-        val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseExec")
         val stepButton = InlineKeyboardButton("刷步数").callbackData("stepExec")
         val weiboButton = InlineKeyboardButton("微博").callbackData("weiboExec")
         val douYuButton = InlineKeyboardButton("斗鱼").callbackData("douYuExec")
         val smZdmButton = InlineKeyboardButton("什么值得买").callbackData("smZdmExec")
-        val aliDrive = inlineKeyboardButton("阿里云盘", "aliDriveExec")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekExec")
-        val glaDos = inlineKeyboardButton("GlaDos", "glaDosExec")
-        val iqy = inlineKeyboardButton("爱奇艺", "iqyExec")
         val eCloud = inlineKeyboardButton("天翼云盘", "eCloudExec")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(hostLocButton, kuGouButton),
-            arrayOf(miHoYoButton, netEaseButton),
+            arrayOf(miHoYoButton),
             arrayOf(stepButton, weiboButton),
             arrayOf(douYuButton, smZdmButton),
-            arrayOf(aliDrive, nodeSeek),
-            arrayOf(glaDos, iqy),
+            arrayOf(nodeSeek),
             arrayOf(eCloud)
         )
     }
@@ -177,58 +168,6 @@ class ExecExtension(
         }
     }
 
-    fun TelegramSubscribe.netEaseExec() {
-        before { set(netEaseService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定网易云音乐账号")) }
-        callback("netEaseExec") {
-            val netEaseSignButton = InlineKeyboardButton("签到").callbackData("netEaseSign")
-            val sign1 = InlineKeyboardButton("音乐人签到（推荐任务）").callbackData("netEaseMusicianSign1")
-            val sign2 = inlineKeyboardButton("音乐人签到（每日任务）", "netEaseMusicianSign2")
-            val sign3 = inlineKeyboardButton("其他", "netEaseMusicianSign3")
-            val vipSign = inlineKeyboardButton("vip签到", "netEaseVipSign")
-            val markup = InlineKeyboardMarkup(
-                arrayOf(netEaseSignButton),
-                arrayOf(sign1),
-                arrayOf(sign2),
-                arrayOf(sign3),
-                arrayOf(vipSign)
-            )
-            editMessageText("网易云音乐", markup)
-        }
-        callback("netEaseSign") {
-            val netEaseEntity = firstArg<NetEaseEntity>()
-            NetEaseLogic.sign(netEaseEntity)
-            delay(3000)
-            NetEaseLogic.listenMusic(netEaseEntity)
-            editMessageText("网易云音乐签到成功")
-        }
-        callback("netEaseMusicianSign1") {
-            val netEaseEntity = firstArg<NetEaseEntity>()
-            NetEaseLogic.publish(netEaseEntity)
-            delay(3000)
-//            NetEaseLogic.myMusicComment(netEaseEntity)
-            editMessageText("网易云音乐人推荐任务完成成功")
-        }
-        callback("netEaseMusicianSign2") {
-            val netEaseEntity = firstArg<NetEaseEntity>()
-            NetEaseLogic.musicianSign(netEaseEntity)
-            delay(3000)
-            NetEaseLogic.publishAndShareMySongAndComment(netEaseEntity)
-            editMessageText("网易云音乐人每日任务完成成功")
-        }
-        callback("netEaseMusicianSign3") {
-            val netEaseEntity = firstArg<NetEaseEntity>()
-            NetEaseLogic.publishMLog(netEaseEntity)
-            delay(3000)
-            NetEaseLogic.publishMLog(netEaseEntity)
-            editMessageText("网易云音乐执行成功")
-        }
-        callback("netEaseVipSign") {
-            NetEaseLogic.vipSign(firstArg())
-            NetEaseLogic.receiveTaskReward(firstArg())
-            editMessageText("网易云音乐vip签到成功")
-        }
-    }
-
     fun TelegramSubscribe.stepExec() {
         before { set(stepService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定任何刷步数账号")) }
         callback("stepExec") {
@@ -300,74 +239,6 @@ class ExecExtension(
         }
     }
 
-    fun TelegramSubscribe.aliDrive() {
-        before { set(aliDriveService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定阿里云盘账号")) }
-        callback("aliDriveExec") {
-            val signButton = inlineKeyboardButton("签到", "aliDriveSign")
-            val receive = inlineKeyboardButton("领取", "aliDriveReceive")
-            val task = inlineKeyboardButton("完成任务", "aliDriveTask")
-            val receiveTask = inlineKeyboardButton("领取任务奖励", "aliDriveReceiveTask")
-            val deviceRoom = inlineKeyboardButton("时光设备间", "aliDriveDeviceRoom")
-            val card = inlineKeyboardButton("领取补签卡", "aliDriveCard")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(signButton), arrayOf(receive), arrayOf(task), arrayOf(receiveTask), arrayOf(deviceRoom),
-                arrayOf(card)
-            )
-            editMessageText("""
-                阿里云盘
-                完成任务会在你的云盘上上传图片、视频、新建文件夹等，介意勿用
-                完成任务如出现device offline错误，请找到阿里云盘的登录设备管理，下线一些设备即可
-            """.trimIndent(), inlineKeyboardMarkup)
-        }
-        callback("aliDriveSign") {
-            val entity: AliDriveEntity = firstArg()
-            val res = aliDriveLogic.sign(entity)
-            editMessageText(res.customMessage)
-        }
-        callback("aliDriveReceive") {
-            editMessageText("请发送领取哪天的奖励")
-            val day = nextMessage().text().toIntOrNull() ?: error("错误，不为数字")
-            val result = aliDriveLogic.receive(firstArg(), day)
-            editMessageText(result)
-        }
-        callback("aliDriveTask") {
-            editMessageText("完成阿里云盘每日任务，程序正在后台为您完成任务，任务完成时间会很长")
-            kotlin.runCatching {
-                aliDriveLogic.finishTask(firstArg())
-                sendMessage("#手动执行结果\n阿里云盘完成任务成功")
-            }.onFailure {
-                sendMessage("#手动执行结果\n阿里云盘完成任务失败，失败原因：${it.message}")
-            }
-        }
-        callback("aliDriveReceiveTask") {
-            editMessageText("请发送领取哪天的奖励")
-            val day = nextMessage().text().toIntOrNull() ?: error("错误，不为数字")
-            aliDriveLogic.signInInfo(firstArg())
-            val result = aliDriveLogic.receiveTask(firstArg(), day)
-            editMessageText(result)
-        }
-        callback("aliDriveDeviceRoom") {
-            editMessageText("完成阿里云盘时光设备间，程序正在后台为您完成任务，任务完成时间会很长")
-            kotlin.runCatching {
-                aliDriveLogic.finishDeviceRoom(firstArg())
-                sendMessage("#手动执行结果\n阿里云盘完成时光设备间成功")
-            }.onFailure {
-                sendMessage("#手动执行结果\n阿里云盘完成时光设备间失败，失败原因：${it.message}")
-            }
-        }
-        callback("aliDriveCard") {
-            editMessageText("领取阿里云盘补签卡，程序正在后台为您完成任务，任务完成时间会很长")
-            kotlin.runCatching {
-                aliDriveLogic.finishCard(firstArg())
-                delay(3000)
-                aliDriveLogic.receiveCard(firstArg())
-                sendMessage("#手动执行结果\n阿里云盘领取补签卡成功")
-            }.onFailure {
-                sendMessage("#手动执行结果\n阿里云盘领取补签卡失败，失败原因：${it.message}")
-            }
-        }
-    }
-
     fun TelegramSubscribe.nodeSeekExec() {
         before { set(nodeSeekService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定NodeSeek账号")) }
         callback("nodeSeekExec") {
@@ -389,41 +260,6 @@ class ExecExtension(
             }.onFailure {
                 sendMessage("#手动执行结果\nNodeSeek签到失败，${it.message}")
             }
-        }
-    }
-
-    fun TelegramSubscribe.glaDosExec() {
-        before { set(glaDosService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定GlaDos账号")) }
-        callback("glaDosExec") {
-            editMessageText("GlaDos", InlineKeyboardMarkup(
-                arrayOf(
-                    inlineKeyboardButton("签到", "glaDosSign"),
-                )
-            ))
-        }
-        callback("glaDosSign") {
-            val message = GlaDosLogic.sign(firstArg())
-            editMessageText(message)
-        }
-    }
-
-    fun TelegramSubscribe.iqyExec() {
-        before { iqyService.findByTgId(tgId).set("未绑定爱奇艺账号") }
-        callback("iqyExec") {
-            editMessageText("爱奇艺", InlineKeyboardMarkup(
-                arrayOf(
-                    inlineKeyboardButton("签到", "iqySign"),
-                    inlineKeyboardButton("观看任务", "iqyWatch")
-                )
-            ))
-        }
-        callback("iqySign") {
-            IqyLogic.taskSign(firstArg())
-            editMessageText("爱奇艺签到成功")
-        }
-        callback("iqyWatch") {
-            IqyLogic.finishTaskWatch(firstArg())
-            editMessageText("爱奇艺观看任务完成成功")
         }
     }
 

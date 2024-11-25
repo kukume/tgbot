@@ -31,8 +31,10 @@ object HostLocLogic {
     }
 
     private suspend fun checkLogin(cookie: String) {
+        val prepareCookie = prepareCookie()
+        val newCookie = prepareCookie + cookie
         val html = client.get("https://hostloc.com/home.php?mod=spacecp") {
-            cookieString(cookie)
+            cookieString(newCookie)
         }.bodyAsText()
         val text = Jsoup.parse(html).getElementsByTag("title").first()!!.text()
         val b = text.contains("个人资料")
@@ -124,7 +126,8 @@ object HostLocLogic {
     }
 
     private suspend fun prepareCookie(): String {
-        val html = client.get("https://hostloc.com/forum.php").bodyAsText()
+        val html = client.get("https://hostloc.com/forum.php") {
+        }.bodyAsText()
         val group = MyUtils.regexGroup("(?<=toNumbers\\(\").*?(?=\"\\))", html)
         if (group.isEmpty()) return ""
         val a = intArrToByteArr(toNumbers(group[0]))

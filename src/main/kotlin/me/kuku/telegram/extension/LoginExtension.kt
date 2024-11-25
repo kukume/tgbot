@@ -16,7 +16,6 @@ import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
 import me.kuku.utils.*
 import org.springframework.stereotype.Service
-import java.util.UUID
 
 @Service
 class LoginExtension(
@@ -28,18 +27,12 @@ class LoginExtension(
     private val hostLocService: HostLocService,
     private val huYaLogic: HuYaLogic, private val huYaService: HuYaService,
     private val kuGouService: KuGouService, private val kuGouLogic: KuGouLogic,
-    private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
     private val miHoYoService: MiHoYoService, private val miHoYoLogic: MiHoYoLogic,
-    private val twitterService: TwitterService,
-    private val pixivService: PixivService,
     private val smZdmService: SmZdmService, private val smZdmLogic: SmZdmLogic,
-    private val aliDriveLogic: AliDriveLogic, private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
     private val nodeSeekService: NodeSeekService,
-    private val glaDosService: GlaDosService,
-    private val iqyService: IqyService,
     private val eCloudService: ECloudService, private val eCloudLogic: ECloudLogic,
     private val linuxDoService: LinuxDoService
 ) {
@@ -52,29 +45,21 @@ class LoginExtension(
         val huYaButton = InlineKeyboardButton("虎牙").callbackData("huYaLogin")
         val kuGouButton = InlineKeyboardButton("酷狗").callbackData("kuGouLogin")
         val miHoYoButton = InlineKeyboardButton("米哈游").callbackData("miHoYoLogin")
-        val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseLogin")
         val stepButton = InlineKeyboardButton("刷步数").callbackData("stepLogin")
         val weiboStepButton = InlineKeyboardButton("微博").callbackData("weiboLogin")
-        val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterLogin")
-        val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivLogin")
         val smZdmButton = inlineKeyboardButton("什么值得买", "smZdmLogin")
-        val aliDriveButton = inlineKeyboardButton("阿里云盘", "aliDriveLogin")
         val leiShenButton = inlineKeyboardButton("雷神加速器", "leiShenLogin")
         val nodeSeekButton = inlineKeyboardButton("NodeSeek", "nodeSeekLogin")
-        val gloDos = inlineKeyboardButton("GloDos", "gloDosLogin")
-        val iqy = inlineKeyboardButton("爱奇艺", "iqyLogin")
         val eCloud = inlineKeyboardButton("天翼云盘", "eCloudLogin")
         val linuxDo = inlineKeyboardButton("LinuxDo", "linuxDoLogin")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
             arrayOf(huYaButton, kuGouButton),
-            arrayOf(miHoYoButton, netEaseButton),
+            arrayOf(miHoYoButton),
             arrayOf(stepButton, weiboStepButton),
-            arrayOf(twitterButton, pixivButton),
-            arrayOf(smZdmButton, aliDriveButton),
+            arrayOf(smZdmButton),
             arrayOf(leiShenButton, nodeSeekButton),
-            arrayOf(gloDos, iqy),
             arrayOf(eCloud, linuxDo)
         )
     }
@@ -405,72 +390,6 @@ class LoginExtension(
         }
     }
 
-
-    fun TelegramSubscribe.netEase() {
-        callback("netEaseLogin") {
-            val qrcodeButton = inlineKeyboardButton("扫码登录", "netEaseQrcodeLogin")
-            val passwordButton = inlineKeyboardButton("手机密码登录", "netEasePasswordLogin")
-            editMessageText("网易云登录", InlineKeyboardMarkup(arrayOf(qrcodeButton), arrayOf(passwordButton)))
-        }
-        callback("netEaseQrcodeLogin") {
-            val key = NetEaseLogic.qrcode()
-            val url = "http://music.163.com/login?codekey=$key"
-            var photoMessage: Message?
-            qrcode(url).let {
-                val photo = SendPhoto(chatId, it)
-                photoMessage = bot.asyncExecute(photo).message()
-                editMessageText("请使用网易云音乐App扫描下面二维码登录", returnButton = false)
-            }
-            var scan = true
-            var i = 0
-            while (true) {
-                if (i++ > 20) {
-                    editMessageText("网易云二维码已过期")
-                    break
-                }
-                delay(3000)
-                val result = NetEaseLogic.checkQrcode(key)
-                when (result.code) {
-                    200 -> {
-                        val netEaseEntity = result.data()
-                        val newEntity = netEaseService.findByTgId(tgId) ?: NetEaseEntity().init()
-                        newEntity.csrf = netEaseEntity.csrf
-                        newEntity.musicU = netEaseEntity.musicU
-                        netEaseService.save(newEntity)
-                        editMessageText("绑定网易云音乐成功")
-                        break
-                    }
-                    500 -> {
-                        editMessageText("网易云音乐登录失败，${result.message}")
-                        break
-                    }
-                    1 -> {
-                        if (scan) {
-                            editMessageText(result.message)
-                            scan = false
-                        }
-                    }
-                }
-            }
-            photoMessage?.delete()
-        }
-        callback("netEasePasswordLogin") {
-            editMessageText("请发送网易云音乐登录的手机号")
-            val phone = nextMessage().text()
-            editMessageText("请发送网易云音乐登录的密码")
-            val password = nextMessage().text()
-            val result = NetEaseLogic.login(phone, password)
-            if (result.success()) {
-                val entity = netEaseService.findByTgId(tgId) ?: NetEaseEntity().init()
-                val newEntity = result.data()
-                entity.csrf = newEntity.csrf
-                entity.musicU = newEntity.musicU
-                netEaseService.save(entity)
-                editMessageText("绑定网易云音乐成功")
-            } else editMessageText("绑定网易云音乐失败，${result.message}")
-        }
-    }
-
     fun TelegramSubscribe.xiaomiStepLogin() {
         callback("stepLogin") {
             editMessageText("""
@@ -560,71 +479,6 @@ class LoginExtension(
             if (fail) {
                 editMessageText("微博二维码已过期")
             }
-        }
-    }
-
-    fun TelegramSubscribe.twitterLogin()  {
-        callback("twitterLogin") {
-            val loginButton = inlineKeyboardButton("模拟登录", "twitterLoginByUsername")
-            val cookieButton = inlineKeyboardButton("cookie登录", "twitterCookieLogin")
-            val markup = InlineKeyboardMarkup(
-                arrayOf(loginButton),
-                arrayOf(cookieButton)
-            )
-            editMessageText("请选择twitter登录方式", markup)
-        }
-        callback("twitterLoginByUsername") {
-            editMessageText("请发送twitter的用户名")
-            val username = nextMessage().text()
-            editMessageText("请发送twitter的密码")
-            val password = nextMessage().text()
-            val twitterEntity = TwitterLogic.login(username, password)
-            val queryEntity = twitterService.findByTgId(tgId) ?: TwitterEntity().init()
-            queryEntity.cookie = twitterEntity.cookie
-            queryEntity.csrf = twitterEntity.csrf
-            queryEntity.tId = twitterEntity.tId
-            queryEntity.tRestId = twitterEntity.tRestId
-            twitterService.save(queryEntity)
-            editMessageText("绑定twitter成功")
-        }
-        callback("twitterCookieLogin") {
-            editMessageText("请发送twitter的cookie")
-            val cookie = nextMessage().text()
-            val ct0 = OkUtils.cookie(cookie, "ct0") ?: error("cookie中必须包含ct0")
-            val entity = TwitterEntity().also { entity ->
-                entity.cookie = cookie
-                entity.csrf = ct0
-            }
-            TwitterLogic.friendTweet(entity)
-            val queryEntity = twitterService.findByTgId(tgId) ?: TwitterEntity().init()
-            queryEntity.cookie = cookie
-            queryEntity.csrf = ct0
-            twitterService.save(queryEntity)
-            editMessageText("绑定twitter成功")
-        }
-    }
-
-    fun TelegramSubscribe.pixivLogin() {
-        callback("pixivLogin") {
-            val loginButton = inlineKeyboardButton("使用微博app扫码登陆", "pixivLoginByWeibo")
-            val cookieButton = inlineKeyboardButton("cookie登录", "pixivCookieLogin")
-            val markup = InlineKeyboardMarkup(
-                arrayOf(loginButton),
-                arrayOf(cookieButton)
-            )
-            editMessageText("请选择pixiv登录方式", markup)
-        }
-        callback("pixivLoginByWeibo") {
-            answerCallbackQuery("没写")
-        }
-        callback("pixivCookieLogin") {
-            editMessageText("请发送pixiv的cookie")
-            val cookie = nextMessage().text()
-            PixivLogic.followImage(PixivEntity().also { ii -> ii.cookie = cookie })
-            val pixivEntity = pixivService.findByTgId(tgId) ?: PixivEntity().init()
-            pixivEntity.cookie = cookie
-            pixivService.save(pixivEntity)
-            editMessageText("绑定pixiv成功")
         }
     }
 
@@ -724,59 +578,6 @@ class LoginExtension(
         }
     }
 
-    fun TelegramSubscribe.aliDrive() {
-        callback("aliDriveLogin") {
-            editMessageText("""
-                请选择阿里云盘登录方式
-                登陆成功之后账号可能会用于完成加入共享相册的任务
-            """.trimIndent(), InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("使用阿里云盘app扫码登录", "aliDriveQrcodeLogin")),
-                arrayOf(inlineKeyboardButton("使用阿里云盘RefreshToken登录", "aliDriveTokenLogin"))
-            ))
-        }
-        callback("aliDriveQrcodeLogin") {
-            val qrcode = aliDriveLogic.login1()
-            var photoMessage: Message?
-            qrcode(qrcode.qrcodeUrl).let {
-                val sendPhoto = SendPhoto(chatId, it)
-                photoMessage = bot.asyncExecute(sendPhoto).message()
-                editMessageText("请使用阿里云盘app扫码登陆", returnButton = false)
-            }
-            var i = 0
-            while (true) {
-                if (++i > 20) {
-                    editMessageText("阿里云盘登陆二维码已过期")
-                    break
-                }
-                delay(3000)
-                val commonResult = aliDriveLogic.login2(qrcode)
-                if (commonResult.success()) {
-                    val data = commonResult.data()
-                    val refreshToken = data.refreshToken
-                    val aliDriveEntity = aliDriveService.findByTgId(tgId) ?: AliDriveEntity().init()
-                    aliDriveEntity.refreshToken = refreshToken
-                    if (aliDriveEntity.deviceId.isEmpty()) aliDriveEntity.deviceId = UUID.randomUUID().toString()
-                    aliDriveService.save(aliDriveEntity)
-                    editMessageText("绑定阿里云盘成功")
-                    break
-                } else if (commonResult.code != 0) {
-                    editMessageText(commonResult.message)
-                    break
-                }
-            }
-            photoMessage?.delete()
-        }
-        callback("aliDriveTokenLogin") {
-            editMessageText("请发送阿里云盘的RefreshToken")
-            val refreshToken = nextMessage().text()
-            val aliDriveEntity = aliDriveService.findByTgId(tgId) ?: AliDriveEntity().init()
-            aliDriveEntity.refreshToken = refreshToken
-            if (aliDriveEntity.deviceId.isEmpty()) aliDriveEntity.deviceId = UUID.randomUUID().toString()
-            aliDriveService.save(aliDriveEntity)
-            editMessageText("绑定阿里云盘成功")
-        }
-    }
-
     fun TelegramSubscribe.leiShenLogin() {
         callback("leiShenLogin") {
             editMessageText("请选择雷神加速器登录方式\n使用账号密码登录会记录账号密码以自动更新cookie", InlineKeyboardMarkup(
@@ -813,77 +614,6 @@ class LoginExtension(
             entity.cookie = cookie
             nodeSeekService.save(entity)
             editMessageText("绑定NodeSeek成功")
-        }
-    }
-
-    fun TelegramSubscribe.gloDosSign() {
-        callback("gloDosLogin") {
-            editMessageText("请选择Glodos的登陆方式", InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("使用cookie登陆", "glaDosCookieLogin")),
-                arrayOf(inlineKeyboardButton("使用邮箱验证码登录", "glaDosPasswordLogin")),
-            ))
-        }
-        callback("glaDosCookieLogin") {
-            editMessageText("请发送Glados的cookie")
-            val text = nextMessage().text()
-            val entity = glaDosService.findByTgId(tgId) ?: GlaDosEntity().init()
-            entity.cookie = text
-            glaDosService.save(entity)
-            editMessageText("绑定Glados成功")
-        }
-        callback("glaDosPasswordLogin") {
-            editMessageText("请发送Glados的登录邮箱")
-            val email = nextMessage().text()
-            GlaDosLogic.sendCode(email)
-            editMessageText("请发送Glados登录邮箱${email}的验证码")
-            val code = nextMessage().text()
-            val cookie = GlaDosLogic.verifyCode(email, code)
-            val entity = glaDosService.findByTgId(tgId) ?: GlaDosEntity().init()
-            entity.cookie = cookie
-            glaDosService.save(entity)
-            editMessageText("绑定Glados成功")
-        }
-    }
-
-    fun TelegramSubscribe.iqyLogin() {
-        callback("iqyLogin") {
-            editMessageText("请选择爱奇艺的登陆方式", InlineKeyboardMarkup(
-                arrayOf(inlineKeyboardButton("扫码登陆", "iqyQrcodeLogin")),
-            ))
-        }
-        callback("iqyQrcodeLogin") {
-            val qrcode = IqyLogic.login1()
-            var photoMessage: Message?
-            qrcode.imageUrl.let {
-                val sendPhoto = SendPhoto(chatId, it)
-                photoMessage = bot.asyncExecute(sendPhoto).message()
-                editMessageText("请使用爱奇艺App扫码登陆", returnButton = false)
-            }
-            var i = 0
-            while (true) {
-                if (++i > 20) {
-                    editMessageText("爱奇艺登陆二维码已过期")
-                    break
-                }
-                delay(3000)
-                val newIqyEntity = try {
-                    IqyLogic.login2(qrcode)
-                } catch (_: QrcodeScanException) {
-                    continue
-                }
-                val iqyEntity = iqyService.findByTgId(tgId) ?: IqyEntity().init()
-                iqyEntity.authCookie = newIqyEntity.authCookie
-                iqyEntity.userid = newIqyEntity.userid
-                iqyEntity.platform = newIqyEntity.platform
-                iqyEntity.deviceId = newIqyEntity.deviceId
-                iqyEntity.qyId = newIqyEntity.qyId
-                iqyEntity.cookie = newIqyEntity.cookie
-                iqyEntity.p00001 = newIqyEntity.p00001
-                iqyService.save(iqyEntity)
-                editMessageText("绑定爱奇艺成功")
-                break
-            }
-            photoMessage?.delete()
         }
     }
 

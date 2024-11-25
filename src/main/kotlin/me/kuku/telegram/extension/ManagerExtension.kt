@@ -19,17 +19,11 @@ class ManagerExtension(
     private val huYaService: HuYaService,
     private val kuGouService: KuGouService,
     private val miHoYoService: MiHoYoService,
-    private val netEaseService: NetEaseService,
     private val stepService: StepService,
     private val weiboService: WeiboService,
-    private val twitterService: TwitterService,
-    private val pixivService: PixivService,
     private val smZdmService: SmZdmService,
-    private val aliDriveService: AliDriveService,
     private val leiShenService: LeiShenService,
     private val nodeSeekService: NodeSeekService,
-    private val glaDosService: GlaDosService,
-    private val iqyService: IqyService,
     private val eCloudService: ECloudService,
     private val linuxDoService: LinuxDoService
 ) {
@@ -42,29 +36,21 @@ class ManagerExtension(
         val huYaButton = InlineKeyboardButton("虎牙").callbackData("huYaManager")
         val kuGouButton = InlineKeyboardButton("酷狗").callbackData("kuGouManager")
         val miHoYoButton = InlineKeyboardButton("米哈游").callbackData("miHoYoManager")
-        val netEaseButton = InlineKeyboardButton("网易云音乐").callbackData("netEaseManager")
         val xiaomiStepButton = InlineKeyboardButton("刷步数").callbackData("stepManager")
         val weiboButton = InlineKeyboardButton("微博").callbackData("weiboManager")
-        val twitterButton = InlineKeyboardButton("twitter").callbackData("twitterManager")
-        val pixivButton = InlineKeyboardButton("pixiv").callbackData("pixivManager")
         val smZdmButton = InlineKeyboardButton("什么值得买").callbackData("smZdmManager")
-        val aliDrive = inlineKeyboardButton("阿里云盘", "aliDriveManager")
         val leiShen = inlineKeyboardButton("雷神加速器", "leiShenManager")
         val nodeSeek = inlineKeyboardButton("NodeSeek", "nodeSeekManager")
-        val glaDos = inlineKeyboardButton("Glados", "glaDosManager")
-        val iqy = inlineKeyboardButton("爱奇艺", "iqyManager")
         val eCloud = inlineKeyboardButton("天翼云盘", "eCloudManager")
         val linuxDo = inlineKeyboardButton("LinuxDo", "linuxDoManager")
         return InlineKeyboardMarkup(
             arrayOf(baiduButton, biliBiliButton),
             arrayOf(douYuButton, hostLocButton),
             arrayOf(huYaButton, kuGouButton),
-            arrayOf(miHoYoButton, netEaseButton),
+            arrayOf(miHoYoButton),
             arrayOf(xiaomiStepButton, weiboButton),
-            arrayOf(twitterButton, pixivButton),
-            arrayOf(smZdmButton, aliDrive),
+            arrayOf(smZdmButton),
             arrayOf(leiShen, nodeSeek),
-            arrayOf(glaDos, iqy),
             arrayOf(eCloud, linuxDo)
         )
     }
@@ -232,33 +218,6 @@ class ManagerExtension(
         }
     }
 
-    fun TelegramSubscribe.netEaseManager() {
-        before { set(netEaseService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定网易云音乐账号")) }
-        callback("netEaseManager") {}
-        callback("netEaseSignSwitch") { firstArg<NetEaseEntity>().also { it.sign = !it.sign } }
-        callback("netEaseMusicianSignSwitch") { firstArg<NetEaseEntity>().also { it.musicianSign = !it.musicianSign } }
-        callback("netEaseVipSignSwitch") { firstArg<NetEaseEntity>().also { it.vipSign = !it.vipSign } }
-        callback("netEaseListenSwitch") { firstArg<NetEaseEntity>().also { it.listen = !it.listen } }
-        after {
-            val netEaseEntity = firstArg<NetEaseEntity>()
-            netEaseService.save(netEaseEntity)
-            val signButton = InlineKeyboardButton("${netEaseEntity.sign}自动签到")
-                .callbackData("netEaseSignSwitch")
-            val musicianSignButton = InlineKeyboardButton("${netEaseEntity.musicianSign}音乐人自动签到")
-                .callbackData("netEaseMusicianSignSwitch")
-            val vipSign = inlineKeyboardButton("${netEaseEntity.vipSign}vip自动签到", "netEaseVipSignSwitch")
-            val listen = inlineKeyboardButton("${netEaseEntity.listen}刷歌曲播放", "netEaseListenSwitch")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(signButton),
-                arrayOf(musicianSignButton),
-                arrayOf(vipSign),
-                arrayOf(listen)
-            )
-            editMessageText("""
-                网易云签到管理
-            """.trimIndent(), inlineKeyboardMarkup, top = true)
-        }
-    }
 
     fun TelegramSubscribe.stepManager() {
         before { set(stepService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定刷步数的账号")) }
@@ -309,42 +268,6 @@ class ManagerExtension(
         }
     }
 
-    fun TelegramSubscribe.twitterManager() {
-        before { set(twitterService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定Twitter账号")) }
-        callback("twitterManager") {}
-        callback("twitterPushSwitch") { firstArg<TwitterEntity>().also { it.push = !it.push } }
-        after {
-            val twitterEntity = firstArg<TwitterEntity>()
-            twitterService.save(twitterEntity)
-            val pushButton = InlineKeyboardButton("${twitterEntity.push}推文推送")
-                .callbackData("twitterPushSwitch")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(pushButton)
-            )
-            editMessageText("""
-                推特管理
-            """.trimIndent(), inlineKeyboardMarkup, top = true)
-        }
-    }
-
-    fun TelegramSubscribe.pixivManager() {
-        before { set(pixivService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定pixiv")) }
-        callback("pixivManager") {}
-        callback("pixivPushSwitch") { firstArg<PixivEntity>().also { it.push = !it.push } }
-        after {
-            val pixivEntity = firstArg<PixivEntity>()
-            pixivService.save(pixivEntity)
-            val pushButton = InlineKeyboardButton("${pixivEntity.push}插画推送")
-                .callbackData("pixivPushSwitch")
-            val inlineKeyboardMarkup = InlineKeyboardMarkup(
-                arrayOf(pushButton)
-            )
-            editMessageText("""
-                pixiv管理
-            """.trimIndent(), inlineKeyboardMarkup, top = true)
-        }
-    }
-
     fun TelegramSubscribe.smZdmManager() {
         before { set(smZdmService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定什么值得买账号")) }
         callback("smZdmManager") {}
@@ -357,41 +280,6 @@ class ManagerExtension(
             val markup = InlineKeyboardMarkup(arrayOf(signButton))
             editMessageText("""
                 什么值得买管理
-            """.trimIndent(), markup, top = true)
-        }
-    }
-
-    fun TelegramSubscribe.aliDriveManager() {
-        before { set(aliDriveService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定阿里云盘账号")) }
-        callback("aliDriveManager") {}
-        callback("aliDriveSignSwitch") { firstArg<AliDriveEntity>().also { it.sign = !it.sign } }
-        callback("aliDriveReceiveSwitch") { firstArg<AliDriveEntity>().also { it.receive = !it.receive } }
-        callback("aliDriveTaskSwitch") { firstArg<AliDriveEntity>().also { it.task = !it.task } }
-        callback("aliDriveReceiveTaskSwitch") { firstArg<AliDriveEntity>().also { it.receiveTask = !it.receiveTask } }
-        callback("aliDriveDeviceRoomTurn") { firstArg<AliDriveEntity>().also { it.deviceRoom = !it.deviceRoom } }
-        callback("aliDriveCardSwitch") { firstArg<AliDriveEntity>().also { it.card = !it.card } }
-        after {
-            val aliDriveEntity = firstArg<AliDriveEntity>()
-            aliDriveService.save(aliDriveEntity)
-            val signButton = inlineKeyboardButton("${aliDriveEntity.sign}自动签到",
-                "aliDriveSignSwitch")
-            val receiveButton = inlineKeyboardButton("${aliDriveEntity.receive}自动领取",
-                "aliDriveReceiveSwitch")
-            val task = inlineKeyboardButton("${aliDriveEntity.task}完成任务",
-                "aliDriveTaskSwitch")
-            val receiveTask = inlineKeyboardButton("${aliDriveEntity.receiveTask}领取任务奖励",
-                "aliDriveReceiveTaskSwitch")
-            val deviceRoom = InlineKeyboardButton("${aliDriveEntity.deviceRoom}时光设备间")
-                .callbackData("aliDriveDeviceRoomTurn")
-            val card = inlineKeyboardButton("${aliDriveEntity.card}领取补签卡",
-                "aliDriveCardSwitch")
-            val markup = InlineKeyboardMarkup(arrayOf(signButton), arrayOf(receiveButton),
-                arrayOf(task), arrayOf(receiveTask), arrayOf(deviceRoom), arrayOf(card)
-            )
-            editMessageText("""
-                阿里云盘，如自动签到为关，自动领取不生效
-                完成任务会在你的云盘上上传图片、视频、新建文件夹等，介意勿用
-                完成任务如出现device offline错误，请找到阿里云盘的登录设备管理，下线一些设备即可
             """.trimIndent(), markup, top = true)
         }
     }
@@ -459,42 +347,6 @@ class ManagerExtension(
             )
             editMessageText("""
                 NodeSeek
-            """.trimIndent(), markup, top = true)
-        }
-    }
-
-    fun TelegramSubscribe.glaDosManager() {
-        before { set(glaDosService.findByTgId(tgId) ?: errorAnswerCallbackQuery("未绑定GlaDos账号")) }
-        callback("glaDosManager") {}
-        callback("glaDosSignSwitch") { firstArg<GlaDosEntity>().also { it.sign = !it.sign } }
-        after {
-            val glaDosEntity: GlaDosEntity = firstArg()
-            glaDosService.save(glaDosEntity)
-            val markup = InlineKeyboardMarkup(
-                arrayOf(
-                    inlineKeyboardButton("${glaDosEntity.sign}自动签到", "glaDosSignSwitch"),
-                )
-            )
-            editMessageText("""
-                GlaDos
-            """.trimIndent(), markup, top = true)
-        }
-    }
-
-    fun TelegramSubscribe.iqyManager() {
-        before { iqyService.findByTgId(tgId).set("未绑定爱奇艺账号") }
-        callback("iqyManager") {}
-        callback("iqySignSwitch") { firstArg<IqyEntity>().also { it.sign = !it.sign } }
-        after {
-            val entity: IqyEntity = firstArg()
-            iqyService.save(entity)
-            val markup = InlineKeyboardMarkup(
-                arrayOf(
-                    inlineKeyboardButton("${entity.sign}自动签到", "iqySignSwitch"),
-                )
-            )
-            editMessageText("""
-                爱奇艺
             """.trimIndent(), markup, top = true)
         }
     }
