@@ -79,5 +79,5 @@ tasks.bootJar {
 }
 
 application {
-    mainClass.set("me.kuku.tgbot.TelegramApplicationKt")
+    mainClass.set("me.kuku.telegram.TelegramApplicationKt")
 }
