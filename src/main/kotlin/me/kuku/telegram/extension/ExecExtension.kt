@@ -116,11 +116,9 @@ class ExecExtension(
         }
         callback("hostLocSign") {
             val hostLocEntity = firstArg<HostLocEntity>()
-            for (i in 0 until 12) {
-                editMessageText("正在进行第${i}次访问HostLoc用户主页")
-                HostLocLogic.singleSign(hostLocEntity.cookie)
-            }
-            editMessageText("HostLoc签到成功")
+            editMessageText("后台进行访问HostLoc用户主页，结果稍后发送")
+            HostLocLogic.sign(hostLocEntity.cookie)
+            sendMessage("#手动执行结果\nHostLoc签到成功")
         }
     }
 
@@ -185,14 +183,14 @@ class ExecExtension(
         callback("leXinStepExec") {
             editMessageText("请发送乐心运动下需要刷的步数")
             val step = nextMessage().text().toIntOrNull() ?: error("步数不为数字")
-            val res = LeXinStepLogic.modifyStepCount(firstArg(), step)
-            editMessageText(res.message)
+            LeXinStepLogic.modifyStepCount(firstArg(), step)
+            editMessageText("修改步数成功")
         }
         callback("xiaomiStepExec") {
             editMessageText("请发送小米运动下需要刷的步数")
             val step = nextMessage().text().toIntOrNull() ?: error("步数不为数字")
-            val res = XiaomiStepLogic.modifyStepCount(firstArg(), step)
-            editMessageText(res.message)
+            XiaomiStepLogic.modifyStepCount(firstArg(), step)
+            editMessageText("修改步数成功")
         }
     }
 
@@ -204,8 +202,7 @@ class ExecExtension(
             editMessageText("微博", markup)
         }
         callback("superTalkSign") {
-            val result = WeiboLogic.superTalkSign(firstArg())
-            editMessageText(result.message)
+            WeiboLogic.superTalkSign(firstArg())
         }
     }
 

@@ -10,7 +10,7 @@ import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.HuYaLogic
 import me.kuku.telegram.context.sendTextMessage
-import me.kuku.utils.client
+import me.kuku.telegram.utils.client
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -33,9 +33,7 @@ class HuYaScheduled(
         for (huYaEntity in list) {
             kotlin.runCatching {
                 delay(3000)
-                val baseResult = huYaLogic.live(huYaEntity)
-                if (baseResult.failure()) return@runCatching
-                val lives = baseResult.data()
+                val lives = huYaLogic.live(huYaEntity)
                 val tgId = huYaEntity.tgId
                 if (!huYaLiveMap.containsKey(tgId)) huYaLiveMap[tgId] = mutableMapOf()
                 val map = huYaLiveMap[tgId]!!

@@ -10,8 +10,8 @@ import com.pengrad.telegrambot.model.Update
 import com.pengrad.telegrambot.model.request.*
 import com.pengrad.telegrambot.request.*
 import com.pengrad.telegrambot.response.SendResponse
+import kotlinx.coroutines.runBlocking
 import me.kuku.telegram.utils.CacheManager
-import me.kuku.utils.JobManager
 import org.springframework.stereotype.Component
 import java.io.Serializable
 import java.time.Duration
@@ -50,8 +50,11 @@ abstract class MessageContext: Context() {
 
     suspend fun Message.delete(timeout: Long = 0) {
         if (timeout > 0) {
-            JobManager.delay(timeout) {
-                bot.asyncExecute(DeleteMessage(chatId, this@delete.messageId()))
+            Thread.startVirtualThread {
+                runBlocking {
+                    delete(timeout)
+                    bot.asyncExecute(DeleteMessage(chatId, this@delete.messageId()))
+                }
             }
         } else {
             bot.asyncExecute(DeleteMessage(chatId, this.messageId()))

@@ -7,8 +7,11 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import me.kuku.telegram.entity.LeiShenEntity
-import me.kuku.utils.*
+import me.kuku.telegram.utils.*
 import java.net.URLEncoder
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 object LeiShenLogic {
 
@@ -24,7 +27,7 @@ object LeiShenLogic {
                 "$key=$value"
             }
         val convert =  sortedFields.joinToString("&") + "&key=5C5A639C20665313622F51E93E3F2783"
-        val md5 = MD5Utils.toMD5(convert)
+        val md5 = convert.md5()
         params.put("sign", md5)
         val jsonNode = client.post("https://webapi.leigod.com/api/auth/login/v1") {
             setJsonBody(params)
@@ -34,7 +37,8 @@ object LeiShenLogic {
         val info = data["login_info"]
         val accountToken = info["account_token"].asText()
         val nnToken = info["nn_token"].asText()
-        val expiryTime = DateTimeFormatterUtils.parseToDate(info["expiry_time"].asText(), "yyyy-MM-dd HH:mm:ss").time
+        val expiryTime = LocalDateTime.parse(info["expiry_time"].asText(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+            .atZone(ZoneId.systemDefault()).toEpochSecond()
         return LeiShenEntity().also {
             it.accountToken = accountToken
             it.nnToken = nnToken

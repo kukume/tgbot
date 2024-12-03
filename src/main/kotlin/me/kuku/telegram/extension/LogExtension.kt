@@ -6,10 +6,10 @@ import me.kuku.telegram.context.AbilitySubscriber
 import me.kuku.telegram.context.TelegramSubscribe
 import me.kuku.telegram.context.inlineKeyboardButton
 import me.kuku.telegram.entity.LogService
-import me.kuku.utils.DateTimeFormatterUtils
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Component
 class LogExtension(
@@ -29,9 +29,9 @@ class LogExtension(
         if (list.isEmpty())
             list.add(arrayOf(InlineKeyboardButton("无").callbackData("logNone")))
         val up = before.minusDays(1).toLocalDate()
-        val upStr = DateTimeFormatterUtils.format(up, "yyyy-MM-dd")
+        val upStr = up.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         val down = before.plusDays(1).toLocalDate()
-        val downStr = DateTimeFormatterUtils.format(down, "yyyy-MM-dd")
+        val downStr = down.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         val deepButton = arrayOf(inlineKeyboardButton("上一天", "log-$upStr"), inlineKeyboardButton("下一天", "log-$downStr"))
         list.add(deepButton)
         return InlineKeyboardMarkup(*list.toTypedArray())
@@ -41,7 +41,7 @@ class LogExtension(
     fun AbilitySubscriber.logShow() {
         sub("log") {
             val before = LocalDate.now().atTime(0, 0)
-            sendMessage("${DateTimeFormatterUtils.format(before, "yyyy-MM-dd")}的自动签到日志，点击可查看详情",
+            sendMessage("${before.format(DateTimeFormatter.ofPattern( "yyyy-MM-dd"))}的自动签到日志，点击可查看详情",
                 replyMarkup(before, before.plusDays(1), tgId))
         }
     }
@@ -49,7 +49,7 @@ class LogExtension(
     fun TelegramSubscribe.logSwitch() {
         callbackStartsWith("log-") {
             val data = query.data().substring(4)
-            val before = DateTimeFormatterUtils.parseToLocalDate(data, "yyyy-MM-dd")
+            val before = LocalDate.parse(data, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val beforeTime = before.atTime(0, 0)
             editMessageText("${before}的自动签到日志", replyMarkup(beforeTime, beforeTime.plusDays(1), tgId),
                 returnButton = false)

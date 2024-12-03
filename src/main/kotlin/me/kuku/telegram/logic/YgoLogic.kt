@@ -1,7 +1,9 @@
 package me.kuku.telegram.logic
 
-import me.kuku.utils.OkHttpKtUtils
-import me.kuku.utils.toUrlEncode
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import me.kuku.telegram.utils.client
+import me.kuku.telegram.utils.toUrlEncode
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
@@ -12,7 +14,7 @@ import org.springframework.stereotype.Service
 class YgoLogic {
 
     suspend fun search(name: String): List<Card> {
-        val str = OkHttpKtUtils.getStr("https://ygocdb.com/?search=${name.toUrlEncode()}")
+        val str = client.get("https://ygocdb.com/?search=${name.toUrlEncode()}").bodyAsText()
         val elements = Jsoup.parse(str).select(".card")
         val list = mutableListOf<Card>()
         for (element in elements) {
@@ -35,7 +37,7 @@ class YgoLogic {
 
     suspend fun searchDetail(id: Long): Card {
         val url = "https://ygocdb.com/card/$id"
-        val str = OkHttpKtUtils.getStr(url)
+        val str = client.get(url).bodyAsText()
         val document = Jsoup.parse(str)
         val imageUrl = document.select(".cardimg img").first()!!.attr("src")
         val spans = document.select(".detail .names span").filter { it -> it.attributes().isEmpty }

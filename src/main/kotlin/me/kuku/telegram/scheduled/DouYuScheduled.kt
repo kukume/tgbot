@@ -13,8 +13,7 @@ import me.kuku.telegram.logic.DouYuFish
 import me.kuku.telegram.logic.DouYuLogic
 import me.kuku.telegram.context.sendPic
 import me.kuku.telegram.context.sendTextMessage
-import me.kuku.utils.JobManager
-import me.kuku.utils.client
+import me.kuku.telegram.utils.client
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -41,10 +40,8 @@ class DouYuScheduled(
         val list = douYuService.findByLive(Status.ON)
         for (douYuEntity in list) {
             kotlin.runCatching {
-                val baseResult = douYuLogic.room(douYuEntity)
                 delay(3000)
-                if (baseResult.failure()) return@runCatching
-                val rooms = baseResult.data()
+                val rooms = douYuLogic.room(douYuEntity)
                 val tgId = douYuEntity.tgId
                 if (!douYuLiveMap.containsKey(tgId)) douYuLiveMap[tgId] = mutableMapOf()
                 val map = douYuLiveMap[tgId]!!
@@ -78,13 +75,12 @@ class DouYuScheduled(
         val list = douYuService.findByTitleChange(Status.ON)
         for (douYuEntity in list) {
             kotlin.runCatching {
-                val baseResult = douYuLogic.room(douYuEntity)
+                val data = douYuLogic.room(douYuEntity)
                 delay(3000)
-                if (baseResult.failure()) return@runCatching
                 val tgId = douYuEntity.tgId
                 if (!douYuTitleMap.containsKey(tgId)) douYuTitleMap[tgId] = mutableMapOf()
                 val map = douYuTitleMap[tgId]!!
-                for (room in baseResult.data()) {
+                for (room in data) {
                     val name = room.name
                     val roomId = room.roomId
                     val value = map[roomId]
@@ -136,9 +132,9 @@ class DouYuScheduled(
                     for (douYuFish in newList) {
                         val text = "#斗鱼鱼吧动态推送\n#${douYuFish.nickname}\n标题：${douYuFish.title}\n内容：${douYuFish.content}\n链接：${douYuFish.url}"
                         if (douYuFish.image.isNotEmpty()) {
-                            JobManager.delay(1000 * 60) {
+//                            JobManager.delay(1000 * 60) {
                                 telegramBot.sendPic(tgId, text, douYuFish.image)
-                            }
+//                            }
                         } else {
                             telegramBot.asyncExecute(SendMessage(tgId, text))
                         }

@@ -3,11 +3,13 @@ package me.kuku.telegram.logic
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import me.kuku.telegram.config.api
 import me.kuku.telegram.entity.LinuxDoEntity
 import me.kuku.telegram.entity.LinuxDoService
-import me.kuku.utils.*
+import me.kuku.telegram.utils.*
 import org.jsoup.Jsoup
 import org.springframework.stereotype.Service
 
@@ -61,8 +63,14 @@ class LinuxDoLogic(
             }
             val jsonNode = csrfResponse.body<JsonNode>()
             val csrf = jsonNode["csrf"].asText()
-            val tempCookie = csrfResponse.cookie()
-            val response = client.post("https://linux.do/session") {
+            val tempCookie = csrfResponse.setCookie().renderCookieHeader()
+            val response = client.submitForm("https://linux.do/session",
+                parameters {
+                    append("login", username)
+                    append("password", password)
+                    append("second_factor_method", "1")
+                    append("timezone", "Asia/Shanghai")
+                }) {
                 headers {
                     append("X-CSRF-Token", csrf)
                     append("X-Requested-With", "XMLHttpRequest")
@@ -70,16 +78,10 @@ class LinuxDoLogic(
                     origin("https://linux.do")
                     referer("https://linux.do/")
                 }
-                setFormDataContent {
-                    append("login", username)
-                    append("password", password)
-                    append("second_factor_method", "1")
-                    append("timezone", "Asia/Shanghai")
-                }
             }
             val loginNode = response.body<JsonNode>()
             if (loginNode.has("error")) error(loginNode["error"].asText())
-            return response.cookie()
+            return response.setCookie().renderCookieHeader()
         }
 
 

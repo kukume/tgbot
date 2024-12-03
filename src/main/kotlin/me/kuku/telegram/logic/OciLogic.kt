@@ -12,8 +12,8 @@ import com.oracle.bmc.identity.model.AvailabilityDomain
 import com.oracle.bmc.identity.model.Compartment
 import com.oracle.bmc.identity.requests.ListAvailabilityDomainsRequest
 import com.oracle.bmc.identity.requests.ListCompartmentsRequest
+import io.ktor.util.*
 import me.kuku.telegram.entity.OciEntity
-import me.kuku.utils.base64Encode
 
 object OciLogic {
 
@@ -183,7 +183,7 @@ object OciLogic {
                 sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g' /etc/ssh/sshd_config;
                 sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config;
                 sudo reboot
-            """.trimIndent().base64Encode()))
+            """.trimIndent().encodeBase64()))
             .build()
         return computeClient(ociEntity).use {
             val response = it

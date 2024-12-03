@@ -1,11 +1,13 @@
 @file:Suppress("VulnerableLibrariesLocal")
 
 plugins {
-    val kotlinVersion = "2.0.20"
+    val kotlinVersion = "2.1.0"
+    val ktorVersion = "3.0.1"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
-    id("org.springframework.boot") version "3.3.3"
+    id("org.springframework.boot") version "3.4.0"
     id("io.spring.dependency-management") version "1.1.6"
+    id("io.ktor.plugin") version ktorVersion
 }
 
 group = "me.kuku"
@@ -17,13 +19,25 @@ repositories {
     mavenCentral()
 }
 
+fun DependencyHandlerScope.ktor() {
+    implementation("io.ktor:ktor-server-core")
+    implementation("io.ktor:ktor-server-status-pages")
+    implementation("io.ktor:ktor-server-call-logging")
+    implementation("io.ktor:ktor-server-content-negotiation")
+    implementation("io.ktor:ktor-server-netty")
+
+    implementation("io.ktor:ktor-serialization-jackson")
+
+    implementation("io.ktor:ktor-client-core")
+    implementation("io.ktor:ktor-client-okhttp")
+    implementation("io.ktor:ktor-client-content-negotiation")
+    implementation("io.ktor:ktor-client-logging")
+}
+
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
-    implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("com.github.pengrad:java-telegram-bot-api:7.9.1")
-    implementation("me.kuku:utils:2.3.12.1")
-    implementation("me.kuku:ktor-spring-boot-starter:2.3.12.0")
     implementation("org.jsoup:jsoup:1.17.2")
     val ociVersion = "3.48.0"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")
@@ -33,9 +47,8 @@ dependencies {
     }
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     implementation("com.google.zxing:javase:3.5.3")
-    implementation("net.consensys.cava:cava-bytes:0.5.0")
-    implementation("net.consensys.cava:cava-crypto:0.5.0")
     implementation("com.aallam.openai:openai-client:3.8.2")
+    ktor()
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
@@ -63,4 +76,8 @@ tasks.test {
 
 tasks.bootJar {
     archiveFileName.set("tgbot.jar")
+}
+
+application {
+    mainClass.set("me.kuku.tgbot.TelegramApplicationKt")
 }

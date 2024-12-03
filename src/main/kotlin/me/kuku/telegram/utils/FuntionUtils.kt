@@ -9,12 +9,11 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.kuku.utils.DateTimeFormatterUtils
-import me.kuku.utils.client
 import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
 import java.io.InputStreamReader
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 suspend fun ffmpeg(command: String) {
     val runtime = Runtime.getRuntime()
@@ -59,9 +58,9 @@ suspend fun githubCommit(): List<GithubCommit> {
         val message = commit["message"].asText()
         val dateStr = commit["committer"]["date"].asText()
             .replace("T", " ").replace("Z", "")
-        val zero = DateTimeFormatterUtils.parseToLocalDateTime(dateStr, "yyyy-MM-dd HH:mm:ss")
+        val zero = LocalDateTime.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         val right = zero.plusHours(8)
-        val date = DateTimeFormatterUtils.format(right, "yyyy-MM-dd HH:mm:ss")
+        val date = right.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         list.add(GithubCommit(date, message, right))
     }
     return list

@@ -14,7 +14,7 @@ import me.kuku.telegram.entity.*
 import me.kuku.telegram.logic.BiliBiliLogic
 import me.kuku.telegram.logic.BiliBiliPojo
 import me.kuku.telegram.context.sendPic
-import me.kuku.utils.client
+import me.kuku.telegram.utils.client
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -95,8 +95,7 @@ class BiliBilliScheduled(
             kotlin.runCatching {
                 val tgId = biliBiliEntity.tgId
                 delay(3000)
-                val result = BiliBiliLogic.friendDynamic(biliBiliEntity)
-                val list = result.data ?: return@runCatching
+                val list = BiliBiliLogic.friendDynamic(biliBiliEntity)
                 val newList = mutableListOf<BiliBiliPojo>()
                 if (userMap.containsKey(tgId)) {
                     val oldId = userMap[tgId]!!

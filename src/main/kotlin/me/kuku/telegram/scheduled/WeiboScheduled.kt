@@ -12,7 +12,7 @@ import me.kuku.telegram.logic.WeiboLogic
 import me.kuku.telegram.logic.WeiboPojo
 import me.kuku.telegram.context.sendPic
 import me.kuku.telegram.context.sendTextMessage
-import me.kuku.utils.client
+import me.kuku.telegram.utils.client
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component

@@ -311,8 +311,16 @@ class ManagerExtension(
             val split = inlineKeyboardButton("以下是手动暂停与恢复时间按钮", "not")
             val info = try {
                 secondArg<LeiShenUserInfo>()
-            } catch (e: Exception) { LeiShenLogic.userInfo(leiShenEntity) }
-            val infoStr = if (info.pauseStatusId == 1) "暂停" else "恢复"
+            } catch (e: Exception) {
+                try {
+                    LeiShenLogic.userInfo(leiShenEntity)
+                } catch (ex: Exception) {
+                    leiShenEntity.status = Status.OFF
+                    leiShenService.save(leiShenEntity)
+                    null
+                }
+            }
+            val infoStr = if (info == null) "获取失败" else if (info.pauseStatusId == 1) "暂停" else "恢复"
             val pause = inlineKeyboardButton("（$infoStr）暂停/恢复时间", "leiShenPauseRecover")
             val markup = InlineKeyboardMarkup(
                 arrayOf(signButton),

@@ -3,13 +3,15 @@ package me.kuku.telegram.logic
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.request.headers
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import io.ktor.util.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.entity.ECloudEntity
 import me.kuku.telegram.entity.ECloudService
-import me.kuku.utils.*
+import me.kuku.telegram.utils.*
 import org.springframework.stereotype.Service
 
 @Service
@@ -23,9 +25,9 @@ class ECloudLogic(
                 val location = it.headers["location"] ?: error("未能成功跳转")
                 client.get(location).let { response ->
                     val ltUrl = response.headers["location"] ?: error("未能成功跳转")
-                    val lt = MyUtils.regex("lt=", "&", ltUrl) ?: error("未能成功获取lt")
-                    val reqId = MyUtils.regex("reqId=", "&", ltUrl) ?: error("未能成功获取reqId")
-                    listOf(response.cookie(), lt, reqId, ltUrl)
+                    val lt = RegexUtils.extract(ltUrl, "lt=", "&") ?: error("未能成功获取lt")
+                    val reqId = RegexUtils.extract(ltUrl, "reqId=", "&") ?: error("未能成功获取reqId")
+                    listOf(response.setCookie().renderCookieHeader(), lt, reqId, ltUrl)
                 }
             }
         val headers = StringValues.build {
@@ -34,40 +36,35 @@ class ECloudLogic(
             append("referer", refererUrl)
             append("reqId", reqId)
         }
-        val configJsonNode = client.post("https://open.e.189.cn/api/logbox/oauth2/appConf.do") {
-            setFormDataContent {
+        val configJsonNode = client.submitForm("https://open.e.189.cn/api/logbox/oauth2/appConf.do",
+            parameters {
                 append("version", "2.0")
                 append("appKey", "cloud")
-            }
+            }) {
             headers {
                 appendAll(headers)
             }
         }.bodyAsText().toJsonNode()
-        val encryptJsonNode = client.post("https://open.e.189.cn/api/logbox/config/encryptConf.do") {
-            setFormDataContent {
-                append("appId", "cloud")
-            }
-        }.bodyAsText().toJsonNode()
+        val encryptJsonNode = client.submitForm("https://open.e.189.cn/api/logbox/config/encryptConf.do",
+            parameters { append("appId", "cloud") }).bodyAsText().toJsonNode()
         val paramId = configJsonNode["data"]?.get("paramId")?.asText() ?: error("not found paramId")
         val encryptData = encryptJsonNode["data"]
         val pre = encryptData["pre"].asText()
         val pubKey = encryptData["pubKey"].asText()
-        client.post("https://open.e.189.cn/api/logbox/oauth2/needcaptcha.do") {
-            setFormDataContent {
+        client.submitForm("https://open.e.189.cn/api/logbox/oauth2/needcaptcha.do",
+            parameters {
                 append("accountType", "01")
                 append("userName", pre + username.rsaEncrypt(pubKey))
                 append("appKey", "cloud")
-            }
-        }.bodyAsText().takeIf { it == "0" } ?: error("需要验证码，请在任意设备成功登陆一次再试")
-        val response = client.post("https://open.e.189.cn/api/logbox/oauth2/loginSubmit.do") {
-            headers { appendAll(headers) }
-            setFormDataContent {
+            }).bodyAsText().takeIf { it == "0" } ?: error("需要验证码，请在任意设备成功登陆一次再试")
+        val response = client.submitForm("https://open.e.189.cn/api/logbox/oauth2/loginSubmit.do",
+            parameters {
                 append("version", "v2.0")
                 append("apToken", "")
                 append("appKey", "cloud")
                 append("accountType", "01")
-                append("userName", pre + username.rsaEncrypt(pubKey).base64Decode().hex())
-                append("epd", pre + password.rsaEncrypt(pubKey).base64Decode().hex())
+                append("userName", pre + username.rsaEncrypt(pubKey).decodeBase64Bytes().hex())
+                append("epd", pre + password.rsaEncrypt(pubKey).decodeBase64Bytes().hex())
                 append("captchaType", "")
                 append("validateCode", "")
                 append("smsValidateCode", "")
@@ -83,14 +80,15 @@ class ECloudLogic(
                 append("isOauth2", "false")
                 append("state", "")
                 append("paramId", paramId)
-            }
+            }) {
+            headers { appendAll(headers) }
         }
         val jsonNode = response.bodyAsText().toJsonNode()
         if (jsonNode["result"].asText() != "0") error(jsonNode["msg"].asText())
         val toUrl = jsonNode["toUrl"].asText()
-        val eCookie = response.cookie()
+        val eCookie = response.setCookie().renderCookieHeader()
         val loginResponse = client.get(toUrl)
-        val resultCookie = loginResponse.cookie()
+        val resultCookie = loginResponse.setCookie().renderCookieHeader()
         return ECloudEntity().also {
             it.eCookie = eCookie
             it.cookie = resultCookie
@@ -102,7 +100,7 @@ class ECloudLogic(
     }
 
     private suspend fun updateCookie(entity: ECloudEntity) {
-        val jsonNode = client.get("https://cloud.189.cn/api/portal/listFiles.action?noCache=0.${MyUtils.randomNum(16)}&fileId=-11")
+        val jsonNode = client.get("https://cloud.189.cn/api/portal/listFiles.action?noCache=0.${RandomUtils.num(16)}&fileId=-11")
             .body<JsonNode>()
         if (jsonNode.has("errorCode")) {
             val response1 =
@@ -115,7 +113,7 @@ class ECloudLogic(
             }
             val location2 = response2.headers["location"] ?: error("未能成功跳转")
             val response3 = client.get(location2)
-            val cookie = response3.cookie()
+            val cookie = response3.setCookie().renderCookieHeader()
             entity.cookie = cookie
             eCloudService.save(entity)
         }

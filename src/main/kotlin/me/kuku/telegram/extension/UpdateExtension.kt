@@ -11,9 +11,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.kuku.telegram.context.MixSubscribe
 import me.kuku.telegram.context.Privacy
-import me.kuku.utils.client
-import me.kuku.utils.convertValue
-import me.kuku.utils.setJsonBody
+import me.kuku.telegram.utils.client
+import me.kuku.telegram.utils.convertValue
+import me.kuku.telegram.utils.setJsonBody
 import org.jsoup.Jsoup
 import org.springframework.stereotype.Component
 import java.io.FileOutputStream

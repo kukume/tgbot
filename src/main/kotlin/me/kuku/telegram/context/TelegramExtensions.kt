@@ -12,7 +12,7 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.utils.SpringUtils
-import me.kuku.utils.client
+import me.kuku.telegram.utils.client
 
 fun inlineKeyboardButton(text: String, callbackData: String): InlineKeyboardButton = InlineKeyboardButton(text).callbackData(callbackData)
 

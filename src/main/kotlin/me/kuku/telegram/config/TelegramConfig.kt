@@ -2,11 +2,13 @@ package me.kuku.telegram.config
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.UpdatesListener
+import io.ktor.client.request.*
+import io.ktor.http.*
 import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.runBlocking
 import me.kuku.telegram.context.*
 import me.kuku.telegram.utils.SpringUtils
-import me.kuku.utils.OkHttpUtils
+import me.kuku.telegram.utils.client
 import okhttp3.OkHttpClient
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.ApplicationListener
@@ -198,9 +200,10 @@ val api: String
             tempApi = configApi.ifEmpty { "https://api.jpa.cc" }
         }
         try {
-            val response = OkHttpUtils.get(tempApi!!)
-            response.close()
-            if (response.code == 200) return tempApi!!
+            val response = runBlocking {
+                client.get(tempApi!!)
+            }
+            if (response.status == HttpStatusCode.OK) return tempApi!!
             else error(apiErrorMsg)
         } catch (e: Exception) {
             error(apiErrorMsg)

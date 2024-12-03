@@ -39,6 +39,8 @@ class LeiShenScheduled(
                         leiShenService.save(entity)
                     }
                 } catch (e: Exception) {
+                    entity.status = Status.OFF
+                    leiShenService.save(entity)
                     telegramBot.sendTextMessage(entity.tgId, """
                     #雷神加速器登录失败提醒
                     您的雷神加速器cookie已失效，重新登录失败，原因：${e.message}

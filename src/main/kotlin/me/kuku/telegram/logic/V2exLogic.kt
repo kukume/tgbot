@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import me.kuku.utils.client
-import me.kuku.utils.convertValue
+import me.kuku.telegram.utils.client
+import me.kuku.telegram.utils.convertValue
 
 object V2exLogic {
 

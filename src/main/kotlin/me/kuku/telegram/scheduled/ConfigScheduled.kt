@@ -6,15 +6,17 @@ import com.pengrad.telegrambot.request.SendMessage
 import com.pengrad.telegrambot.request.SendVideo
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
 import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.entity.ConfigService
 import me.kuku.telegram.entity.Status
 import me.kuku.telegram.logic.ToolLogic
-import me.kuku.utils.DateTimeFormatterUtils
-import me.kuku.utils.client
+import me.kuku.telegram.utils.client
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -28,7 +30,7 @@ class ConfigScheduled(
     suspend fun positiveEnergyPush() {
         val entityList = configService.findByPositiveEnergy(Status.ON)
         if (entityList.isEmpty()) return
-        val time = DateTimeFormatterUtils.formatNow("yyyyMMdd")
+        val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
         val file = toolLogic.positiveEnergy(time)
         try {
             for (configEntity in entityList) {

@@ -1,7 +1,6 @@
 package me.kuku.telegram.entity
 
 import kotlinx.coroutines.flow.toList
-import me.kuku.utils.OkUtils
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
@@ -16,8 +15,8 @@ class BaiduEntity: BaseEntity() {
     var tieBaSToken: String = ""
     var sign: Status = Status.OFF
 
-    fun otherCookie(sToken: String): String {
-        return OkUtils.cookieStr(cookie, "BDUSS") + "STOKEN=$sToken; "
+    private fun otherCookie(sToken: String): String {
+        return "BDUSS=.*?;".toRegex().find(sToken)!!.value + "STOKEN=$sToken; "
     }
 
     fun teiBaCookie(): String {

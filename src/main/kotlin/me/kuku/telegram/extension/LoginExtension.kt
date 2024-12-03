@@ -14,7 +14,6 @@ import me.kuku.telegram.entity.*
 import me.kuku.telegram.exception.QrcodeScanException
 import me.kuku.telegram.logic.*
 import me.kuku.telegram.utils.*
-import me.kuku.utils.*
 import org.springframework.stereotype.Service
 
 @Service
@@ -80,7 +79,7 @@ class LoginExtension(
         callback("baiduQrcodeLogin") {
             val qrcode = baiduLogic.getQrcode()
             var photoMessage: Message?
-            OkHttpKtUtils.getBytes(qrcode.image).let {
+            client.get(qrcode.image).body<ByteArray>().let {
                 val photo = SendPhoto(chatId, it)
                 photoMessage = bot.asyncExecute(photo).message()
                 editMessageText("请使用百度app扫描以下二维码登陆，百度网盘等均可", returnButton = false)
@@ -94,14 +93,11 @@ class LoginExtension(
                 }
                 delay(3000)
                 try {
-                    val result = baiduLogic.checkQrcode(qrcode)
-                    if (result.success()) {
-                        val newEntity = result.data()
-                        baiduEntity.cookie = newEntity.cookie
-                        baiduService.save(baiduEntity)
-                        editMessageText("绑定百度成功")
-                    }
-                } catch (ignore: Exception) {}
+                    val newEntity = baiduLogic.checkQrcode(qrcode)
+                    baiduEntity.cookie = newEntity.cookie
+                    baiduService.save(baiduEntity)
+                    editMessageText("绑定百度成功")
+                } catch (ignore: QrcodeScanException) {}
             }
         }
     }
@@ -127,24 +123,18 @@ class LoginExtension(
                     break
                 }
                 delay(3000)
-                val result = BiliBiliLogic.loginByQr2(qrcode)
-                when (result.code) {
-                    0 -> continue
-                    200 -> {
-                        val newEntity = result.data()
-                        val biliBiliEntity = biliBiliService.findByTgId(query.from().id()) ?: BiliBiliEntity().init()
-                        biliBiliEntity.cookie = newEntity.cookie
-                        biliBiliEntity.userid = newEntity.userid
-                        biliBiliEntity.token = newEntity.token
-                        biliBiliService.save(biliBiliEntity)
-                        editMessageText("绑定哔哩哔哩成功")
-                        break
-                    }
-                    else -> {
-                        editMessageText("哔哩哔哩登陆失败，${result.message}")
-                        break
-                    }
+                val newEntity = try {
+                    BiliBiliLogic.loginByQr2(qrcode)
+                } catch (e: QrcodeScanException) {
+                    continue
                 }
+                val biliBiliEntity = biliBiliService.findByTgId(query.from().id()) ?: BiliBiliEntity().init()
+                biliBiliEntity.cookie = newEntity.cookie
+                biliBiliEntity.userid = newEntity.userid
+                biliBiliEntity.token = newEntity.token
+                biliBiliService.save(biliBiliEntity)
+                editMessageText("绑定哔哩哔哩成功")
+                break
             }
             photoMessage?.delete()
         }
@@ -174,22 +164,16 @@ class LoginExtension(
                     break
                 }
                 delay(3000)
-                val result = douYuLogic.checkQrcode(qrcode)
-                when (result.code) {
-                    0 -> continue
-                    200 -> {
-                        val newEntity = result.data()
-                        val douYuEntity = douYuService.findByTgId(query.from().id()) ?: DouYuEntity().init()
-                        douYuEntity.cookie = newEntity.cookie
-                        douYuService.save(douYuEntity)
-                        editMessageText("绑定斗鱼成功")
-                        break
-                    }
-                    else -> {
-                        editMessageText("绑定斗鱼失败，${result.message}")
-                        break
-                    }
+                val newEntity = try {
+                    douYuLogic.checkQrcode(qrcode)
+                } catch (e: QrcodeScanException) {
+                    continue
                 }
+                val douYuEntity = douYuService.findByTgId(query.from().id()) ?: DouYuEntity().init()
+                douYuEntity.cookie = newEntity.cookie
+                douYuService.save(douYuEntity)
+                editMessageText("绑定斗鱼成功")
+                break
             }
             photoMessage?.delete()
         }
@@ -235,7 +219,7 @@ class LoginExtension(
         callback("huyaQrcodeLogin") {
             val qrcode = huYaLogic.getQrcode()
             val photoMessage: Message?
-            OkHttpKtUtils.getBytes(qrcode.url).let {
+            client.get(qrcode.url).body<ByteArray>().let {
                 val photo = SendPhoto(chatId, it)
                 photoMessage = bot.asyncExecute(photo).message()
                 editMessageText("请使用虎牙App扫描二维码登录", returnButton = false)
@@ -247,22 +231,16 @@ class LoginExtension(
                     break
                 }
                 delay(3000)
-                val result = huYaLogic.checkQrcode(qrcode)
-                when (result.code) {
-                    0 -> continue
-                    200 -> {
-                        val newEntity = result.data()
-                        val huYaEntity = huYaService.findByTgId(tgId) ?: HuYaEntity().init()
-                        huYaEntity.cookie = newEntity.cookie
-                        huYaService.save(huYaEntity)
-                        editMessageText("绑定虎牙成功")
-                        break
-                    }
-                    else -> {
-                        editMessageText("绑定虎牙失败，${result.message}")
-                        break
-                    }
+                val newEntity = try {
+                    huYaLogic.checkQrcode(qrcode)
+                } catch (e: QrcodeScanException) {
+                    continue
                 }
+                val huYaEntity = huYaService.findByTgId(tgId) ?: HuYaEntity().init()
+                huYaEntity.cookie = newEntity.cookie
+                huYaService.save(huYaEntity)
+                editMessageText("绑定虎牙成功")
+                break
             }
             photoMessage?.delete()
         }
@@ -281,21 +259,15 @@ class LoginExtension(
                 it.mid = kuGouLogic.mid()
             }
             val mid = kuGouEntity.mid
-            val result = kuGouLogic.sendMobileCode(phone.toString(), mid)
-            val message = if (result.success()) {
-                editMessageText("请发送酷狗短信验证码")
-                val code = nextMessage(1000 * 60 * 2).text()
-                val verifyResult = kuGouLogic.verifyCode(phone.toString(), code, mid)
-                if (verifyResult.success()) {
-                    val newKuGouEntity = verifyResult.data()
-                    kuGouEntity.kuGoo = newKuGouEntity.kuGoo
-                    kuGouEntity.token = newKuGouEntity.token
-                    kuGouEntity.userid = newKuGouEntity.userid
-                    kuGouService.save(kuGouEntity)
-                    "绑定成功"
-                } else verifyResult.message
-            } else result.message
-            editMessageText(message)
+            kuGouLogic.sendMobileCode(phone.toString(), mid)
+            editMessageText("请发送酷狗短信验证码")
+            val code = nextMessage(1000 * 60 * 2).text()
+            val newKuGouEntity = kuGouLogic.verifyCode(phone.toString(), code, mid)
+            kuGouEntity.kuGoo = newKuGouEntity.kuGoo
+            kuGouEntity.token = newKuGouEntity.token
+            kuGouEntity.userid = newKuGouEntity.userid
+            kuGouService.save(kuGouEntity)
+            editMessageText("绑定酷狗成功")
         }
     }
 
@@ -312,8 +284,8 @@ class LoginExtension(
         callback("miHoYoCookieLogin") {
             editMessageText("请发送米哈游的cookie")
             val cookie = nextMessage().text()
-            val ticket = OkUtils.cookie(cookie, "login_ticket") ?: ""
-            val accountId = OkUtils.cookie(cookie, "account_id") ?: ""
+            val ticket = RegexUtils.extract(cookie, "login_ticket", ";") ?: ""
+            val accountId = RegexUtils.extract(cookie, " account_id", ";") ?: ""
             val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().init()
             newEntity.cookie = cookie
             newEntity.ticket = ticket
@@ -337,20 +309,19 @@ class LoginExtension(
                         break
                     }
                     delay(3000)
-                    val result = miHoYoLogic.qrcodeLogin2(qrcode)
-                    when (result.code) {
-                        200 -> {
-                            val miHoYoEntity = result.data()
-                            val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().init()
-                            newEntity.fix = miHoYoEntity.fix
-                            newEntity.aid = miHoYoEntity.aid
-                            newEntity.mid = miHoYoEntity.mid
-                            newEntity.cookie = miHoYoEntity.cookie
-                            miHoYoService.save(newEntity)
-                            editMessageText("绑定米哈游成功")
-                            break
-                        }
+                    val miHoYoEntity = try {
+                        miHoYoLogic.qrcodeLogin2(qrcode)
+                    } catch (e: QrcodeScanException) {
+                        continue
                     }
+                    val newEntity = miHoYoService.findByTgId(tgId) ?: MiHoYoEntity().init()
+                    newEntity.fix = miHoYoEntity.fix
+                    newEntity.aid = miHoYoEntity.aid
+                    newEntity.mid = miHoYoEntity.mid
+                    newEntity.cookie = miHoYoEntity.cookie
+                    miHoYoService.save(newEntity)
+                    editMessageText("绑定米哈游成功")
+                    break
                 }
             } finally {
                 photoMessage?.delete()
@@ -411,14 +382,11 @@ class LoginExtension(
             val phone = nextMessage().text()
             editMessageText("请发送小米运动密码")
             val password = nextMessage().text()
-            val result = XiaomiStepLogic.login(phone, password)
-            if (result.success()) {
-                val newEntity = result.data()
-                val stepEntity = stepService.findByTgId(tgId) ?: StepEntity().init()
-                stepEntity.miLoginToken = newEntity.miLoginToken
-                stepService.save(stepEntity)
-                editMessageText("绑定小米运动成功")
-            } else editMessageText("绑定小米运动失败，${result.message}")
+            val newEntity = XiaomiStepLogic.login(phone, password)
+            val stepEntity = stepService.findByTgId(tgId) ?: StepEntity().init()
+            stepEntity.miLoginToken = newEntity.miLoginToken
+            stepService.save(stepEntity)
+            editMessageText("绑定小米运动成功")
         }
         callback("leXinStepLogin") {
             editMessageText("请选择乐心运动登录方式", InlineKeyboardMarkup(
@@ -430,17 +398,13 @@ class LoginExtension(
             val phone = nextMessage().text()
             editMessageText("请发送乐心运动密码")
             val password = nextMessage().text()
-            val result = LeXinStepLogic.login(phone, password)
-            val message = if (result.success()) {
-                val newStepEntity = result.data()
-                val stepEntity = stepService.findByTgId(query.from().id()) ?: StepEntity().init()
-                stepEntity.leXinCookie = newStepEntity.leXinCookie
-                stepEntity.leXinUserid = newStepEntity.leXinUserid
-                stepEntity.leXinAccessToken = newStepEntity.leXinAccessToken
-                stepService.save(stepEntity)
-                "绑定乐心运动成功"
-            } else result.message
-            editMessageText(message)
+            val newStepEntity = LeXinStepLogic.login(phone, password)
+            val stepEntity = stepService.findByTgId(query.from().id()) ?: StepEntity().init()
+            stepEntity.leXinCookie = newStepEntity.leXinCookie
+            stepEntity.leXinUserid = newStepEntity.leXinUserid
+            stepEntity.leXinAccessToken = newStepEntity.leXinAccessToken
+            stepService.save(stepEntity)
+            editMessageText("绑定乐心运动成功")
         }
     }
 
@@ -531,16 +495,14 @@ class LoginExtension(
                 if (++i >= 20) break
                 try {
                     delay(3000)
-                    val result = smZdmLogic.wechatQrcode2(wechatQrcode)
-                    if (result.code == 200) {
-                        val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().init()
-                        smZdmEntity.cookie = result.data().cookie
-                        smZdmService.save(smZdmEntity)
-                        editMessageText("绑定什么值得买成功")
-                        fail = false
-                        break
-                    }
-                } catch (ignore: Exception) {
+                    val newEntity = smZdmLogic.wechatQrcode2(wechatQrcode)
+                    val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().init()
+                    smZdmEntity.cookie = newEntity.cookie
+                    smZdmService.save(smZdmEntity)
+                    editMessageText("绑定什么值得买成功")
+                    fail = false
+                    break
+                } catch (ignore: QrcodeScanException) {
                 }
             }
             photoMessage?.delete()
@@ -561,16 +523,17 @@ class LoginExtension(
             while (true) {
                 if (++i >= 20) break
                 delay(3000)
-                val result = smZdmLogic.appQrcode2(appQrcode)
-                if (result.code == 200) {
-                    val newEntity = result.data()
-                    val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().init()
-                    smZdmEntity.cookie = newEntity.cookie
-                    smZdmService.save(smZdmEntity)
-                    editMessageText("绑定什么值得买成功")
-                    fail = false
-                    break
+                val newEntity = try {
+                    smZdmLogic.appQrcode2(appQrcode)
+                } catch (e: QrcodeScanException) {
+                    continue
                 }
+                val smZdmEntity = smZdmService.findByTgId(tgId) ?: SmZdmEntity().init()
+                smZdmEntity.cookie = newEntity.cookie
+                smZdmService.save(smZdmEntity)
+                editMessageText("绑定什么值得买成功")
+                fail = false
+                break
             }
             photoMessage?.delete()
             if (fail)

@@ -10,14 +10,14 @@ import io.ktor.util.logging.*
 import me.kuku.telegram.context.sendPic
 import me.kuku.telegram.entity.ConfigService
 import me.kuku.telegram.entity.Status
-import me.kuku.utils.DateTimeFormatterUtils
-import me.kuku.utils.MyUtils
-import me.kuku.utils.client
-import me.kuku.utils.toJsonNode
+import me.kuku.telegram.utils.client
+import me.kuku.telegram.utils.toJsonNode
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -39,8 +39,7 @@ class EpicScheduled(
             val promotion = element["promotions"]?.get("promotionalOffers")?.get(0)?.get("promotionalOffers")?.get(0)
                 ?: element["promotions"]?.get("upcomingPromotionalOffers")?.get(0)?.get("promotionalOffers")?.get(0)  ?: continue
             val startDate = promotion["startDate"].asText().replace(".000Z", "")
-            val startTimeStamp = DateTimeFormatterUtils.parseToLocalDateTime(startDate, "yyyy-MM-dd'T'HH:mm:ss")
-                .toInstant(ZoneOffset.of("+0")).toEpochMilli()
+            val startTimeStamp = LocalDateTime.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")).toInstant(ZoneOffset.ofHours(8)).toEpochMilli()
             val nowTimeStamp = System.currentTimeMillis()
             val diff = nowTimeStamp - startTimeStamp
             if (diff < 1000 * 60 * 60 && diff > 0) {
@@ -50,7 +49,7 @@ class EpicScheduled(
                 val html =
                     client.get("https://store.epicgames.com/zh-CN/p/$slug").bodyAsText()
                 val queryJsonNode =
-                    MyUtils.regex("window\\.__REACT_QUERY_INITIAL_QUERIES__\\s*=\\s*(\\{.*\\});", html)?.substring(41)?.dropLast(1)?.toJsonNode() ?: continue
+                    "window\\.__REACT_QUERY_INITIAL_QUERIES__\\s*=\\s*(\\{.*});".toRegex().find(html)?.value?.substring(41)?.dropLast(1)?.toJsonNode() ?: continue
                 val queries = queryJsonNode["queries"]
                 val mappings = queries.filter { it["queryKey"]?.get(0)?.asText() == "getCatalogOffer" }
                 for (mapping in mappings) {

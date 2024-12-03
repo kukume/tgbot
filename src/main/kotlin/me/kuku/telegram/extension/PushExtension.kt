@@ -13,13 +13,12 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.util.*
-import me.kuku.ktor.plugins.getOrFail
-import me.kuku.ktor.plugins.receiveJsonNode
-import me.kuku.pojo.CommonResult
 import me.kuku.telegram.context.*
 import me.kuku.telegram.entity.PushEntity
 import me.kuku.telegram.entity.PushService
-import me.kuku.utils.client
+import me.kuku.telegram.ktor.context.KtorRouter
+import me.kuku.telegram.utils.client
+import me.kuku.telegram.utils.toJsonNode
 import org.springframework.stereotype.Component
 import java.util.UUID
 
@@ -76,9 +75,9 @@ class PushExtension(
 class PushController(
     private val pushService: PushService,
     private val telegramBot: TelegramBot
-) {
+): KtorRouter {
 
-    fun Routing.push() {
+    override fun Routing.route() {
 
         route("push") {
 
@@ -90,7 +89,7 @@ class PushController(
                     sendMessage.parseMode(ParseMode.valueOf(parseMode))
                 }
                 telegramBot.asyncExecute(sendMessage)
-                respond(CommonResult.success<Unit>())
+                respond("{}")
             }
 
             get {
@@ -101,9 +100,9 @@ class PushController(
             }
 
             post {
-                val jsonNode = call.receiveJsonNode()
-                val key = jsonNode.getOrFail("key").asText()
-                val text = jsonNode.getOrFail("text").asText()
+                val jsonNode = call.receiveText().toJsonNode()
+                val key = jsonNode["key"].asText()
+                val text = jsonNode["text"].asText()
                 val parseMode = jsonNode["parseMode"]?.asText()
                 call.push(key, text, parseMode)
             }

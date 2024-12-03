@@ -8,9 +8,9 @@ import kotlinx.coroutines.delay
 import me.kuku.telegram.config.TelegramConfig
 import me.kuku.telegram.entity.BotConfigService
 import me.kuku.telegram.entity.ConfigService
-import me.kuku.utils.Jackson
-import me.kuku.utils.client
-import me.kuku.utils.setJsonBody
+import me.kuku.telegram.utils.Jackson
+import me.kuku.telegram.utils.client
+import me.kuku.telegram.utils.setJsonBody
 import org.springframework.stereotype.Service
 
 @Service

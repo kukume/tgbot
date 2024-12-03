@@ -8,6 +8,7 @@ import com.pengrad.telegrambot.model.PhotoSize
 import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.EditMessageText
 import com.pengrad.telegrambot.request.GetFile
+import io.ktor.util.*
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
@@ -18,7 +19,6 @@ import me.kuku.telegram.context.asyncExecute
 import me.kuku.telegram.context.byteArray
 import me.kuku.telegram.entity.BotConfigService
 import me.kuku.telegram.utils.CacheManager
-import me.kuku.utils.base64Encode
 import org.springframework.stereotype.Component
 import java.time.Duration
 
@@ -48,7 +48,7 @@ class OpenaiExtension(
                 ?.forEach { photoSize ->
                 val getFile = GetFile(photoSize.fileId())
                 val getFileResponse = bot.asyncExecute(getFile)
-                val base64 = getFileResponse.file().byteArray().base64Encode()
+                val base64 = getFileResponse.file().byteArray().encodeBase64()
                 photoList.add(base64)
             }
 

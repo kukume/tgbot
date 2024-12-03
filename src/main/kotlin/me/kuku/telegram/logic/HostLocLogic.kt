@@ -1,18 +1,74 @@
 package me.kuku.telegram.logic
 
+import io.ktor.client.*
+import io.ktor.client.engine.okhttp.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.jackson.*
 import kotlinx.coroutines.delay
-import me.kuku.pojo.UA
-import me.kuku.utils.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import me.kuku.telegram.utils.*
 import org.jsoup.Jsoup
+import java.lang.Exception
+import java.util.concurrent.TimeUnit
+import javax.crypto.Cipher
+import javax.crypto.SecretKey
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
+import kotlin.random.Random
 
 object HostLocLogic {
 
+    private val mutex = Mutex()
+
+    private val client by lazy {
+        HttpClient(OkHttp) {
+            engine {
+                config {
+                    followRedirects(false)
+                }
+
+                addInterceptor { chain ->
+                    val request = chain.request()
+                    val response = chain.proceed(request)
+                    if (response.code != 200) {
+                        val html = response.body?.string() ?: return@addInterceptor response
+                        val cookie = prepareCookie(html)
+                        if (cookie.isNotEmpty()) {
+                            val headerCookie = request.headers["cookie"] ?: ""
+                            val newCookie = "$headerCookie$cookie"
+                            val newRequest = request.newBuilder()
+                                .header("cookie", newCookie)
+                                .build()
+                            TimeUnit.SECONDS.sleep(2)
+                            chain.proceed(newRequest)
+                        } else response
+                    } else response
+                }
+            }
+
+            followRedirects = false
+
+            install(ContentNegotiation) {
+                jackson()
+            }
+
+            defaultRequest {
+                header("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+            }
+
+            install(Logging)
+
+        }
+    }
+
     suspend fun login(username: String, password: String): String {
-        val prepareCookie = prepareCookie()
         val response = client.submitForm("https://hostloc.com/member.php?mod=logging&action=login&loginsubmit=yes&infloat=yes&lssubmit=yes&inajax=1", parameters {
             append("fastloginfield", "username")
             append("username", username)
@@ -21,51 +77,55 @@ object HostLocLogic {
             append("quickforward", "yes")
             append("handlekey", "ls")
         }) {
-            cookieString(prepareCookie)
             referer("https://hostloc.com/forum.php")
         }
         val str = response.bodyAsText()
         return if (str.contains("https://hostloc.com/forum.php"))
-            response.cookie()
+            response.setCookie().renderCookieHeader()
         else error("账号或密码错误或其他原因登录失败！")
     }
 
     private suspend fun checkLogin(cookie: String) {
-        val prepareCookie = prepareCookie()
-        val newCookie = prepareCookie + cookie
         val html = client.get("https://hostloc.com/home.php?mod=spacecp") {
-            cookieString(newCookie)
+            cookieString(cookie)
         }.bodyAsText()
+        delay(1000)
         val text = Jsoup.parse(html).getElementsByTag("title").first()!!.text()
         val b = text.contains("个人资料")
         if (!b) error("cookie已失效")
     }
 
+
     suspend fun singleSign(cookie: String) {
-        val prepareCookie = prepareCookie()
-        val newCookie = prepareCookie + cookie
-        checkLogin(newCookie)
-        val url = "https://hostloc.com/space-uid-${MyUtils.randomInt(10000, 50000)}.html"
-        kotlin.runCatching {
-            OkHttpKtUtils.get(url, OkUtils.headers(newCookie, "https://hostloc.com/forum.php", UA.PC))
-                .close()
+        mutex.withLock {
+            checkLogin(cookie)
+            val url = "https://hostloc.com/space-uid-${Random.nextInt(10000, 50000)}.html"
+            kotlin.runCatching {
+                client.get(url) {
+                    cookieString(cookie)
+                    referer("https://hostloc.com/forum.php")
+                }
+                delay(1000)
+            }
         }
     }
 
     suspend fun sign(cookie: String) {
-        val prepareCookie = prepareCookie()
-        val newCookie = prepareCookie + cookie
-        checkLogin(newCookie)
-        val urlList = mutableListOf<String>()
-        for (i in 0..12) {
-            val num = MyUtils.randomInt(10000, 50000)
-            urlList.add("https://hostloc.com/space-uid-$num.html")
-        }
-        for (url in urlList) {
-            delay(5000)
-            kotlin.runCatching {
-                OkHttpKtUtils.get(url, OkUtils.headers(newCookie, "https://hostloc.com/forum.php", UA.PC))
-                    .close()
+        mutex.withLock {
+            checkLogin(cookie)
+            val urlList = mutableListOf<String>()
+            for (i in 0..12) {
+                val num = Random.nextInt(10000, 50000)
+                urlList.add("https://hostloc.com/space-uid-$num.html")
+            }
+            for (url in urlList) {
+                delay(5000)
+                kotlin.runCatching {
+                    client.get(url) {
+                        cookieString(cookie)
+                        referer("https://hostloc.com/forum.php")
+                    }
+                }
             }
         }
     }
@@ -73,8 +133,9 @@ object HostLocLogic {
     suspend fun post(): List<HostLocPost> {
         val list = mutableListOf<HostLocPost>()
         val html = kotlin.runCatching {
-            OkHttpKtUtils.getStr("https://hostloc.com/forum.php?mod=forumdisplay&fid=45&filter=author&orderby=dateline",
-                OkUtils.headers("", "https://hostloc.com/forum.php", UA.PC))
+            client.get("https://hostloc.com/forum.php?mod=forumdisplay&fid=45&filter=author&orderby=dateline") {
+                referer("https://hostloc.com/forum.php")
+            }.bodyAsText()
         }.onFailure {
             return list
         }
@@ -86,7 +147,7 @@ object HostLocLogic {
             val url = "https://hostloc.com/${s.attr("href")}"
             val time = ele.select("em a span").first()?.text() ?: ""
             val name = ele.select("cite a").first()?.text() ?: ""
-            val id = MyUtils.regex("tid=", "&", url)?.toInt() ?: 0
+            val id = RegexUtils.extract(url, "tid=", "&")?.toInt() ?: 0
             val hostLocPost = HostLocPost(id, name, time, title, url)
             list.add(hostLocPost)
         }
@@ -94,7 +155,9 @@ object HostLocLogic {
     }
 
     suspend fun postContent(url: String, cookie: String = ""): String {
-        val str = OkHttpKtUtils.getStr(url, OkUtils.headers(cookie, "", UA.PC))
+        val str = client.get(url) {
+            cookieString(cookie)
+        }.bodyAsText()
         val pct = Jsoup.parse(str).getElementsByClass("pct")
         return pct.first()?.text() ?: "未获取到内容，需要权限查看"
     }
@@ -125,19 +188,29 @@ object HostLocLogic {
         return bytes
     }
 
-    private suspend fun prepareCookie(): String {
-        val html = client.get("https://hostloc.com/forum.php") {
-        }.bodyAsText()
-        val group = MyUtils.regexGroup("(?<=toNumbers\\(\").*?(?=\"\\))", html)
+    private fun prepareCookie(html: String): String {
+        val group = "(?<=toNumbers\\(\").*?(?=\"\\))".toRegex().findAll(html).map { it.value }.toList()
         if (group.isEmpty()) return ""
         val a = intArrToByteArr(toNumbers(group[0]))
         val b = intArrToByteArr(toNumbers(group[1]))
         val c = intArrToByteArr(toNumbers(group[2]))
 
-        val decryptedValue = AESUtils.decryptLoc(a, b, c)!!
-        val cookieValue = HexUtils.byteArrayToHex(decryptedValue)
+        val decryptedValue = decrypt(a, b, c)!!
+        val cookieValue = decryptedValue.hex()
 
         return "cnsL7=$cookieValue; "
+    }
+
+    private fun decrypt(aseKey: ByteArray?, iv: ByteArray, data: ByteArray): ByteArray? {
+        return try {
+            val cipher = Cipher.getInstance("AES/CBC/NoPadding")
+            val secretKey: SecretKey = SecretKeySpec(aseKey, "AES")
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, IvParameterSpec(iv))
+            cipher.doFinal(data)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
 }
