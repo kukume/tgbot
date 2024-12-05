@@ -165,7 +165,7 @@ class BaiduLogic (
                 headers {
                     headers.forEach { append(it.key, it.value) }
                 }
-            }.body<JsonNode>()
+            }.bodyAsText().toJsonNode()
             if (!arrayOf(1101, 0).contains(jsonObject["no"].asInt())) error(jsonObject["error"].asText())
         }
     }

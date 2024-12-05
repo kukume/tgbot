@@ -37,7 +37,7 @@ fun DependencyHandlerScope.ktor() {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
-    implementation("com.github.pengrad:java-telegram-bot-api:7.9.1")
+    implementation("com.github.pengrad:java-telegram-bot-api:7.11.0")
     implementation("org.jsoup:jsoup:1.17.2")
     val ociVersion = "3.48.0"
     implementation("com.oracle.oci.sdk:oci-java-sdk-core:$ociVersion")

@@ -16,7 +16,7 @@ class BaiduEntity: BaseEntity() {
     var sign: Status = Status.OFF
 
     private fun otherCookie(sToken: String): String {
-        return "BDUSS=.*?;".toRegex().find(sToken)!!.value + "STOKEN=$sToken; "
+        return "BDUSS=.*?;".toRegex().find(cookie)!!.value + "STOKEN=$sToken; "
     }
 
     fun teiBaCookie(): String {
