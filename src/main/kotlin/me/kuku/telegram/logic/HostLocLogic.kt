@@ -35,21 +35,24 @@ object HostLocLogic {
                 }
 
                 addInterceptor { chain ->
-                    val request = chain.request()
-                    val response = chain.proceed(request)
-                    if (response.code != 200) {
-                        val html = response.body?.string() ?: return@addInterceptor response
-                        val cookie = prepareCookie(html)
-                        if (cookie.isNotEmpty()) {
-                            val headerCookie = request.headers["cookie"] ?: ""
-                            val newCookie = "$headerCookie$cookie"
-                            val newRequest = request.newBuilder()
-                                .header("cookie", newCookie)
-                                .build()
-                            TimeUnit.SECONDS.sleep(2)
-                            chain.proceed(newRequest)
+                    synchronized(this) {
+                        TimeUnit.SECONDS.sleep(2)
+                        val request = chain.request()
+                        val response = chain.proceed(request)
+                        if (response.code != 200) {
+                            val html = response.body?.string() ?: return@addInterceptor response
+                            val cookie = prepareCookie(html)
+                            if (cookie.isNotEmpty()) {
+                                val headerCookie = request.headers["cookie"] ?: ""
+                                val newCookie = "$headerCookie$cookie"
+                                val newRequest = request.newBuilder()
+                                    .header("cookie", newCookie)
+                                    .build()
+                                TimeUnit.SECONDS.sleep(2)
+                                chain.proceed(newRequest)
+                            } else response
                         } else response
-                    } else response
+                    }
                 }
             }
 
