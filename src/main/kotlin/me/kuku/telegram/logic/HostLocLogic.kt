@@ -2,7 +2,6 @@ package me.kuku.telegram.logic
 
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
-import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
@@ -11,6 +10,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.kuku.telegram.utils.*
@@ -27,8 +27,12 @@ object HostLocLogic {
 
     private val mutex = Mutex()
 
+    private lateinit var globalCookie: MutableList<Cookie>
+
+    private val cookieKeyList = listOf("hkCM_2132_lastact", "hkCM_2132_connect_is_bind", "hkCM_2132_sid")
+
     private val client by lazy {
-        HttpClient(OkHttp) {
+        val ktorClient = HttpClient(OkHttp) {
             engine {
                 config {
                     followRedirects(false)
@@ -38,8 +42,30 @@ object HostLocLogic {
                     synchronized(this) {
                         TimeUnit.SECONDS.sleep(2)
                         val request = chain.request()
-                        val response = chain.proceed(request)
-                        if (response.code != 200) {
+                        request.header("ignore")?.let {
+                            return@addInterceptor chain.proceed(request)
+                        }
+                        val queryCookie = request.header("cookie")?.let {
+                            var newCookie = it
+                            for (cookie in globalCookie) {
+                                val split1 = newCookie.split("; ")
+                                val find = split1.find { s -> s.startsWith("${cookie.name}=") }
+                                if (find != null) {
+                                    val split2 = find.split("=")
+                                    newCookie = newCookie.replace("${cookie.name}=${split2[1]}", "${cookie.name}=${cookie.value}")
+                                } else {
+                                    newCookie += "${cookie.name}=${cookie.value}; "
+                                }
+                            }
+                            newCookie
+                        } ?: globalCookie.renderCookieHeader()
+                        val response = chain.proceed(request.newBuilder()
+                            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                            .header("Accept", "*/*")
+                            .removeHeader("cookie")
+                            .header("cookie", queryCookie)
+                            .build())
+                        val returnResponse = if (response.code != 200) {
                             val html = response.body?.string() ?: return@addInterceptor response
                             val cookie = prepareCookie(html)
                             if (cookie.isNotEmpty()) {
@@ -52,6 +78,16 @@ object HostLocLogic {
                                 chain.proceed(newRequest)
                             } else response
                         } else response
+                        val headers = returnResponse.headers("Set-Cookie")
+                        for (header in headers) {
+                            val split = header.split("; ")[0].split("=")
+                            val key = split[0]
+                            if (key !in cookieKeyList) continue
+                            val value = split[1]
+                            globalCookie = globalCookie.filter { it.name != key }.toMutableList()
+                            globalCookie.add(Cookie(key, value))
+                        }
+                        response
                     }
                 }
             }
@@ -62,13 +98,19 @@ object HostLocLogic {
                 jackson()
             }
 
-            defaultRequest {
-                header("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
-            }
 
             install(Logging)
 
         }
+        runBlocking {
+            val response = ktorClient.get("https://hostloc.com/forum.php") {
+                headers {
+                    append("ignore", "true")
+                }
+            }
+            globalCookie = response.setCookie().filter { it.name in cookieKeyList }.toMutableList()
+        }
+        ktorClient
     }
 
     suspend fun login(username: String, password: String): String {

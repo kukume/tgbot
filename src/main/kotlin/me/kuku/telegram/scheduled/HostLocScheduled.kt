@@ -24,7 +24,7 @@ class HostLocScheduled(
 
     private val logger = LoggerFactory.getLogger(HostLocScheduled::class.java)
 
-    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
+//    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.MINUTES)
     suspend fun locPush() {
         val list = try {
             HostLocLogic.post()
