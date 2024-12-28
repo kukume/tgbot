@@ -39,7 +39,7 @@ class EpicScheduled(
             val promotion = element["promotions"]?.get("promotionalOffers")?.get(0)?.get("promotionalOffers")?.get(0)
                 ?: element["promotions"]?.get("upcomingPromotionalOffers")?.get(0)?.get("promotionalOffers")?.get(0)  ?: continue
             val startDate = promotion["startDate"].asText().replace(".000Z", "")
-            val startTimeStamp = LocalDateTime.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")).toInstant(ZoneOffset.ofHours(8)).toEpochMilli()
+            val startTimeStamp = LocalDateTime.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")).toInstant(ZoneOffset.ofHours(0)).toEpochMilli()
             val nowTimeStamp = System.currentTimeMillis()
             val diff = nowTimeStamp - startTimeStamp
             if (diff < 1000 * 60 * 60 && diff > 0) {

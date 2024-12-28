@@ -24,7 +24,13 @@ suspend fun TelegramBot.sendPic(tgId: Long, text: String, picUrl: List<String>, 
         messageThreadId?.let {
             sendPhoto.messageThreadId(it)
         }
-        asyncExecute(sendPhoto)
+        try {
+            asyncExecute(sendPhoto)
+        } catch (e: Exception) {
+            sendPhoto.caption("")
+            asyncExecute(sendPhoto)
+            sendTextMessage(tgId, text, messageThreadId)
+        }
     } else if (picUrl.isEmpty()) {
         sendTextMessage(tgId, text, messageThreadId)
     } else {
