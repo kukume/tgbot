@@ -126,3 +126,5 @@ params: key(get from commands /push) and text, parseMode (optional)
 
 ## LICENSE
 `AGPLv3`
+
+[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
